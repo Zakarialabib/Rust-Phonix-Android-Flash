@@ -1,0 +1,56 @@
+# Phoenix Device Configuration: TX3 Mini
+# Common 2GB/16GB variant with AP6212 WiFi
+
+device:
+  name: TX3 Mini
+  manufacturer: Tanix
+  soc: s905w
+  variant: 2GB
+
+hardware:
+  memory:
+    type: DDR3
+    size_mb: 2048
+    chip: Samsung K4B4G1646E
+
+  storage:
+    type: eMMC
+    size_gb: 16
+
+  wifi:
+    chip: AP6212
+    driver: brcmfmac
+    firmware: brcmfmac43430-sdio.bin
+    nvram: nvram_ap6212.txt
+
+  ethernet:
+    type: internal
+    speed: 100Mbps
+
+boot:
+  secure_boot: false
+  reference_dtb: meson-gxl-s905w-p281.dtb
+  uart:
+    port: ttyAML0
+    baud: 115200
+
+profiles:
+  minimal:
+    rootfs: buildroot
+    kernel: mainline-6.6
+    packages: []
+
+  signage:
+    rootfs: buildroot
+    kernel: mainline-6.6
+    packages:
+      - cage
+      - weston
+      - chromium
+
+build:
+  buildroot_defconfig: phoenix_s905w_defconfig
+  kernel_fragments:
+    - amlogic-base.config
+    - panfrost.config
+  uboot_config: libretech-cc_defconfig

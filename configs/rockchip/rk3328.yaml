@@ -1,0 +1,69 @@
+# Rockchip RK3328 Profile
+# Common boxes: X96 Max, H96 Max, A5X Max
+
+name: "RK3328 Generic"
+soc: "RK3328"
+vendor: "Rockchip"
+architecture: "arm64"
+cores: 4
+max_freq_mhz: 1500
+
+flash:
+  type: "emmc"
+  size_gb: 32
+  supports_maskrom: true
+  supports_loader: true
+
+ram:
+  type: "DDR4"
+  size_mb: 4096
+  variants: [2048, 4096]
+
+usb:
+  vid: 0x2207
+  pid_maskrom: 0x320c
+  pid_loader: 0x320c
+  
+boot:
+  mode: "loader"
+  entry_method: "recovery_button"
+  loader_delay_ms: 20
+
+partitions:
+  - name: "parameter"
+    offset: 0x0
+    size: 0x2000
+  - name: "loader1"
+    offset: 0x40
+    size: 0x1f40
+  - name: "reserved1"
+    offset: 0x1f80
+    size: 0x80
+  - name: "reserved2"
+    offset: 0x2000
+    size: 0x2000
+  - name: "loader2"
+    offset: 0x4000
+    size: 0x2000
+  - name: "atf"
+    offset: 0x6000
+    size: 0x2000
+  - name: "boot"
+    offset: 0x8000
+    size: 0x38000
+  - name: "rootfs"
+    grow: true
+
+firmware_sources:
+  - name: "SlimBoxTV"
+    url: "https://slimboxtv.ru/category/rockchip/rk3328/"
+    recommended: true
+  - name: "Armbian"
+    url: "https://www.armbian.com/rk3328/"
+
+notes: |
+  RK3328 is a popular mid-range quad-core Cortex-A53 chip.
+  Supports DDR4 up to 4GB.
+  USB 3.0 capable.
+  Common in NAS boxes (FriendlyElec NanoPi R2S).
+  Maskrom entry: Hold Recovery button during power-on.

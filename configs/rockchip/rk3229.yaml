@@ -1,0 +1,80 @@
+# Rockchip RK3229 Profile
+# Common boxes: MXQ-4K, V88, X96 Mini (early batches)
+
+name: "RK3229 Generic"
+soc: "RK3229"
+vendor: "Rockchip"
+architecture: "arm"
+cores: 4
+max_freq_mhz: 1200
+
+flash:
+  type: "emmc"
+  size_gb: 8
+  supports_maskrom: true
+  supports_loader: true
+
+ram:
+  type: "DDR3"
+  size_mb: 1024
+  variants: [512, 1024, 2048]
+
+usb:
+  vid: 0x2207
+  pid_maskrom: 0x320b
+  pid_loader: 0x320b
+  
+boot:
+  mode: "maskrom"
+  entry_method: "short_clk_gnd"
+  loader_delay_ms: 20
+
+partitions:
+  - name: "parameter"
+    offset: 0x0
+    size: 0x2000
+  - name: "uboot"
+    offset: 0x2000
+    size: 0x2000
+  - name: "trust"
+    offset: 0x4000
+    size: 0x2000
+  - name: "misc"
+    offset: 0x6000
+    size: 0x2000
+  - name: "resource"
+    offset: 0x8000
+    size: 0x8000
+  - name: "kernel"
+    offset: 0x10000
+    size: 0x10000
+  - name: "boot"
+    offset: 0x20000
+    size: 0x10000
+  - name: "recovery"
+    offset: 0x30000
+    size: 0x20000
+  - name: "backup"
+    offset: 0x50000
+    size: 0x20000
+  - name: "cache"
+    offset: 0x70000
+    size: 0x40000
+  - name: "system"
+    offset: 0xB0000
+    size: 0x500000
+  - name: "userdata"
+    grow: true
+
+firmware_sources:
+  - name: "SlimBoxTV"
+    url: "https://slimboxtv.ru/category/rockchip/rk3229/"
+    recommended: true
+  - name: "FreakTab"
+    url: "https://freaktab.com/forum/tv-player-support/rockchip-based-tv-players/"
+
+notes: |
+  RK3229 is the entry-level quad-core Cortex-A7 chip.
+  Uses DDR3 memory with 1.5V signaling.
+  Common in budget $15-25 TV boxes.
+  Maskrom entry: Short eMMC CLK (pin 7) to GND during power-on.

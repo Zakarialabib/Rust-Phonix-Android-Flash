@@ -1,0 +1,48 @@
+# Phoenix Device Configuration: X96 Mini
+# Budget variant with RTL8189FS WiFi
+
+device:
+  name: X96 Mini
+  manufacturer: Generic
+  soc: s905w
+  variant: 1GB
+
+hardware:
+  memory:
+    type: DDR3
+    size_mb: 1024
+    chip: Hynix
+
+  storage:
+    type: eMMC
+    size_gb: 8
+
+  wifi:
+    chip: RTL8189FS
+    driver: rtl8189fs
+    firmware: rtl8189fs_firmware.bin
+    nvram: ""
+
+  ethernet:
+    type: internal
+    speed: 100Mbps
+
+boot:
+  secure_boot: false
+  reference_dtb: meson-gxl-s905w-p281.dtb
+  uart:
+    port: ttyAML0
+    baud: 115200
+
+profiles:
+  minimal:
+    rootfs: buildroot
+    kernel: mainline-6.6
+    packages: []
+
+build:
+  buildroot_defconfig: phoenix_s905w_defconfig
+  kernel_fragments:
+    - amlogic-base.config
+    - rtl8189fs.config
+  uboot_config: libretech-cc_defconfig

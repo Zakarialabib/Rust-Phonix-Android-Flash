@@ -1,0 +1,70 @@
+# Phoenix Device Configuration: Amlogic S905W Family
+# This is the base configuration for all S905W-based devices
+
+device:
+  name: S905W Reference
+  manufacturer: Generic
+  soc: s905w
+  variant: GXL
+
+hardware:
+  memory:
+    type: DDR3
+    size_mb: 2048
+    chip: Generic
+
+  storage:
+    type: eMMC
+    size_gb: 16
+
+  wifi:
+    chip: AP6212
+    driver: brcmfmac
+    firmware: brcmfmac43430-sdio.bin
+    nvram: nvram_ap6212.txt
+
+  ethernet:
+    type: internal
+    speed: 100Mbps
+
+boot:
+  secure_boot: false
+  reference_dtb: meson-gxl-s905w-p281.dtb
+  uart:
+    port: ttyAML0
+    baud: 115200
+
+profiles:
+  minimal:
+    rootfs: buildroot
+    kernel: mainline-6.6
+    packages: []
+
+  signage:
+    rootfs: buildroot
+    kernel: mainline-6.6
+    packages:
+      - cage
+      - weston
+      - chromium
+
+  media:
+    rootfs: coreelec
+    kernel: coreelec-21
+    packages:
+      - kodi
+
+  server:
+    rootfs: armbian
+    kernel: mainline-6.6
+    packages:
+      - docker
+      - openssh-server
+
+build:
+  buildroot_defconfig: phoenix_s905w_defconfig
+  kernel_fragments:
+    - amlogic-base.config
+    - panfrost.config
+    - vdec.config
+  uboot_config: libretech-cc_defconfig
