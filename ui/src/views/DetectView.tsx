@@ -99,9 +99,9 @@ export default function DetectView() {
       <header class="flex flex-col gap-1">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-accent animate-pulse shadow-glow" />
-          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase italic">Hardware Archaeology</h2>
+          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">Hardware Archaeology</h2>
         </div>
-        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5 italic">Identify target hardware and resolve SoC profiles</p>
+        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Identify target hardware and resolve SoC profiles</p>
       </header>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
@@ -120,7 +120,7 @@ export default function DetectView() {
                   disabled={scanning()}
                   variant="primary"
                   size="sm"
-                  class="px-5 italic"
+                  class="px-5"
                 >
                   USB SCAN
                 </Button>
@@ -130,7 +130,7 @@ export default function DetectView() {
                   disabled={uartScanning()}
                   variant="secondary"
                   size="sm"
-                  class="px-5 italic"
+                  class="px-5"
                 >
                   UART SCAN
                 </Button>
@@ -142,7 +142,7 @@ export default function DetectView() {
                 <Show
                   when={deviceList().length > 0}
                   fallback={
-                    <div class="h-full min-h-[188px] flex flex-col items-center justify-center text-text-muted space-y-3 border border-dashed border-border-subtle rounded-sm opacity-60 italic">
+                    <div class="h-full min-h-[188px] flex flex-col items-center justify-center text-text-muted space-y-3 border border-dashed border-border-subtle rounded-sm opacity-60">
                       <div class="terminal-pulse text-2xl opacity-20 group-hover:opacity-40 transition-opacity">📡</div>
                       <span class="text-[9px] uppercase tracking-[0.4em] font-black">Awaiting hardware connection...</span>
                     </div>
@@ -153,7 +153,7 @@ export default function DetectView() {
                       <button
                         onClick={() => selectDevice(d)}
                         class={cn(
-                          "group relative flex flex-col p-4 border rounded-sm transition-ui text-left overflow-hidden italic",
+                          "group relative flex flex-col p-4 border rounded-sm transition-ui text-left overflow-hidden",
                           globalStore.lastDetected === d
                             ? "border-accent bg-accent/5 shadow-glow shadow-accent/10"
                             : "border-border-subtle bg-sidebar/40 hover:border-accent/40 hover:bg-sidebar/60"
@@ -211,7 +211,7 @@ export default function DetectView() {
           <Show
             when={globalStore.lastDetected}
             fallback={
-              <Card glow="slate" class="p-8 border-dashed flex flex-col items-center justify-center text-center h-[340px] opacity-40 italic">
+              <Card glow="slate" class="p-8 border-dashed flex flex-col items-center justify-center text-center h-[340px] opacity-40">
                 <div class="text-2xl mb-4 grayscale opacity-20">🔍</div>
                 <span class="text-[9px] text-text-muted font-black uppercase tracking-[0.3em] leading-relaxed">Select device node<br />to begin inspection</span>
               </Card>
@@ -220,8 +220,8 @@ export default function DetectView() {
             <Card glow="amber" title="Device Inspector" subtitle="Resolved hardware capabilities">
               <div class="space-y-6">
                 <div class="space-y-2">
-                  <p class="text-[9px] text-text-muted font-black uppercase tracking-widest italic opacity-40">Hardware Signature</p>
-                  <div class="bg-sidebar p-5 border border-border-subtle font-black text-2xl text-accent tracking-tighter italic shadow-inner group">
+                  <p class="text-[9px] text-text-muted font-black uppercase tracking-widest opacity-40">Hardware Signature</p>
+                  <div class="bg-sidebar p-5 border border-border-subtle font-black text-2xl text-accent tracking-tighter shadow-inner group">
                     <span class="opacity-80 group-hover:opacity-100 transition-opacity">{globalStore.lastDetected?.vendorId.toString(16).padStart(4, '0').toUpperCase()}</span>
                     <span class="text-text-muted opacity-20 mx-3">:</span>
                     <span class="opacity-80 group-hover:opacity-100 transition-opacity">{globalStore.lastDetected?.productId.toString(16).padStart(4, '0').toUpperCase()}</span>
@@ -237,14 +237,14 @@ export default function DetectView() {
                 <Show
                   when={profile()}
                   fallback={
-                    <div class="py-10 flex flex-col items-center gap-4 border border-dashed border-border-subtle bg-sidebar/20 rounded-sm italic opacity-50">
+                    <div class="py-10 flex flex-col items-center gap-4 border border-dashed border-border-subtle bg-sidebar/20 rounded-sm opacity-50">
                       <div class="w-5 h-5 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
                       <div class="text-[9px] text-text-muted font-black uppercase tracking-[0.2em]">Resolving Profiling Matrix...</div>
                     </div>
                   }
                 >
                   <div class="space-y-4 pt-4 border-t border-accent/10 animate-in fade-in slide-in-from-bottom-2">
-                    <div class="p-5 bg-accent/5 border border-accent/10 italic rounded-sm relative overflow-hidden group">
+                    <div class="p-5 bg-accent/5 border border-accent/10 rounded-sm relative overflow-hidden group">
                       <div class="absolute inset-0 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                       <h4 class="text-[10px] font-black text-accent uppercase tracking-[0.2em] mb-4 underline decoration-accent/20 underline-offset-4 relative z-10">MATCHED_PROFILE: {profile()?.name}</h4>
                       <PropertyGrid cols={2} class="relative z-10">
@@ -255,7 +255,7 @@ export default function DetectView() {
 
                     <Button
                       variant="primary"
-                      class="w-full italic font-black text-[10px] tracking-widest h-12"
+                      class="w-full font-black text-[10px] tracking-widest h-12"
                       onClick={() => handleDownload(profile()!)}
                     >
                       Fetch Liberation Assets
@@ -267,7 +267,7 @@ export default function DetectView() {
           </Show>
 
           <Collapsible title="Discovery Guide" subtitle="Manual protocol escalation">
-            <div class="space-y-5 p-2 italic">
+            <div class="space-y-5 p-2">
               <div class="space-y-2.5">
                 <span class="text-accent uppercase font-black text-[9px] tracking-widest leading-none block border-l-2 border-accent pl-2">Amlogic Recovery (1B8E)</span>
                 <p class="text-[10px] text-text-muted leading-relaxed uppercase font-bold opacity-70">

@@ -24,7 +24,7 @@ export const Property = (props: PropertyProps) => {
                 </span>
             </div>
             <div class={cn(
-                "font-mono text-[10px] font-black tracking-tighter uppercase italic",
+                "font-mono text-[10px] font-black tracking-tighter uppercase",
                 props.accent ? "text-accent" : "text-text-secondary group-hover:text-text-primary"
             )}>
                 {props.value ?? '---'}

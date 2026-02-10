@@ -15,7 +15,7 @@ export const NavButton: Component<NavButtonProps> = (props) => {
       onClick={props.onClick}
       title={props.collapsed ? props.label : ''}
       class={cn(
-        "group flex items-center gap-3 px-4 py-3 text-[10px] font-black font-mono transition-ui border-r-2 uppercase tracking-[0.2em] italic rounded-none",
+        "group flex items-center gap-3 px-4 py-3 text-[10px] font-black font-mono transition-ui border-r-2 uppercase tracking-[0.2em] rounded-none",
         props.collapsed ? "justify-center w-full" : "w-full",
         props.active
           ? "bg-accent/10 text-accent border-accent shadow-glow"

@@ -46,7 +46,7 @@ export default function SettingsView() {
       <header class="flex flex-col gap-1 text-left">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase italic">{t('nav.infrastructure') || 'Infrastructure Config'}</h2>
+          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">{t('nav.infrastructure') || 'Infrastructure Config'}</h2>
         </div>
         <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Environment Variables | Interface Protocol</p>
       </header>
@@ -58,7 +58,7 @@ export default function SettingsView() {
             <div class="grid grid-cols-1 gap-8">
               {/* Language Selection */}
               <div class="space-y-4">
-                <label class="text-[9px] font-black text-text-muted uppercase tracking-widest italic">{t('common.language') || 'Language Hook'}</label>
+                <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('common.language') || 'Language Hook'}</label>
                 <div class="flex flex-wrap gap-1">
                   <For each={languages}>
                     {(l) => (
@@ -67,7 +67,7 @@ export default function SettingsView() {
                         class={cn(
                           "px-6 py-2 text-left text-[10px] font-bold uppercase tracking-widest transition-all border",
                           state.language === l.value
-                            ? "bg-accent/10 text-accent border-accent italic shadow-glow shadow-accent/10"
+                            ? "bg-accent/10 text-accent border-accent shadow-glow shadow-accent/10"
                             : "bg-sidebar/50 border-border-subtle text-text-muted hover:text-text-secondary hover:bg-sidebar"
                         )}
                       >
@@ -80,13 +80,13 @@ export default function SettingsView() {
 
               {/* Theme Mode & Color */}
               <div class="space-y-4">
-                <label class="text-[9px] font-black text-text-muted uppercase tracking-widest italic">{t('common.theme') || 'Color Primitive'}</label>
+                <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('common.theme') || 'Color Primitive'}</label>
                 <div class="flex gap-2">
                   <button
                     onClick={() => setThemeMode('dark')}
                     class={cn(
                       "flex-1 px-4 py-2 text-[10px] font-bold uppercase tracking-widest border transition-all",
-                      state.themeMode === 'dark' ? "bg-accent/5 border-accent text-accent italic shadow-glow shadow-accent/10" : "bg-sidebar/30 border-border-subtle text-text-muted"
+                      state.themeMode === 'dark' ? "bg-accent/5 border-accent text-accent shadow-glow shadow-accent/10" : "bg-sidebar/30 border-border-subtle text-text-muted"
                     )}
                   >
                     {t('common.dark') || 'Dark Mode'}
@@ -95,7 +95,7 @@ export default function SettingsView() {
                     onClick={() => setThemeMode('light')}
                     class={cn(
                       "flex-1 px-4 py-2 text-[10px] font-bold uppercase tracking-widest border transition-all",
-                      state.themeMode === 'light' ? "bg-accent/5 border-accent text-accent italic shadow-glow shadow-accent/10" : "bg-sidebar/30 border-border-subtle text-text-muted"
+                      state.themeMode === 'light' ? "bg-accent/5 border-accent text-accent shadow-glow shadow-accent/10" : "bg-sidebar/30 border-border-subtle text-text-muted"
                     )}
                   >
                     {t('common.light') || 'Light Mode'}
@@ -131,7 +131,7 @@ export default function SettingsView() {
           <div class="space-y-8">
             {/* UI Scaling */}
             <div class="space-y-4">
-              <label class="text-[9px] font-black text-text-muted uppercase tracking-widest italic">Interface Scaling (HUD)</label>
+              <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">Interface Scaling (HUD)</label>
               <div class="grid grid-cols-3 gap-1">
                 <For each={['compact', 'normal', 'large'] as const}>
                   {(scale) => (
@@ -140,7 +140,7 @@ export default function SettingsView() {
                       class={cn(
                         "px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all border text-center flex items-center justify-center",
                         state.uiScale === scale
-                          ? "bg-accent/10 text-accent border-accent italic shadow-glow shadow-accent/10"
+                          ? "bg-accent/10 text-accent border-accent shadow-glow shadow-accent/10"
                           : "bg-sidebar/50 border-border-subtle text-text-muted hover:bg-sidebar"
                       )}
                     >
@@ -149,12 +149,12 @@ export default function SettingsView() {
                   )}
                 </For>
               </div>
-              <p class="text-[8px] text-text-muted uppercase italic opacity-40 leading-relaxed">Adjusts font size and spatial density for high-DPI displays.</p>
+              <p class="text-[8px] text-text-muted uppercase opacity-40 leading-relaxed">Adjusts font size and spatial density for high-DPI displays.</p>
             </div>
 
             {/* Typography Selection */}
             <div class="space-y-4">
-              <label class="text-[9px] font-black text-text-muted uppercase tracking-widest italic">Typography Architecture</label>
+              <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">Typography Architecture</label>
               <div class="flex flex-col gap-1">
                 <For each={['technical', 'modern', 'classic'] as const}>
                   {(style) => (
@@ -163,7 +163,7 @@ export default function SettingsView() {
                       class={cn(
                         "px-4 py-2 text-left text-[10px] font-bold uppercase tracking-widest transition-all border flex justify-between items-center group",
                         state.typography === style
-                          ? "bg-accent/10 text-accent border-accent italic shadow-glow shadow-accent/10"
+                          ? "bg-accent/10 text-accent border-accent shadow-glow shadow-accent/10"
                           : "bg-sidebar/50 border-border-subtle text-text-muted hover:bg-sidebar"
                       )}
                     >
@@ -184,16 +184,16 @@ export default function SettingsView() {
         <div class="lg:col-span-2 space-y-6 pt-2">
           <Card title="Workspace Paths" subtitle="FileSystem mappings for synthesis and toolchains">
             <Show when={settings.error}>
-              <div class="py-6 px-4 mb-6 border-l-2 border-accent bg-accent/5 text-[10px] text-accent font-black uppercase italic">
+              <div class="py-6 px-4 mb-6 border-l-2 border-accent bg-accent/5 text-[10px] text-accent font-black uppercase">
                 SIGNAL_LOSS: {errorMessage()}
               </div>
             </Show>
 
-            <Show when={!settings.error && settings()} fallback={<div class="py-20 text-center text-[10px] text-text-muted uppercase tracking-widest italic animate-pulse">Polling local configuration...</div>}>
+            <Show when={!settings.error && settings()} fallback={<div class="py-20 text-center text-[10px] text-text-muted uppercase tracking-widest animate-pulse">Polling local configuration...</div>}>
               <div class="space-y-8">
                 <div class="grid gap-6">
                   <div class="space-y-2">
-                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest italic">Toolchain Binary Root</label>
+                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">Toolchain Binary Root</label>
                     <Input
                       placeholder="C:\PHOENIX\BIN"
                       value={settings()!.toolsPath}
@@ -202,7 +202,7 @@ export default function SettingsView() {
                     />
                   </div>
                   <div class="space-y-2">
-                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest italic">Synthesis Cache Buffer</label>
+                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">Synthesis Cache Buffer</label>
                     <Input
                       placeholder="C:\PHOENIX\CACHE"
                       value={settings()!.cachePath}
@@ -211,7 +211,7 @@ export default function SettingsView() {
                     />
                   </div>
                   <div class="space-y-2">
-                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest italic">Deployment Output Dir</label>
+                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">Deployment Output Dir</label>
                     <Input
                       placeholder="C:\PHOENIX\OUT"
                       value={settings()!.outputPath}
@@ -222,16 +222,16 @@ export default function SettingsView() {
                 </div>
 
                 <div class="pt-6 border-t border-border-subtle flex flex-col gap-6">
-                  <Button onClick={save} class="h-12 w-full font-black text-xs uppercase italic rounded-none tracking-widest">COMMIT CHANGES</Button>
+                  <Button onClick={save} class="h-12 w-full font-black text-xs uppercase rounded-none tracking-widest">COMMIT CHANGES</Button>
 
                   <div class="p-5 border border-red-900/20 bg-red-900/5 space-y-4">
                     <div>
-                      <h4 class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1 italic">Erasure Protocol</h4>
-                      <p class="text-[9px] text-text-muted leading-relaxed uppercase italic opacity-60">Wipe all local node identity and restart discovery handshake.</p>
+                      <h4 class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Erasure Protocol</h4>
+                      <p class="text-[9px] text-text-muted leading-relaxed uppercase opacity-60">Wipe all local node identity and restart discovery handshake.</p>
                     </div>
                     <Button
                       variant="ghost"
-                      class="w-full h-11 border-red-900/30 text-red-500 font-black text-[10px] hover:bg-red-500/10 rounded-none italic uppercase"
+                      class="w-full h-11 border-red-900/30 text-red-500 font-black text-[10px] hover:bg-red-500/10 rounded-none uppercase"
                       onClick={() => {
                         if (confirm('PROCEED WITH FULL NODE ERASURE?')) {
                           localStorage.removeItem('phoenix_onboarding_complete');

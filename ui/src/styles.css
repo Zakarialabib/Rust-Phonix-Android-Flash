@@ -148,7 +148,6 @@ html.font-style-technical {
   --current-font-sans: var(--font-technical);
   --current-font-mono: var(--font-technical);
   --current-font-serif: var(--font-technical);
-  font-style: italic;
   letter-spacing: -0.01em;
 }
 

@@ -19,7 +19,7 @@ export const Collapsible: Component<CollapsibleProps> = (props) => {
                 class="w-full flex items-center justify-between p-3 hover:bg-white/[0.02] transition-colors text-left"
             >
                 <div class="flex flex-col">
-                    <span class="text-xs font-black font-mono tracking-widest text-text-primary uppercase italic">
+                    <span class="text-xs font-black font-mono tracking-widest text-text-primary uppercase">
                         {props.title}
                     </span>
                     <Show when={props.subtitle}>

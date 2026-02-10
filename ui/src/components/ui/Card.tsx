@@ -40,8 +40,8 @@ export const Card: ParentComponent<CardProps> = (props) => {
       {(local.title || local.subtitle || local.actions) && (
         <div class="flex items-start justify-between border-b border-border-subtle bg-white/[0.02] px-5 py-4">
           <div>
-            {local.title && <h2 class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-text-primary italic">{local.title}</h2>}
-            {local.subtitle && <p class="mt-1 font-mono text-[8px] text-text-muted uppercase tracking-[0.2em] italic opacity-60">{local.subtitle}</p>}
+            {local.title && <h2 class="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-text-primary">{local.title}</h2>}
+            {local.subtitle && <p class="mt-1 font-mono text-[8px] text-text-muted uppercase tracking-[0.2em] opacity-60">{local.subtitle}</p>}
           </div>
           {local.actions && <div class="flex gap-2">{local.actions}</div>}
         </div>

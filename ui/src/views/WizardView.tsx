@@ -85,7 +85,7 @@ export default function WizardView() {
             <header class="flex flex-col gap-1">
                 <div class="flex items-center gap-3">
                     <div class="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(var(--accent-rgb),0.4)]" />
-                    <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase italic">{t('wizard.title') || 'Liberation Pipeline'}</h2>
+                    <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">{t('wizard.title') || 'Liberation Pipeline'}</h2>
                 </div>
                 <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Guided Hardware Transformation | Automated Protocol Orchestrator</p>
             </header>
@@ -104,7 +104,7 @@ export default function WizardView() {
                                 class={cn(
                                     "group flex flex-col p-4 transition-all border-l-2 text-left",
                                     isActive
-                                        ? "bg-accent/5 border-accent italic"
+                                        ? "bg-accent/5 border-accent"
                                         : isCompleted
                                             ? "border-emerald-500/40 opacity-60 hover:opacity-100"
                                             : "border-transparent opacity-30 cursor-not-allowed"
@@ -136,7 +136,7 @@ export default function WizardView() {
                             <Switch>
                                 <Match when={currentStepConfig().id === 'detect'}>
                                     <div class="space-y-8">
-                                        <div class="grid sm:grid-cols-2 gap-4 italic leading-loose">
+                                        <div class="grid sm:grid-cols-2 gap-4 leading-loose">
                                             <div class="p-5 bg-sidebar/40 border border-border-subtle space-y-3 rounded-sm">
                                                 <h4 class="text-[10px] font-black text-accent uppercase tracking-widest">Amlogic WorldCup</h4>
                                                 <p class="text-[9px] text-text-muted uppercase font-bold opacity-60">Hold recovery pin or short eMMC CLK while cold booting OTG.</p>
@@ -151,27 +151,27 @@ export default function WizardView() {
                                         <Button
                                             onClick={handleDetect}
                                             isLoading={stepStatuses().detect.inProgress}
-                                            class="w-full h-14 font-black text-xs tracking-[0.2em] italic bg-accent hover:opacity-90 shadow-lg shadow-accent/20"
+                                            class="w-full h-14 font-black text-xs tracking-[0.2em] bg-accent hover:opacity-90 shadow-lg shadow-accent/20"
                                         >
                                             {stepStatuses().detect.completed ? 'RE-SCAN HUB' : 'INITIATE HARDWARE HANDSHAKE'}
                                         </Button>
                                     </div>
                                 </Match>
                                 <Match when={currentStepConfig().id === 'vault'}>
-                                    <div class="space-y-8 italic">
+                                    <div class="space-y-8">
                                         <div class="p-5 bg-accent/5 border border-accent/10 space-y-4 rounded-sm">
                                             <h3 class="text-[10px] font-black text-accent uppercase tracking-[0.2em]">Preservation Ethics</h3>
                                             <p class="text-[9px] text-text-secondary leading-relaxed uppercase font-bold opacity-80">
                                                 The vault creates a bit-perfect clone of the original NAND/eMMC calibration blocks. This includes HDCP L1 keys, Widevine BLOBS, and MAC addresses. <b class="text-accent underline decoration-accent/30 underline-offset-4">REQUIRED FOR IRREVERSIBLE LIBERATION.</b>
                                             </p>
                                         </div>
-                                        <Button onClick={handleVault} isLoading={stepStatuses().vault.inProgress} class="w-full h-14 bg-accent hover:opacity-90 border-none font-black text-xs tracking-[0.2em] rounded-none shadow-lg shadow-accent/20 italic">
+                                        <Button onClick={handleVault} isLoading={stepStatuses().vault.inProgress} class="w-full h-14 bg-accent hover:opacity-90 border-none font-black text-xs tracking-[0.2em] rounded-none shadow-lg shadow-accent/20">
                                             CREATE ENCRYPTED VAULT
                                         </Button>
                                     </div>
                                 </Match>
                                 <Match when={true}>
-                                    <div class="py-20 flex flex-col items-center opacity-30 grayscale italic">
+                                    <div class="py-20 flex flex-col items-center opacity-30 grayscale">
                                         <div class="text-4xl mb-4 text-accent">⚙️</div>
                                         <span class="text-[10px] font-black text-text-muted uppercase tracking-[0.5em]">Module Interface Standby</span>
                                     </div>
@@ -185,16 +185,16 @@ export default function WizardView() {
                                 variant="ghost"
                                 onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
                                 disabled={currentStep() === 0}
-                                class="h-11 px-8 font-black text-[9px] uppercase border-border-subtle rounded-none italic tracking-widest"
+                                class="h-11 px-8 font-black text-[9px] uppercase border-border-subtle rounded-none tracking-widest"
                             >
                                 « STAGE PREV
                             </Button>
-                            <span class="text-[8px] font-black text-text-muted uppercase tracking-widest italic opacity-40">Node 0x{currentStep() + 1} // 0x07</span>
+                            <span class="text-[8px] font-black text-text-muted uppercase tracking-widest opacity-40">Node 0x{currentStep() + 1} // 0x07</span>
                             <Button
                                 variant="ghost"
                                 onClick={() => setCurrentStep(s => Math.min(WORKFLOW_STEPS.length - 1, s + 1))}
                                 disabled={!stepStatuses()[currentStepConfig().id].completed}
-                                class="h-11 px-8 font-black text-[9px] uppercase border-border-subtle rounded-none text-accent italic tracking-widest"
+                                class="h-11 px-8 font-black text-[9px] uppercase border-border-subtle rounded-none text-accent tracking-widest"
                             >
                                 NEXT STAGE »
                             </Button>

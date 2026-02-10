@@ -12,7 +12,7 @@ export const Select: ParentComponent<SelectProps> = (props) => {
   return (
     <div class="w-full space-y-1.5">
       {local.label && (
-        <label class="block text-[10px] font-mono font-black text-text-muted uppercase tracking-[0.2em] italic">
+        <label class="block text-[10px] font-mono font-black text-text-muted uppercase tracking-[0.2em]">
           {local.label}
         </label>
       )}
@@ -20,7 +20,7 @@ export const Select: ParentComponent<SelectProps> = (props) => {
         <select
           {...others}
           class={cn(
-            "w-full appearance-none rounded-none border bg-sidebar/50 px-4 py-3 text-xs font-mono text-text-primary transition-ui focus:outline-none focus:ring-1 italic font-bold",
+            "w-full appearance-none rounded-none border bg-sidebar/50 px-4 py-3 text-xs font-mono text-text-primary transition-ui focus:outline-none focus:ring-1 font-bold",
             local.error
               ? "border-red-900/50 focus:border-red-500 focus:ring-red-500/30"
               : "border-border-subtle focus:border-accent/40 focus:ring-accent/20",
@@ -35,7 +35,7 @@ export const Select: ParentComponent<SelectProps> = (props) => {
           </svg>
         </div>
       </div>
-      {local.error && <span class="block text-[10px] font-mono font-black text-red-500 uppercase tracking-widest italic">{local.error}</span>}
+      {local.error && <span class="block text-[10px] font-mono font-black text-red-500 uppercase tracking-widest">{local.error}</span>}
     </div>
   );
 };

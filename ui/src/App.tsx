@@ -48,13 +48,13 @@ function App() {
             <div class="flex h-16 items-center gap-3 border-b border-border-subtle px-6 shrink-0 bg-white/[0.01]">
               <button
                 onClick={() => setGlobalStore('sidebarCollapsed', !globalStore.sidebarCollapsed)}
-                class="flex h-8 w-8 shrink-0 items-center justify-center bg-accent text-white font-black rounded-none hover:brightness-110 active:scale-95 transition-ui shadow-glow italic"
+                class="flex h-8 w-8 shrink-0 items-center justify-center bg-accent text-white font-black rounded-none hover:brightness-110 active:scale-95 transition-ui shadow-glow"
               >
                 P
               </button>
               {!globalStore.sidebarCollapsed && (
                 <div class="flex flex-col overflow-hidden">
-                  <h1 class="text-sm font-black tracking-widest text-text-primary uppercase whitespace-nowrap italic">Phoenix</h1>
+                  <h1 class="text-sm font-black tracking-widest text-text-primary uppercase whitespace-nowrap">Phoenix</h1>
                   <span class="text-[9px] text-text-muted whitespace-nowrap uppercase tracking-widest opacity-60 font-bold">System v0.1.0-alpha</span>
                 </div>
               )}
@@ -63,7 +63,7 @@ function App() {
             <nav class="flex-1 overflow-y-auto py-6 custom-scrollbar">
               <div class="px-4 mb-2">
                 {!globalStore.sidebarCollapsed && (
-                  <p class="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 opacity-40 italic">Workflow Protocol</p>
+                  <p class="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 opacity-40">Workflow Protocol</p>
                 )}
                 <div class="flex flex-col gap-1">
                   <NavButton
@@ -120,21 +120,21 @@ function App() {
 
               <div class="px-4 mb-2 mt-6">
                 {!globalStore.sidebarCollapsed && (
-                  <p class="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 opacity-40 italic">Low-Level Hooks</p>
+                  <p class="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 opacity-40">Low-Level Hooks</p>
                 )}
                 <div class="flex flex-col gap-1">
                   <NavButton
                     active={activeTab() === 'amlogic-burn'}
                     onClick={() => setActiveTab('amlogic-burn')}
                     collapsed={globalStore.sidebarCollapsed}
-                    icon={<div class="h-4 w-4 flex items-center justify-center font-black text-[8px] border border-border-subtle rounded-none italic">AM</div>}
+                    icon={<div class="h-4 w-4 flex items-center justify-center font-black text-[8px] border border-border-subtle rounded-none">AM</div>}
                     label="Amlogic Burn"
                   />
                   <NavButton
                     active={activeTab() === 'rockchip-flash'}
                     onClick={() => setActiveTab('rockchip-flash')}
                     collapsed={globalStore.sidebarCollapsed}
-                    icon={<div class="h-4 w-4 flex items-center justify-center font-black text-[8px] border border-border-subtle rounded-none italic">RK</div>}
+                    icon={<div class="h-4 w-4 flex items-center justify-center font-black text-[8px] border border-border-subtle rounded-none">RK</div>}
                     label="Rockchip Flash"
                   />
                 </div>
@@ -166,18 +166,18 @@ function App() {
               <div class="h-full max-w-7xl mx-auto">
                 <ErrorBoundary fallback={(err) => (
                   <Card class="border-rose-500/20 bg-rose-500/5">
-                    <div class="flex flex-col items-center justify-center p-12 text-center italic">
+                    <div class="flex flex-col items-center justify-center p-12 text-center">
                       <div class="inline-flex h-16 w-16 items-center justify-center rounded-none bg-rose-500/10 text-rose-500 mb-6 border border-rose-500/20 shadow-glow shadow-rose-500/20 animate-pulse">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <h3 class="text-xl font-black text-rose-500 mb-2 uppercase tracking-tighter italic">Kernel Panic</h3>
+                      <h3 class="text-xl font-black text-rose-500 mb-2 uppercase tracking-tighter">Kernel Panic</h3>
                       <p class="text-text-muted mb-8 text-[11px] max-w-md mx-auto font-mono bg-sidebar/50 p-6 border border-border-subtle uppercase font-bold leading-relaxed">{getAppErrorMessage(err)}</p>
                       <Button
                         onClick={() => window.location.reload()}
                         variant="primary"
-                        class="bg-rose-600 hover:bg-rose-500 border-none shadow-glow shadow-rose-500/30 px-10 italic font-black"
+                        class="bg-rose-600 hover:bg-rose-500 border-none shadow-glow shadow-rose-500/30 px-10 font-black"
                       >
                         REBOOT SYSTEM ⚡
                       </Button>

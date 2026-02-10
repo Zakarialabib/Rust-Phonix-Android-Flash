@@ -126,8 +126,8 @@ export default function AmlogicBurnView() {
       <header class="flex flex-col gap-1 text-left">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(var(--accent-rgb),0.4)]" />
-          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase italic">Amlogic Flash Suite</h2>
-          <Badge variant={chipInfo() ? 'success' : 'warning'} class="rounded-none px-4 font-black italic ml-2">
+          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">Amlogic Flash Suite</h2>
+          <Badge variant={chipInfo() ? 'success' : 'warning'} class="rounded-none px-4 font-black ml-2">
             {chipInfo() ? 'Device Online' : 'Awaiting Connection'}
           </Badge>
         </div>
@@ -148,7 +148,7 @@ export default function AmlogicBurnView() {
                 )} />
                 <div class="mt-3 flex items-center justify-between px-1">
                   <span class={cn(
-                    "text-[9px] font-black uppercase tracking-widest italic transition-colors duration-300",
+                    "text-[9px] font-black uppercase tracking-widest transition-colors duration-300",
                     isActive ? "text-accent" : "text-text-muted opacity-40 hover:opacity-100"
                   )}>
                     {index() + 1}. {step.label}
@@ -171,13 +171,13 @@ export default function AmlogicBurnView() {
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
                   <label class="text-[9px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">1. Device Handshake</label>
-                  <Button onClick={handleDetect} class="w-full h-11 border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none font-black text-xs italic tracking-widest text-text-muted hover:text-text-primary transition-all shadow-none">
+                  <Button onClick={handleDetect} class="w-full h-11 border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none font-black text-xs tracking-widest text-text-muted hover:text-text-primary transition-all shadow-none">
                     POLL WORLDCUP BUS
                   </Button>
                 </div>
                 <div class="space-y-2">
                   <label class="text-[9px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">2. Image Resolution</label>
-                  <Button onClick={handleUnpack} disabled={!imagePath() || isExtracting()} isLoading={isExtracting()} class="w-full h-11 border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none font-black text-xs italic tracking-widest text-text-muted hover:text-text-primary transition-all shadow-none">
+                  <Button onClick={handleUnpack} disabled={!imagePath() || isExtracting()} isLoading={isExtracting()} class="w-full h-11 border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none font-black text-xs tracking-widest text-text-muted hover:text-text-primary transition-all shadow-none">
                     PARTITION EXPLORER
                   </Button>
                 </div>
@@ -196,7 +196,7 @@ export default function AmlogicBurnView() {
                     onClick={handleFlash}
                     disabled={!chipInfo() || isFlashing() || !imagePath()}
                     isLoading={isFlashing()}
-                    class="h-11 px-10 rounded-none font-black text-xs border-none italic tracking-widest shadow-[0_5px_15px_rgba(var(--accent-rgb),0.2)]"
+                    class="h-11 px-10 rounded-none font-black text-xs border-none tracking-widest shadow-[0_5px_15px_rgba(var(--accent-rgb),0.2)]"
                   >
                     EXECUTE FLASH
                   </Button>
@@ -204,12 +204,12 @@ export default function AmlogicBurnView() {
               </div>
 
               <Show when={imagePath().toLowerCase().includes('a11') || imagePath().toLowerCase().includes('android11')}>
-                <div class="p-5 bg-rose-500/5 border border-rose-500/20 rounded-sm italic">
+                <div class="p-5 bg-rose-500/5 border border-rose-500/20 rounded-sm">
                   <div class="flex gap-4">
                     <span class="text-rose-500 font-black animate-pulse text-lg">!</span>
                     <div class="space-y-1.5">
-                      <h4 class="text-[10px] font-black text-rose-400 uppercase tracking-widest italic leading-none">Incompatibility Detected (p282)</h4>
-                      <p class="text-[9px] text-text-muted leading-relaxed italic font-bold opacity-60">
+                      <h4 class="text-[10px] font-black text-rose-400 uppercase tracking-widest leading-none">Incompatibility Detected (p282)</h4>
+                      <p class="text-[9px] text-text-muted leading-relaxed font-bold opacity-60">
                         Android 11 kernels use a revised HDMI PHY driver. Older p282 boards (Samsung RAM) will experience black screens without a custom DTB overlay.
                       </p>
                     </div>
@@ -224,7 +224,7 @@ export default function AmlogicBurnView() {
             <Card glow="indigo" title="System Execution Log" subtitle="Real-time protocol signals and progress" class="flex-1 flex flex-col overflow-hidden border-border-subtle">
               <div class="flex flex-col h-full gap-6">
                 <Show when={progress()} fallback={
-                  <div class="flex-1 border border-dashed border-border-subtle rounded-sm flex flex-col items-center justify-center text-[10px] text-text-muted uppercase tracking-[0.4em] italic font-black opacity-20 bg-sidebar/10">
+                  <div class="flex-1 border border-dashed border-border-subtle rounded-sm flex flex-col items-center justify-center text-[10px] text-text-muted uppercase tracking-[0.4em] font-black opacity-20 bg-sidebar/10">
                     <span class="text-4xl mb-4 grayscale opacity-40">⚒️</span>
                     Awaiting session start...
                   </div>
@@ -232,25 +232,25 @@ export default function AmlogicBurnView() {
                   <div class="space-y-5 shrink-0 px-1 pt-1">
                     <div class="flex justify-between items-end">
                       <div class="space-y-2">
-                        <span class="text-[10px] font-black text-accent uppercase tracking-[0.3em] italic">{progress()?.operation}</span>
-                        <h4 class="text-2xl font-black text-text-primary tracking-tighter italic leading-none">{progress()?.partition || 'INITIALIZING'}</h4>
+                        <span class="text-[10px] font-black text-accent uppercase tracking-[0.3em]">{progress()?.operation}</span>
+                        <h4 class="text-2xl font-black text-text-primary tracking-tighter leading-none">{progress()?.partition || 'INITIALIZING'}</h4>
                       </div>
-                      <div class="text-4xl font-black text-accent tracking-tighter italic drop-shadow-sm">{progress()?.percent}%</div>
+                      <div class="text-4xl font-black text-accent tracking-tighter drop-shadow-sm">{progress()?.percent}%</div>
                     </div>
                     <div class="h-2 bg-sidebar/50 relative overflow-hidden rounded-full">
                       <div class="absolute h-full bg-accent transition-all duration-500 ease-out shadow-[0_0_10px_rgba(var(--accent-rgb),0.5)]" style={{ width: `${progress()?.percent}%` }} />
                     </div>
-                    <div class="flex justify-between text-[9px] text-text-muted uppercase font-black italic tracking-widest opacity-60">
+                    <div class="flex justify-between text-[9px] text-text-muted uppercase font-black tracking-widest opacity-60">
                       <span>IO Trace: <span class="text-text-secondary">{(progress()!.bytesTransferred / 1024 / 1024).toFixed(1)} / {(progress()!.totalBytes / 1024 / 1024).toFixed(1)} MB</span></span>
                       <span>Link: <span class="text-text-secondary">{(progress()!.speedBps / 1024 / 1024).toFixed(2)} MB/S</span></span>
                     </div>
                   </div>
                 </Show>
 
-                <div class="flex-1 overflow-y-auto bg-black/20 border border-border-subtle p-5 space-y-2 custom-scrollbar italic rounded-sm">
+                <div class="flex-1 overflow-y-auto bg-black/20 border border-border-subtle p-5 space-y-2 custom-scrollbar rounded-sm">
                   <For each={logs()}>
                     {(log) => (
-                      <div class="text-[10px] text-text-muted border-l-2 border-border-subtle pl-4 py-0.5 leading-relaxed hover:bg-white/[0.02] transition-colors italic font-bold opacity-70 hover:opacity-100 group">
+                      <div class="text-[10px] text-text-muted border-l-2 border-border-subtle pl-4 py-0.5 leading-relaxed hover:bg-white/[0.02] transition-colors font-bold opacity-70 hover:opacity-100 group">
                         <span class="text-accent mr-2 opacity-0 group-hover:opacity-100 transition-opacity">{" >> "}</span>
                         {log}
                       </div>
@@ -266,11 +266,11 @@ export default function AmlogicBurnView() {
         <div class="lg:col-span-4 flex flex-col gap-6 overflow-hidden pb-4">
           <Card glow="amber" title="Device Inspector" subtitle="Resolved SoC registers" class="border-border-subtle">
             <Show when={chipInfo()} fallback={
-              <div class="py-14 border border-dashed border-border-subtle rounded-sm flex flex-col items-center justify-center text-[10px] text-text-muted uppercase text-center tracking-widest italic font-black opacity-20 bg-sidebar/5">
+              <div class="py-14 border border-dashed border-border-subtle rounded-sm flex flex-col items-center justify-center text-[10px] text-text-muted uppercase text-center tracking-widest font-black opacity-20 bg-sidebar/5">
                 Connect device <br />to probe chip
               </div>
             }>
-              <div class="space-y-4 font-mono text-[10px] py-1 font-bold italic uppercase tracking-wider">
+              <div class="space-y-4 font-mono text-[10px] py-1 font-bold uppercase tracking-wider">
                 <div class="flex justify-between border-b border-border-subtle pb-3">
                   <span class="text-text-muted opacity-60">Chip Silicon</span>
                   <span class="text-accent underline decoration-accent/20 underline-offset-4">{chipInfo()?.chipId}</span>
@@ -285,7 +285,7 @@ export default function AmlogicBurnView() {
                 </div>
                 <div class="flex justify-between items-center pt-1">
                   <span class="text-text-muted opacity-60 font-black">Secure State</span>
-                  <Badge variant={chipInfo()?.secureBoot ? 'error' : 'default'} class="rounded-none font-black italic px-3 py-1 text-[9px]">
+                  <Badge variant={chipInfo()?.secureBoot ? 'error' : 'default'} class="rounded-none font-black px-3 py-1 text-[9px]">
                     {chipInfo()?.secureBoot ? 'LOCKED (SIGNED)' : 'OPEN (DEFAULT)'}
                   </Badge>
                 </div>
@@ -295,35 +295,35 @@ export default function AmlogicBurnView() {
 
           <Card glow="teal" title="Protocol Stages" subtitle="Handshake Sequence" class="border-border-subtle bg-sidebar/20">
             <div class="space-y-5">
-              <div class="space-y-2 opacity-60 hover:opacity-100 transition-opacity cursor-default group italic">
+              <div class="space-y-2 opacity-60 hover:opacity-100 transition-opacity cursor-default group">
                 <div class="flex items-center gap-3">
                   <div class="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)] group-hover:animate-pulse" />
-                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest italic leading-none">0x01: ROMBOOT</span>
+                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">0x01: ROMBOOT</span>
                 </div>
                 <p class="text-[9px] text-text-muted pl-5 leading-relaxed font-bold">
                   Initial hardware handshake. Downloads DDR timing parameters into internal SRAM. Checks SoC security keys.
                 </p>
               </div>
-              <div class="space-y-2 opacity-60 hover:opacity-100 transition-opacity cursor-default group italic">
+              <div class="space-y-2 opacity-60 hover:opacity-100 transition-opacity cursor-default group">
                 <div class="flex items-center gap-3">
                   <div class="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)] group-hover:animate-pulse" />
-                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest italic leading-none">0x02: UBOOT</span>
+                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">0x02: UBOOT</span>
                 </div>
                 <p class="text-[9px] text-text-muted pl-5 leading-relaxed font-bold">
                   System bootstrap stage. The device initializes the full SDRAM and mounts EMMC partitions (system, boot, recovery).
                 </p>
               </div>
-              <div class="space-y-2 opacity-60 hover:opacity-100 transition-opacity cursor-default group italic">
+              <div class="space-y-2 opacity-60 hover:opacity-100 transition-opacity cursor-default group">
                 <div class="flex items-center gap-3">
                   <div class="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)] group-hover:animate-pulse" />
-                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest italic leading-none">0x03: PROVISION</span>
+                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">0x03: PROVISION</span>
                 </div>
                 <p class="text-[9px] text-text-muted pl-5 leading-relaxed font-bold">
                   Keys provisioning stage. Injects unique hardware IDs, Ethernet MACs, and security blobs (HDCP/Widevine).
                 </p>
               </div>
               <div class="pt-3 border-t border-border-subtle opacity-30 mt-2">
-                <p class="text-[8px] text-text-muted italic uppercase font-black tracking-tighter">Trace: Derived from 'usb_flow/key_flow.aml' reverse engineering logs.</p>
+                <p class="text-[8px] text-text-muted uppercase font-black tracking-tighter">Trace: Derived from 'usb_flow/key_flow.aml' reverse engineering logs.</p>
               </div>
             </div>
           </Card>
@@ -333,17 +333,17 @@ export default function AmlogicBurnView() {
               <div class="space-y-4 py-1">
                 <For each={recommendations().slice(0, 2)}>
                   {(rec) => (
-                    <div class="group block space-y-2 p-4 bg-sidebar/50 border border-border-subtle hover:border-accent/30 transition-all rounded-sm italic cursor-pointer">
+                    <div class="group block space-y-2 p-4 bg-sidebar/50 border border-border-subtle hover:border-accent/30 transition-all rounded-sm cursor-pointer">
                       <div class="flex justify-between items-center leading-none">
-                        <span class="text-[10px] font-black text-text-primary uppercase tracking-tight italic">{rec.name}</span>
-                        <Badge variant="secondary" class="text-[8px] font-black italic rounded-none px-2">{rec.version}</Badge>
+                        <span class="text-[10px] font-black text-text-primary uppercase tracking-tight">{rec.name}</span>
+                        <Badge variant="secondary" class="text-[8px] font-black rounded-none px-2">{rec.version}</Badge>
                       </div>
-                      <p class="text-[9px] text-text-muted leading-tight italic font-bold opacity-60 truncate">{rec.notes}</p>
+                      <p class="text-[9px] text-text-muted leading-tight font-bold opacity-60 truncate">{rec.notes}</p>
                     </div>
                   )}
                 </For>
                 <div class="text-center pt-1">
-                  <span class="text-[8px] text-text-muted uppercase tracking-[0.3em] font-black italic opacity-30">Ref: firmware_sources.md v2.1</span>
+                  <span class="text-[8px] text-text-muted uppercase tracking-[0.3em] font-black opacity-30">Ref: firmware_sources.md v2.1</span>
                 </div>
               </div>
             </Card>

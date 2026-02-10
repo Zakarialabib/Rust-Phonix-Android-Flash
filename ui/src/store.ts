@@ -12,11 +12,6 @@ interface GlobalStore {
         currentStage: string;
         log: string[];
     };
-    preferences: {
-        theme: 'dark' | 'retro' | 'minimal';
-        advancedMode: boolean;
-        onboardingComplete: boolean;
-    };
     setupStatus: 'splash' | 'onboarding' | 'ready';
 }
 
@@ -30,11 +25,6 @@ const [globalStore, setGlobalStore] = createStore<GlobalStore>({
         percent: 0,
         currentStage: '',
         log: [],
-    },
-    preferences: {
-        theme: 'retro',
-        advancedMode: false,
-        onboardingComplete: false,
     },
     setupStatus: 'splash',
 });

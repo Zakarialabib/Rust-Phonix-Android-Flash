@@ -1,9 +1,10 @@
-import { createContext, useContext, createSignal, createEffect, JSX } from 'solid-js';
+import { createContext, useContext, createSignal, createEffect, onMount, JSX } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import * as i18n from '@solid-primitives/i18n';
 import { en } from '../i18n/en';
 import { ar } from '../i18n/ar';
 import { fr } from '../i18n/fr';
+import { tauriApi } from '../api/tauri';
 
 export type Language = 'en' | 'ar' | 'fr';
 export type ThemeMode = 'dark' | 'light';
@@ -17,6 +18,10 @@ interface AppState {
     themeColor: ThemeColor;
     uiScale: UIScale;
     typography: TypographyStyle;
+    // Infrastructure Paths
+    toolsPath: string;
+    cachePath: string;
+    outputPath: string;
 }
 
 const translations = {
@@ -33,6 +38,7 @@ interface AppContextType {
     setThemeColor: (color: ThemeColor) => void;
     setUIScale: (scale: UIScale) => void;
     setTypography: (style: TypographyStyle) => void;
+    syncToRust: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType>();
@@ -44,9 +50,55 @@ export function AppProvider(props: { children: JSX.Element }) {
         themeColor: (localStorage.getItem('phoenix_theme_color') as ThemeColor) || 'amber',
         uiScale: (localStorage.getItem('phoenix_ui_scale') as UIScale) || 'normal',
         typography: (localStorage.getItem('phoenix_typography') as TypographyStyle) || 'technical',
+        toolsPath: '',
+        cachePath: '',
+        outputPath: '',
     });
 
     const t = i18n.translator(() => translations[state.language], i18n.resolveTemplate);
+
+    // Load settings from Rust on mount
+    onMount(async () => {
+        try {
+            const settings = await tauriApi.getSettings();
+            setState({
+                language: (settings.language as Language) || 'en',
+                themeMode: (settings.themeMode as ThemeMode) || 'dark',
+                themeColor: (settings.themeColor as ThemeColor) || 'amber',
+                uiScale: (settings.uiScale as UIScale) || 'normal',
+                typography: (settings.typography as TypographyStyle) || 'technical',
+                toolsPath: settings.toolsPath || '',
+                cachePath: settings.cachePath || '',
+                outputPath: settings.outputPath || '',
+            });
+            // Update localStorage to ensure sync
+            localStorage.setItem('phoenix_lang', settings.language);
+            localStorage.setItem('phoenix_theme_mode', settings.themeMode);
+            localStorage.setItem('phoenix_theme_color', settings.themeColor);
+            localStorage.setItem('phoenix_ui_scale', settings.uiScale);
+            localStorage.setItem('phoenix_typography', settings.typography);
+        } catch (e) {
+            console.error("Failed to load settings from Rust node:", e);
+        }
+    });
+
+    const syncToRust = async () => {
+        if (!state.toolsPath) return; // Wait for initial load
+        try {
+            await tauriApi.saveSettings({
+                toolsPath: state.toolsPath,
+                cachePath: state.cachePath,
+                outputPath: state.outputPath,
+                language: state.language,
+                themeMode: state.themeMode,
+                themeColor: state.themeColor,
+                uiScale: state.uiScale,
+                typography: state.typography,
+            });
+        } catch (e) {
+            console.error("Failed to persist settings to Rust node:", e);
+        }
+    };
 
     createEffect(() => {
         localStorage.setItem('phoenix_lang', state.language);
@@ -58,14 +110,15 @@ export function AppProvider(props: { children: JSX.Element }) {
         localStorage.setItem('phoenix_theme_mode', state.themeMode);
         if (state.themeMode === 'dark') {
             document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
         } else {
             document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
         }
     });
 
     createEffect(() => {
         localStorage.setItem('phoenix_theme_color', state.themeColor);
-        // Remove old accent classes
         document.documentElement.classList.forEach(cls => {
             if (cls.startsWith('accent-')) document.documentElement.classList.remove(cls);
         });
@@ -88,6 +141,18 @@ export function AppProvider(props: { children: JSX.Element }) {
         document.documentElement.classList.add(`font-style-${state.typography}`);
     });
 
+    // Auto-save to Rust when UI preferences change
+    createEffect(() => {
+        // Track dependencies
+        state.language;
+        state.themeMode;
+        state.themeColor;
+        state.uiScale;
+        state.typography;
+        // Trigger save
+        syncToRust();
+    });
+
     const setLanguage = (lang: Language) => setState('language', lang);
     const setThemeMode = (mode: ThemeMode) => setState('themeMode', mode);
     const setThemeColor = (color: ThemeColor) => setState('themeColor', color);
@@ -95,7 +160,7 @@ export function AppProvider(props: { children: JSX.Element }) {
     const setTypography = (style: TypographyStyle) => setState('typography', style);
 
     return (
-        <AppContext.Provider value={{ state, t, setLanguage, setThemeMode, setThemeColor, setUIScale, setTypography }}>
+        <AppContext.Provider value={{ state, t, setLanguage, setThemeMode, setThemeColor, setUIScale, setTypography, syncToRust }}>
             {props.children}
         </AppContext.Provider>
     );
