@@ -1,0 +1,64 @@
+[workspace]
+resolver = "2"
+members = [
+    "phoenix-cli",
+    "phoenix-lib",
+    "ui/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Phoenix Team"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/phoenix-arm/phoenix-tools"
+
+[workspace.dependencies]
+# CLI
+clap = { version = "4.5", features = ["derive", "env", "color"] }
+
+# Async runtime
+tokio = { version = "1.36", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+jsonschema = "0.20"
+
+# Templates
+handlebars = "5.1"
+
+# Hardware detection
+rusb = "0.9"
+serialport = "4.3"
+
+# Progress & logging
+indicatif = "0.17"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+colored = "2.1"
+
+# File system
+walkdir = "2.5"
+tempfile = "3.10"
+dirs = "5.0"
+
+# Hashing & compression
+sha2 = "0.10"
+aes-gcm = "0.10"
+chrono = { version = "0.4", features = ["serde"] }
+xz2 = "0.1"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Regex
+regex = "1.10"
+
+# Process execution
+which = "6.0"

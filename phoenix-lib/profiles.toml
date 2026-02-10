@@ -1,0 +1,92 @@
+# Phoenix Device Profile Database
+
+[[profiles]]
+vendor_id = 0x1b8e
+product_id = 0xc003
+name = "Amlogic S905W (Generic)"
+soc = "s905w"
+ram_mb = 2048
+storage_type = "emmc"
+bootloader_offset = 512
+supported_modes = ["maskrom", "burn_mode"]
+
+[[profiles]]
+vendor_id = 0x1f3a
+product_id = 0xefe8
+name = "Allwinner H3 (Generic)"
+soc = "h3"
+ram_mb = 1024
+storage_type = "sd"
+bootloader_offset = 8
+supported_modes = ["fel"]
+
+[[profiles]]
+vendor_id = 0x1b8e
+product_id = 0xc003
+name = "Amlogic S905X (Generic)"
+soc = "s905x"
+ram_mb = 2048
+storage_type = "emmc"
+bootloader_offset = 512
+supported_modes = ["maskrom"]
+
+[[profiles]]
+vendor_id = 0x1b8e
+product_id = 0xc003
+name = "Amlogic S905X3 (Generic)"
+soc = "s905x3"
+ram_mb = 4096
+storage_type = "emmc"
+bootloader_offset = 512
+supported_modes = ["maskrom", "burn_mode"]
+
+[[profiles]]
+vendor_id = 0x2207
+product_id = 0x320b
+name = "Rockchip RK3229 (Generic)"
+soc = "rk3229"
+ram_mb = 1024
+storage_type = "emmc"
+bootloader_offset = 64
+supported_modes = ["maskrom", "loader"]
+
+[[profiles]]
+vendor_id = 0x2207
+product_id = 0x301a
+name = "Rockchip RK3036 (AnyCast)"
+soc = "rk3036"
+ram_mb = 256
+storage_type = "spi_nor"
+bootloader_offset = 64
+supported_modes = ["maskrom", "loader"]
+
+[[profiles]]
+vendor_id = 0x2207
+product_id = 0x322a
+name = "Rockchip RK3328 (Generic)"
+soc = "rk3328"
+ram_mb = 2048
+storage_type = "emmc"
+bootloader_offset = 64
+supported_modes = ["maskrom", "loader"]
+
+[[profiles]]
+vendor_id = 0x2207
+product_id = 0x330c
+name = "Rockchip RK3399 (Generic)"
+soc = "rk3399"
+ram_mb = 4096
+storage_type = "emmc"
+bootloader_offset = 64
+supported_modes = ["maskrom", "loader"]
+
+[[profiles]]
+vendor_id = 0x1b8e
+product_id = 0xc003
+name = "Amlogic S905D (Generic)"
+soc = "s905d"
+ram_mb = 2048
+storage_type = "emmc"
+bootloader_offset = 512
+supported_modes = ["maskrom", "burn_mode"]
+

@@ -1,0 +1,40 @@
+[package]
+name = "phoenix-lib"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+jsonschema.workspace = true
+handlebars.workspace = true
+rusb.workspace = true
+serialport.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+walkdir.workspace = true
+dirs.workspace = true
+sha2.workspace = true
+aes-gcm.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+which.workspace = true
+toml = "0.9.11"
+reqwest.workspace = true
+futures-util = "0.3"
+binrw = "0.14"
+regex.workspace = true
+tar = "0.4.44"
+flate2 = "1.1.9"
+zip = "7.4.0"
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[features]
+default = ["usb"]
+usb = []

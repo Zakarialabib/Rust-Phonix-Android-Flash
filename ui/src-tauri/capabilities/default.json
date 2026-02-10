@@ -1,0 +1,12 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for the app",
+  "local": true,
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-execute",
+    "fs:default",
+    "dialog:default"
+  ]
+}

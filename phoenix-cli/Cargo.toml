@@ -1,0 +1,26 @@
+[package]
+name = "phoenix-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "phoenix"
+path = "src/main.rs"
+
+[dependencies]
+phoenix-lib = { path = "../phoenix-lib" }
+clap.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+indicatif.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+dirs.workspace = true
+colored.workspace = true
+which.workspace = true
+reqwest.workspace = true

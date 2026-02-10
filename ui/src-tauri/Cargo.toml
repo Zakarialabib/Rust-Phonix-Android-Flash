@@ -1,0 +1,35 @@
+[package]
+name = "phoenix-gui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "phoenix-gui-app"
+path = "src/main.rs"
+
+[lib]
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.0-beta.0", features = [] }
+
+[dependencies]
+phoenix-lib = { path = "../../phoenix-lib" }
+tauri = { version = "2.0.0-beta.0", features = [] }
+tauri-plugin-shell = "2.0.0-beta.0"
+tauri-plugin-dialog = "2.0.0-beta.0"
+tauri-plugin-fs = "2.0.0-beta.0"
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+which.workspace = true
+chrono.workspace = true
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

@@ -1,0 +1,14 @@
+target/
+**/*.rs.bk
+Cargo.lock
+.git/
+.github/
+.vscode/
+node_modules/
+ui/node_modules/
+ui/src-tauri/target/
+scripts/
+docs/
+*.md
+!README.md
+LICENSE

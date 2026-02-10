@@ -1,0 +1,43 @@
+# Phoenix Kernel Config Fragment
+# Generated for: {{soc}}
+
+# Core SoC Support
+CONFIG_ARCH_MESON=y
+
+{{#if enable_panfrost}}
+# GPU - Panfrost (Mali-450)
+CONFIG_DRM=y
+CONFIG_DRM_PANFROST=y
+CONFIG_DRM_MESON=y
+{{/if}}
+
+{{#if enable_vdec}}
+# VPU - Video Decode
+CONFIG_MEDIA_SUPPORT=y
+CONFIG_VIDEO_V4L2=y
+CONFIG_VIDEO_MESON_VDEC=y
+CONFIG_CMA=y
+CONFIG_DMA_CMA=y
+CONFIG_CMA_SIZE_MBYTES={{cma_size_mb}}
+{{/if}}
+
+{{#if enable_wifi}}
+# WiFi Driver
+{{#if (eq wifi_driver "brcmfmac")}}
+CONFIG_BRCMFMAC=m
+CONFIG_BRCMFMAC_SDIO=y
+{{/if}}
+{{#if (eq wifi_driver "rtl8189fs")}}
+# RTL8189FS requires out-of-tree module
+{{/if}}
+{{/if}}
+
+{{#if enable_cec}}
+# HDMI CEC
+CONFIG_CEC_CORE=y
+CONFIG_CEC_MESON_AO=y
+{{/if}}
+
+# Serial Console
+CONFIG_SERIAL_MESON=y
+CONFIG_SERIAL_MESON_CONSOLE=y
