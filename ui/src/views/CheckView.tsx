@@ -76,7 +76,7 @@ export default function CheckView() {
       <header class="flex flex-col gap-1 text-left">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(var(--accent-rgb),0.4)]" />
-          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase italic">Compatibility Matrix</h2>
+          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">Compatibility Matrix</h2>
         </div>
         <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Pre-Flight Analysis | Layer 2 — Hardware-Firmware Mapping</p>
       </header>
@@ -87,11 +87,11 @@ export default function CheckView() {
             <div class="grid lg:grid-cols-2 gap-x-12 gap-y-8 mb-8">
               <div class="space-y-8">
                 <div class="space-y-3">
-                  <label class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] italic opacity-60 leading-none">Hardware SoC Blueprint</label>
+                  <label class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-60 leading-none">Hardware SoC Blueprint</label>
                   <div class="flex gap-3">
                     <div class="flex-1 relative">
                       <select
-                        class="w-full h-11 px-5 bg-sidebar/40 border border-border-subtle rounded-none text-xs font-bold text-text-secondary focus:border-accent/50 focus:outline-none uppercase tracking-tight appearance-none cursor-pointer italic"
+                        class="w-full h-11 px-5 bg-sidebar/40 border border-border-subtle rounded-none text-xs font-bold text-text-secondary focus:border-accent/50 focus:outline-none uppercase tracking-tight appearance-none cursor-pointer"
                         value={profilePath()}
                         onChange={e => setProfilePath(e.currentTarget.value)}
                       >
@@ -101,12 +101,12 @@ export default function CheckView() {
                       </select>
                       <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted/40 text-[10px]">▼</div>
                     </div>
-                    <Button variant="ghost" onClick={browseProfile} class="h-11 px-8 font-black text-[10px] border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none uppercase italic tracking-widest text-text-muted hover:text-text-primary transition-all">BROWSE</Button>
+                    <Button variant="ghost" onClick={browseProfile} class="h-11 px-8 font-black text-[10px] border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none uppercase tracking-widest text-text-muted hover:text-text-primary transition-all">BROWSE</Button>
                   </div>
                   <Show when={globalStore.lastDetected}>
                     <div class="flex items-center gap-2 mt-3 px-1">
                       <div class="w-1 h-1 rounded-full bg-accent animate-pulse" />
-                      <span class="text-[9px] text-accent font-black uppercase italic tracking-widest opacity-80">
+                      <span class="text-[9px] text-accent font-black uppercase tracking-widest opacity-80">
                         Link Established: {globalStore.lastDetected?.model} / {globalStore.lastDetected?.vendorName}
                       </span>
                     </div>
@@ -114,7 +114,7 @@ export default function CheckView() {
                 </div>
 
                 <div class="space-y-3">
-                  <label class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] italic opacity-60 leading-none">Firmware Artifact Path</label>
+                  <label class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-60 leading-none">Firmware Artifact Path</label>
                   <div class="flex gap-3">
                     <Input
                       placeholder="SELECT .IMG OR .ZIP SOURCE"
@@ -122,14 +122,14 @@ export default function CheckView() {
                       onInput={e => setFirmwarePath(e.currentTarget.value)}
                       class="flex-1 bg-sidebar/40 border-border-subtle rounded-none h-11 text-xs font-bold tracking-tight text-text-secondary"
                     />
-                    <Button variant="ghost" onClick={browseFirmware} class="h-11 px-8 font-black text-[10px] border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none uppercase italic tracking-widest text-text-muted hover:text-text-primary transition-all">LOCATE</Button>
+                    <Button variant="ghost" onClick={browseFirmware} class="h-11 px-8 font-black text-[10px] border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none uppercase tracking-widest text-text-muted hover:text-text-primary transition-all">LOCATE</Button>
                   </div>
                 </div>
               </div>
 
               <div class="grid grid-cols-2 gap-8">
                 <div class="space-y-3">
-                  <label class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] italic opacity-60 leading-none">Ecosystem Metadata</label>
+                  <label class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-60 leading-none">Ecosystem Metadata</label>
                   <Select
                     value={osType()}
                     onInput={e => setOsType(e.currentTarget.value)}
@@ -141,7 +141,7 @@ export default function CheckView() {
                   </Select>
                 </div>
                 <div class="space-y-3">
-                  <label class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] italic opacity-60 leading-none">Version Strategy</label>
+                  <label class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-60 leading-none">Version Strategy</label>
                   <Select
                     value={version()}
                     onInput={e => setVersion(e.currentTarget.value)}
@@ -167,7 +167,7 @@ export default function CheckView() {
                   onClick={runCheck}
                   disabled={!profilePath() || !firmwarePath() || report.loading}
                   isLoading={report.loading}
-                  class="bg-accent hover:bg-accent/90 border-none font-black italic px-10 h-14 rounded-none text-xs tracking-[0.2em] shadow-[0_10px_30px_rgba(var(--accent-rgb),0.2)] text-white"
+                  class="bg-accent hover:bg-accent/90 border-none font-black px-10 h-14 rounded-none text-xs tracking-[0.2em] shadow-[0_10px_30px_rgba(var(--accent-rgb),0.2)] text-white"
                 >
                   INITIATE SCAN
                 </Button>
@@ -175,14 +175,14 @@ export default function CheckView() {
                   onClick={runPlan}
                   disabled={!profilePath() || !firmwarePath() || plan.loading}
                   isLoading={plan.loading}
-                  class="font-black px-10 h-14 border-border-subtle rounded-none text-xs tracking-[0.1em] bg-sidebar/20 hover:bg-sidebar/40 text-text-muted hover:text-text-primary transition-all italic shadow-none"
+                  class="font-black px-10 h-14 border-border-subtle rounded-none text-xs tracking-[0.1em] bg-sidebar/20 hover:bg-sidebar/40 text-text-muted hover:text-text-primary transition-all shadow-none"
                 >
                   GENERATE PATCH PLAN
                 </Button>
               </div>
-              <div class="flex flex-col items-end gap-2 italic">
+              <div class="flex flex-col items-end gap-2">
                 <span class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-40">Phase Progression:</span>
-                <Badge variant={phaseLabel() === 'IDLE' ? 'secondary' : 'success'} class="rounded-none px-6 font-black italic py-2 tracking-widest leading-none">
+                <Badge variant={phaseLabel() === 'IDLE' ? 'secondary' : 'success'} class="rounded-none px-6 font-black py-2 tracking-widest leading-none">
                   {phaseLabel()}
                 </Badge>
               </div>
@@ -191,7 +191,7 @@ export default function CheckView() {
 
           <div class="grid gap-6 lg:grid-cols-2 pb-4">
             <Show when={report.error}>
-              <div class="rounded-none border-l-2 border-rose-500 bg-rose-500/5 p-6 font-mono text-[11px] text-rose-500 uppercase italic leading-relaxed font-bold">
+              <div class="rounded-none border-l-2 border-rose-500 bg-rose-500/5 p-6 font-mono text-[11px] text-rose-500 uppercase leading-relaxed font-bold">
                 <div class="flex items-center gap-2 mb-1">
                   <span class="text-lg">⚠</span>
                   <span class="tracking-widest">CRITICAL SIGNAL_LOSS</span>
@@ -201,9 +201,9 @@ export default function CheckView() {
             </Show>
 
             <Show when={report()}>
-              <Card glow="teal" title="Conflict Analysis" subtitle="Hardware/Firmware register collisions" class="border-border-subtle italic">
+              <Card glow="teal" title="Conflict Analysis" subtitle="Hardware/Firmware register collisions" class="border-border-subtle">
                 <div class="relative group">
-                  <div class="max-h-80 overflow-auto bg-black/20 border border-border-subtle p-6 font-mono text-[10px] text-text-secondary custom-scrollbar selection:bg-accent/20 italic font-bold">
+                  <div class="max-h-80 overflow-auto bg-black/20 border border-border-subtle p-6 font-mono text-[10px] text-text-secondary custom-scrollbar selection:bg-accent/20 font-bold">
                     <For each={Object.entries(report()!)}>
                       {([key, val]) => (
                         <div class="flex gap-6 mb-3 border-b border-border-subtle pb-2 group/row hover:bg-white/[0.02] transition-colors rounded-sm px-2">
@@ -214,14 +214,14 @@ export default function CheckView() {
                     </For>
                   </div>
                   <div class="absolute top-4 right-4 opacity-40 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100">
-                    <Badge variant="secondary" class="border-none rounded-none text-[9px] font-black tracking-widest italic py-1 px-4">HWMAP_V1</Badge>
+                    <Badge variant="secondary" class="border-none rounded-none text-[9px] font-black tracking-widest py-1 px-4">HWMAP_V1</Badge>
                   </div>
                 </div>
               </Card>
             </Show>
 
             <Show when={plan.error}>
-              <div class="rounded-none border-l-2 border-rose-500 bg-rose-500/5 p-6 font-mono text-[11px] text-rose-500 uppercase italic leading-relaxed font-bold">
+              <div class="rounded-none border-l-2 border-rose-500 bg-rose-500/5 p-6 font-mono text-[11px] text-rose-500 uppercase leading-relaxed font-bold">
                 <div class="flex items-center gap-2 mb-1">
                   <span class="text-lg">⚠</span>
                   <span class="tracking-widest">PATCH_PLANNING_FAILURE</span>
@@ -231,9 +231,9 @@ export default function CheckView() {
             </Show>
 
             <Show when={plan()}>
-              <Card glow="indigo" title="Patch Logic Cache" subtitle="Planned DTB surgery & Blob injection" class="border-border-subtle italic">
+              <Card glow="indigo" title="Patch Logic Cache" subtitle="Planned DTB surgery & Blob injection" class="border-border-subtle">
                 <div class="relative group">
-                  <div class="max-h-80 overflow-auto bg-black/20 border border-border-subtle p-6 font-mono text-[10px] text-text-secondary custom-scrollbar selection:bg-accent/20 italic font-bold">
+                  <div class="max-h-80 overflow-auto bg-black/20 border border-border-subtle p-6 font-mono text-[10px] text-text-secondary custom-scrollbar selection:bg-accent/20 font-bold">
                     <For each={Object.entries(plan()!)}>
                       {([key, val]) => (
                         <div class="flex gap-6 mb-3 border-b border-border-subtle pb-2 group/row hover:bg-white/[0.02] transition-colors rounded-sm px-2">
@@ -244,7 +244,7 @@ export default function CheckView() {
                     </For>
                   </div>
                   <div class="absolute top-4 right-4 opacity-40 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100">
-                    <Badge variant="secondary" class="border-none rounded-none text-[9px] font-black tracking-widest italic py-1 px-4">DTB_PATCH_SET</Badge>
+                    <Badge variant="secondary" class="border-none rounded-none text-[9px] font-black tracking-widest py-1 px-4">DTB_PATCH_SET</Badge>
                   </div>
                 </div>
               </Card>

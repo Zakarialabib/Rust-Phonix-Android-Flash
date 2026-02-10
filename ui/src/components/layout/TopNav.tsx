@@ -5,6 +5,7 @@ import { Badge } from '../ui/Badge';
 import { cn } from '../../lib/utils';
 
 export const TopNav: Component = () => {
+    
     const { state, t, setLanguage, setThemeMode, setThemeColor } = useApp();
 
     const languages: { label: string; value: Language; flag: string }[] = [
@@ -25,9 +26,9 @@ export const TopNav: Component = () => {
         <header class="h-16 border-b border-border-subtle bg-sidebar/50 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 z-10 transition-ui">
             {/* Breadcrumbs / View Title */}
             <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 text-[10px] font-black font-mono uppercase tracking-[0.2em] text-text-muted italic">
-                    <span class="hover:text-text-primary cursor-default transition-ui opacity-40">PHOENIX</span>
-                    <span class="opacity-20 translate-y-[-1px]">/</span>
+                <div class="flex items-center gap-2 text-[10px] font-black font-mono uppercase tracking-[0.2em] text-text-muted">
+                    <span class="text-white hover:text-text-primary cursor-default transition-ui opacity-40">PHOENIX</span>
+                    <span class="opacity-20 translate-y--1px">/</span>
                     <span class="text-accent underline underline-offset-4 decoration-accent/30 shadow-glow shadow-accent/5">{globalStore.activeTab.toUpperCase()}</span>
                 </div>
                 <Show when={globalStore.lastDetected}>
@@ -73,8 +74,7 @@ export const TopNav: Component = () => {
                 {/* Language Selector */}
                 <div class="relative group">
                     <button class="flex items-center gap-3 px-4 py-2 bg-sidebar/30 hover:bg-sidebar/50 border border-border-subtle rounded-none transition-ui hover:border-accent/40 group">
-                        <span class="text-xs opacity-60 group-hover:opacity-100 transition-opacity">{languages.find(l => l.value === state.language)?.flag}</span>
-                        <span class="text-[9px] font-black uppercase tracking-widest text-text-muted group-hover:text-accent transition-colors italic">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-text-muted group-hover:text-accent transition-colors">
                             {state.language}
                         </span>
                     </button>
@@ -86,7 +86,7 @@ export const TopNav: Component = () => {
                                     <button
                                         onClick={() => setLanguage(l.value)}
                                         class={cn(
-                                            "w-full text-left px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-ui flex items-center gap-3 italic",
+                                            "w-full text-left px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-ui flex items-center gap-3",
                                             state.language === l.value
                                                 ? "bg-accent/10 text-accent shadow-glow"
                                                 : "text-text-muted hover:bg-white/5 hover:text-text-primary"

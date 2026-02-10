@@ -182,6 +182,11 @@ export interface AppSettings {
   toolsPath: string;
   cachePath: string;
   outputPath: string;
+  language: string;
+  themeMode: string;
+  themeColor: string;
+  uiScale: string;
+  typography: string;
 }
 
 export interface BuildProgress {

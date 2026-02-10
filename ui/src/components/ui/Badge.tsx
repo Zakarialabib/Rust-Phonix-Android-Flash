@@ -28,7 +28,7 @@ export const Badge: ParentComponent<BadgeProps> = (props) => {
 
   return (
     <span class={cn(
-      "inline-flex items-center rounded-none font-mono font-black uppercase tracking-widest italic border transition-ui",
+      "inline-flex items-center rounded-none font-mono font-black uppercase tracking-widest border transition-ui",
       variants[local.variant || 'default'],
       sizes[local.size || 'md'],
       local.class

@@ -76,7 +76,7 @@ export default function BuildView() {
       <header class="flex flex-col gap-1">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(var(--accent-rgb),0.4)]" />
-          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase italic">The Foundry</h2>
+          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">The Foundry</h2>
         </div>
         <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Intent-Based Build Pipeline | Layer 2 — Image Synthesis</p>
       </header>
@@ -90,7 +90,7 @@ export default function BuildView() {
                 label="Target Blueprint"
                 value={profile()}
                 onInput={e => setProfile(e.currentTarget.value)}
-                class="bg-sidebar/40 border-border-subtle rounded-none h-11 text-[11px] font-bold italic tracking-wider text-text-secondary"
+                class="bg-sidebar/40 border-border-subtle rounded-none h-11 text-[11px] font-bold tracking-wider text-text-secondary"
               >
                 <option value="ambient">Ambient (Android TV + Leanback)</option>
                 <option value="minimal">Minimal (Edge Server / CLI)</option>
@@ -98,7 +98,7 @@ export default function BuildView() {
                 <option value="retro">Retro (EmuELEC / Gaming)</option>
               </Select>
 
-              <div class="p-4 bg-accent/5 border border-accent/10 text-[9px] text-text-muted leading-relaxed uppercase italic font-bold rounded-sm">
+              <div class="p-4 bg-accent/5 border border-accent/10 text-[9px] text-text-muted leading-relaxed uppercase font-bold rounded-sm">
                 <Show when={profile() === 'ambient'}>
                   Full 10ft UI experience. Materializes leanback launcher, media codecs, and optional GMS blobs. Optimized for S905W/X.
                 </Show>
@@ -118,7 +118,7 @@ export default function BuildView() {
                   label="Synthesis Channel"
                   value={variant()}
                   onInput={e => setVariant(e.currentTarget.value)}
-                  class="bg-sidebar/40 border-border-subtle rounded-none h-11 text-[11px] font-bold italic tracking-wider text-text-secondary"
+                  class="bg-sidebar/40 border-border-subtle rounded-none h-11 text-[11px] font-bold tracking-wider text-text-secondary"
                 >
                   <option value="stable">Stable (Production)</option>
                   <option value="beta">Beta (Experimental)</option>
@@ -128,7 +128,7 @@ export default function BuildView() {
                 <div class="space-y-2">
                   <label class="text-[9px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">Compiler State</label>
                   <div class={cn(
-                    "h-11 border border-border-subtle bg-sidebar/20 flex items-center justify-center text-[10px] font-black italic rounded-none tracking-widest",
+                    "h-11 border border-border-subtle bg-sidebar/20 flex items-center justify-center text-[10px] font-black rounded-none tracking-widest",
                     globalStore.buildStatus.inProgress ? "text-accent bg-accent/5 animate-pulse" : "text-text-muted"
                   )}>
                     {globalStore.buildStatus.inProgress ? 'COMPILING' : 'IDLE'}
@@ -142,7 +142,7 @@ export default function BuildView() {
                   <button
                     onClick={() => toggleFeature('gapps')}
                     class={cn(
-                      "group flex items-center justify-between p-4 border transition-all text-[10px] font-black uppercase tracking-widest italic rounded-sm",
+                      "group flex items-center justify-between p-4 border transition-all text-[10px] font-black uppercase tracking-widest rounded-sm",
                       features().gapps
                         ? "border-accent/50 bg-accent/10 text-accent"
                         : "border-border-subtle bg-sidebar/30 text-text-muted hover:border-border-strong hover:bg-sidebar/50"
@@ -156,7 +156,7 @@ export default function BuildView() {
                   <button
                     onClick={() => toggleFeature('root')}
                     class={cn(
-                      "group flex items-center justify-between p-4 border transition-all text-[10px] font-black uppercase tracking-widest italic rounded-sm",
+                      "group flex items-center justify-between p-4 border transition-all text-[10px] font-black uppercase tracking-widest rounded-sm",
                       features().root
                         ? "border-accent/50 bg-accent/10 text-accent"
                         : "border-border-subtle bg-sidebar/30 text-text-muted hover:border-border-strong hover:bg-sidebar/50"
@@ -174,7 +174,7 @@ export default function BuildView() {
                 <Button
                   onClick={startBuild}
                   isLoading={globalStore.buildStatus.inProgress}
-                  class="w-full h-14 font-black italic text-md tracking-[0.2em] rounded-none shadow-[0_10px_30px_rgba(var(--accent-rgb),0.15)] ring-1 ring-accent/20"
+                  class="w-full h-14 font-black text-md tracking-[0.2em] rounded-none shadow-[0_10px_30px_rgba(var(--accent-rgb),0.15)] ring-1 ring-accent/20"
                 >
                   MATERIALIZE IMAGE
                 </Button>
@@ -183,7 +183,7 @@ export default function BuildView() {
           </Card>
 
           <Card glow="indigo" title="Synthesis Estimate" subtitle="Foundry capacity evaluation" class="bg-sidebar/20 border-border-subtle">
-            <div class="space-y-3 text-[10px] font-black text-text-muted uppercase tracking-widest italic leading-none py-1">
+            <div class="space-y-3 text-[10px] font-black text-text-muted uppercase tracking-widest leading-none py-1">
               <div class="flex justify-between border-b border-border-subtle/50 pb-2">
                 <span class="opacity-60">Synthesis TTL</span>
                 <span class="text-accent underline decoration-accent/20 underline-offset-4">~12 - 45 MINS</span>
@@ -208,20 +208,20 @@ export default function BuildView() {
                 "w-2 h-2 rounded-full",
                 globalStore.buildStatus.inProgress ? "bg-accent animate-ping shadow-[0_0_10px_rgba(var(--accent-rgb),0.6)]" : "bg-slate-700 opacity-40"
               )} />
-              <span class="text-[11px] font-black text-text-muted uppercase tracking-[0.3em] italic">Foundry Trace</span>
-              <Badge variant={globalStore.buildStatus.inProgress ? "secondary" : "default"} class="rounded-none px-4 font-black tracking-widest italic py-1 text-[9px]">
+              <span class="text-[11px] font-black text-text-muted uppercase tracking-[0.3em]">Foundry Trace</span>
+              <Badge variant={globalStore.buildStatus.inProgress ? "secondary" : "default"} class="rounded-none px-4 font-black tracking-widest py-1 text-[9px]">
                 {globalStore.buildStatus.currentStage || 'AWAITING BLUEPRINT'}
               </Badge>
             </div>
             <button
-              class="text-[10px] font-black text-text-muted hover:text-rose-500 uppercase tracking-widest transition-colors italic opacity-50 hover:opacity-100"
+              class="text-[10px] font-black text-text-muted hover:text-rose-500 uppercase tracking-widest transition-colors opacity-50 hover:opacity-100"
               onClick={() => setGlobalStore('buildStatus', 'log', [])}
             >
               Flush Cache
             </button>
           </header>
 
-          <div class="flex-1 overflow-y-auto p-8 font-mono text-[10px] text-text-muted custom-scrollbar selection:bg-accent/20 italic leading-relaxed">
+          <div class="flex-1 overflow-y-auto p-8 font-mono text-[10px] text-text-muted custom-scrollbar selection:bg-accent/20 leading-relaxed">
             <For each={globalStore.buildStatus.log} fallback={
               <div class="h-full flex flex-col items-center justify-center opacity-10 select-none grayscale">
                 <div class="text-6xl mb-6">⚒️</div>

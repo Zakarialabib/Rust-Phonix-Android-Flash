@@ -57,9 +57,9 @@ export default function FlashView() {
       <header class="flex flex-col gap-1 text-left">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-accent animate-pulse shadow-glow" />
-          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase italic">Universal Image Burner</h2>
+          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">Universal Image Burner</h2>
         </div>
-        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5 italic">Raw Partition Deployment | SD Card & USB Mass Storage</p>
+        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Raw Partition Deployment | SD Card & USB Mass Storage</p>
       </header>
 
       <div class="grid lg:grid-cols-12 gap-6 flex-1 min-h-0">
@@ -87,8 +87,8 @@ export default function FlashView() {
                     onInput={e => setTargetDevice(e.currentTarget.value)}
                   />
                   <div class="flex items-center gap-2 pt-1 border-l-2 border-rose-500/20 pl-3">
-                    <span class="text-rose-500 font-black text-[9px] uppercase italic animate-pulse">! DATA_DESTRUCTION_WARNING:</span>
-                    <span class="text-[9px] text-text-muted uppercase italic font-bold opacity-40">Confirm Device ID via PowerShell 'Get-Disk'</span>
+                    <span class="text-rose-500 font-black text-[9px] uppercase animate-pulse">! DATA_DESTRUCTION_WARNING:</span>
+                    <span class="text-[9px] text-text-muted uppercase font-bold opacity-40">Confirm Device ID via PowerShell 'Get-Disk'</span>
                   </div>
                 </div>
               </div>
@@ -116,12 +116,12 @@ export default function FlashView() {
             </div>
           </Card>
 
-          <div class="p-6 border-l-2 border-accent bg-accent/5 space-y-3 italic rounded-sm rounded-l-none">
+          <div class="p-6 border-l-2 border-accent bg-accent/5 space-y-3 rounded-sm rounded-l-none">
             <div class="flex items-center gap-2">
               <span class="text-accent font-black text-xs">!</span>
-              <span class="text-[10px] font-black text-accent uppercase tracking-[0.2em] italic">Windows Mounting Conflict</span>
+              <span class="text-[10px] font-black text-accent uppercase tracking-[0.2em]">Windows Mounting Conflict</span>
             </div>
-            <p class="text-[10px] text-text-muted uppercase italic leading-relaxed font-bold opacity-60">
+            <p class="text-[10px] text-text-muted uppercase leading-relaxed font-bold opacity-60">
               Windows may attempt to mount the newly burned partition, requesting 'Formatting'. <span class="text-text-primary underline underline-offset-4 decoration-accent/30 font-black opacity-100">IGNORE THESE DIALOGS.</span> The Linux partition structure is not natively readable by Windows Explorer.
             </p>
           </div>
@@ -130,19 +130,19 @@ export default function FlashView() {
         <div class="lg:col-span-4 flex flex-col gap-6 overflow-hidden pb-4">
           <Card glow="indigo" title="Hardware Specific Suites" subtitle="Protocol-level flashing tools">
             <div class="space-y-4">
-              <div class="p-5 bg-sidebar/30 border border-border-subtle hover:border-accent/40 transition-ui group cursor-pointer rounded-sm italic">
+              <div class="p-5 bg-sidebar/30 border border-border-subtle hover:border-accent/40 transition-ui group cursor-pointer rounded-sm">
                 <div class="flex items-center gap-3 mb-3 leading-none">
                   <span class="text-accent text-lg opacity-40 group-hover:opacity-100 transition-opacity">⚡</span>
-                  <h4 class="text-[10px] font-black text-text-primary uppercase tracking-widest italic leading-none">AMLOGIC WORLDCUP</h4>
+                  <h4 class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">AMLOGIC WORLDCUP</h4>
                 </div>
-                <p class="text-[9px] text-text-muted uppercase italic leading-relaxed font-bold opacity-50">Direct eMMC flashing via USB OTG. Bypasses bootloader security.</p>
+                <p class="text-[9px] text-text-muted uppercase leading-relaxed font-bold opacity-50">Direct eMMC flashing via USB OTG. Bypasses bootloader security.</p>
               </div>
-              <div class="p-5 bg-sidebar/30 border border-border-subtle hover:border-accent/40 transition-ui group cursor-pointer rounded-sm italic">
+              <div class="p-5 bg-sidebar/30 border border-border-subtle hover:border-accent/40 transition-ui group cursor-pointer rounded-sm">
                 <div class="flex items-center gap-3 mb-3 leading-none">
                   <span class="text-accent text-lg opacity-40 group-hover:opacity-100 transition-opacity">⚡</span>
-                  <h4 class="text-[10px] font-black text-text-primary uppercase tracking-widest italic leading-none">ROCKCHIP ROCKUSB</h4>
+                  <h4 class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">ROCKCHIP ROCKUSB</h4>
                 </div>
-                <p class="text-[9px] text-text-muted uppercase italic leading-relaxed font-bold opacity-50">High-speed loader-based deployment for RK35xx series.</p>
+                <p class="text-[9px] text-text-muted uppercase leading-relaxed font-bold opacity-50">High-speed loader-based deployment for RK35xx series.</p>
               </div>
             </div>
           </Card>

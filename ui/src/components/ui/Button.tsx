@@ -32,7 +32,7 @@ export const Button: ParentComponent<ButtonProps> = (props) => {
       {...others}
       disabled={local.disabled || local.isLoading}
       class={cn(
-        "inline-flex items-center justify-center font-mono font-black uppercase tracking-widest transition-ui disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-accent/40 active:translate-y-px border italic",
+        "inline-flex items-center justify-center font-mono font-black uppercase tracking-widest transition-ui disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-accent/40 active:translate-y-px border",
         variants[local.variant || 'primary'],
         sizes[local.size || 'md'],
         local.glow && "shadow-glow hover:shadow-glow-strong",

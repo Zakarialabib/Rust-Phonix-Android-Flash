@@ -23,9 +23,9 @@ export default function ConfigView() {
       <header class="flex flex-col gap-1">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-accent animate-pulse shadow-glow" />
-          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase italic">Blueprint Architect</h2>
+          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">Blueprint Architect</h2>
         </div>
-        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5 italic">Hardware Abstraction Layer | Firmware Synthesis Engine</p>
+        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Hardware Abstraction Layer | Firmware Synthesis Engine</p>
       </header>
 
       <div class="grid lg:grid-cols-12 gap-6 flex-1 min-h-0">
@@ -51,7 +51,7 @@ export default function ConfigView() {
                       )}>{id}</span>
                       {selectedSoc() === id && <div class="w-1 h-1 bg-accent rounded-full animate-pulse shadow-glow" />}
                     </div>
-                    <span class="text-[11px] font-black uppercase italic group-hover:text-text-primary transition-colors">{data.model}</span>
+                    <span class="text-[11px] font-black uppercase group-hover:text-text-primary transition-colors">{data.model}</span>
                     <span class="text-[9px] text-text-muted mt-1 uppercase opacity-60 group-hover:opacity-100">{data.arch}</span>
 
                     {/* Interaction Indicator */}
@@ -77,7 +77,7 @@ export default function ConfigView() {
           <Card glow="accent" title="Hardware Constraints" subtitle="Memory & I/O Physical Topology">
             <div class="space-y-6">
               <div class="flex flex-col gap-3">
-                <span class="text-[10px] text-text-muted font-black uppercase tracking-widest italic opacity-60">Memory Density Configuration</span>
+                <span class="text-[10px] text-text-muted font-black uppercase tracking-widest opacity-60">Memory Density Configuration</span>
                 <div class="flex flex-wrap gap-3">
                   <For each={['1gb', '2gb', '4gb', '8gb']}>
                     {(ram) => (
@@ -85,7 +85,7 @@ export default function ConfigView() {
                         variant={selectedRam() === ram ? 'primary' : 'secondary'}
                         size="sm"
                         onClick={() => setSelectedRam(ram)}
-                        class="rounded-none font-black italic tracking-tighter"
+                        class="rounded-none font-black tracking-tighter"
                         glow={selectedRam() === ram}
                       >
                         {ram} DDR4
@@ -120,16 +120,16 @@ export default function ConfigView() {
         <div class="lg:col-span-4 space-y-6 overflow-y-auto custom-scrollbar">
           <Card glow="accent" title="Synthesis Check" class="bg-accent/5 border-accent/20">
             <div class="space-y-4">
-              <div class="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 italic rounded-sm">
+              <div class="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-sm">
                 <div class="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.4)]" />
                 <div class="space-y-1">
-                  <p class="text-[10px] font-black text-yellow-500 uppercase tracking-widest italic leading-none">Topology Warning</p>
+                  <p class="text-[10px] font-black text-yellow-500 uppercase tracking-widest leading-none">Topology Warning</p>
                   <p class="text-[9px] text-yellow-500/70 uppercase font-bold tracking-tighter">S905X4 thermal profile exceeds Passive limit.</p>
                 </div>
               </div>
 
               <div class="space-y-2 pt-2">
-                <div class="flex justify-between items-center text-[9px] font-black uppercase tracking-widest italic">
+                <div class="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
                   <span class="text-text-muted">Manifest Integrity</span>
                   <span class="text-emerald-500">98.2%</span>
                 </div>
@@ -139,10 +139,10 @@ export default function ConfigView() {
               </div>
 
               <div class="grid grid-cols-2 gap-3 pt-4">
-                <Button class="w-full text-[9px] h-12 rounded-none bg-sidebar text-text-primary hover:bg-sidebar/80 border-border-subtle lowercase italic font-black">
+                <Button class="w-full text-[9px] h-12 rounded-none bg-sidebar text-text-primary hover:bg-sidebar/80 border-border-subtle lowercase font-black">
                   export_blueprint.json
                 </Button>
-                <Button class="w-full text-[9px] h-12 rounded-none bg-accent text-white shadow-glow hover:shadow-glow-strong border-none italic font-black">
+                <Button class="w-full text-[9px] h-12 rounded-none bg-accent text-white shadow-glow hover:shadow-glow-strong border-none font-black">
                   INITIATE BUILD ⚡
                 </Button>
               </div>
@@ -152,21 +152,21 @@ export default function ConfigView() {
           <Card glow="accent" title="Project Metadata" subtitle="Logical Workspace Bindings">
             <div class="space-y-4">
               <div class="space-y-2">
-                <span class="text-[9px] text-text-muted font-black uppercase tracking-widest italic opacity-60">Active Workspace</span>
+                <span class="text-[9px] text-text-muted font-black uppercase tracking-widest opacity-60">Active Workspace</span>
                 <div class="p-3 bg-sidebar/50 border border-dashed border-border-subtle group hover:border-accent/40 transition-colors cursor-pointer rounded-sm">
-                  <code class="text-[9px] text-text-secondary group-hover:text-accent font-black block truncate italic">/user/phoenix_os/stable_v1</code>
+                  <code class="text-[9px] text-text-secondary group-hover:text-accent font-black block truncate">/user/phoenix_os/stable_v1</code>
                 </div>
               </div>
               <div class="space-y-2 pt-2">
-                <span class="text-[9px] text-text-muted font-black uppercase tracking-widest italic opacity-60">Security Signer</span>
-                <Badge variant="secondary" class="w-full justify-center py-2 italic font-black opacity-80 shadow-sm">
+                <span class="text-[9px] text-text-muted font-black uppercase tracking-widest opacity-60">Security Signer</span>
+                <Badge variant="secondary" class="w-full justify-center py-2 font-black opacity-80 shadow-sm">
                   RSA_4096_SHA256
                 </Badge>
               </div>
             </div>
           </Card>
 
-          <div class="border border-dashed border-border-subtle p-5 bg-white/[0.01] rounded-sm italic">
+          <div class="border border-dashed border-border-subtle p-5 bg-white/[0.01] rounded-sm">
             <p class="text-[9px] text-text-muted leading-relaxed uppercase font-bold opacity-60">
               Synthesis engine will automatically map identified hardware traits to the selected silicon blueprint.
             </p>
