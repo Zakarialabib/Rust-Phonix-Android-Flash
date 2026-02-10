@@ -4,7 +4,7 @@ use anyhow::Result;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::path::Path;
 use std::time::Duration;
-use phoenix_lib::flash::preflight;
+use phoenix_lib::flash::{preflight, flash_image_async, FlashProgress};
 use phoenix_lib::workflow::{Phase, PhaseStatus};
 use crate::commands::phase;
 
@@ -39,7 +39,7 @@ pub async fn run(target: &str, device: &str, image: &str) -> Result<()> {
     })
 }
 
-async fn flash_sd(_device: &str, _image: &str, size: u64) -> Result<()> {
+async fn flash_sd(device: &str, image: &str, size: u64) -> Result<()> {
     println!("📝 Writing to SD card...");
 
     let pb = ProgressBar::new(size);
@@ -47,12 +47,14 @@ async fn flash_sd(_device: &str, _image: &str, size: u64) -> Result<()> {
         .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")?
         .progress_chars("█▓░"));
 
-    // Simulate write progress
-    let chunk_size = size / 100;
-    for _ in 0..100 {
-        tokio::time::sleep(Duration::from_millis(20)).await;
-        pb.inc(chunk_size);
-    }
+    let pb_clone = pb.clone();
+    let progress_cb = Box::new(move |p: FlashProgress| {
+        pb_clone.set_position(p.bytes_transferred);
+    });
+
+    flash_image_async(Path::new(image), device, Some(progress_cb))
+        .await
+        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
     pb.finish_with_message("Write complete!");
     println!();
@@ -68,8 +70,9 @@ async fn flash_sd(_device: &str, _image: &str, size: u64) -> Result<()> {
     Ok(())
 }
 
-async fn flash_emmc(_device: &str, _image: &str, size: u64) -> Result<()> {
+async fn flash_emmc(device: &str, image: &str, size: u64) -> Result<()> {
     println!("📝 Writing to eMMC via USB...");
+    println!("Device: {}, Image: {}, Size: {}", device, image, size);
     println!();
     println!("Ensure device is in Maskrom mode (run 'phoenix detect' to verify)");
 
