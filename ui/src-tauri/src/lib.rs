@@ -1,7 +1,7 @@
 use phoenix_lib::build::{BuildPipeline, OutputStream, RecipeEnv};
 use phoenix_lib::config::{create_default_config, DeviceConfig};
 use phoenix_lib::hardware::{detect_devices, list_serial_ports, DetectedDevice};
-use phoenix_lib::flash::{flash_image, preflight};
+use phoenix_lib::flash::{flash_image, flash_image_async, preflight, FlashProgress, ProgressCallback};
 use phoenix_lib::assets::download_file;
 use phoenix_lib::archives::extract_archive;
 use serde::{Deserialize, Serialize};
@@ -103,7 +103,7 @@ async fn cmd_amlogic_flash_image(
         let app_handle = app.clone();
         
         // Create progress callback
-        let progress_cb = Box::new(move |progress: phoenix_lib::flash_amlogic::FlashProgress| {
+        let progress_cb = Box::new(move |progress: FlashProgress| {
             let _ = app_handle.emit("amlogic:progress", progress);
         });
 
@@ -166,7 +166,7 @@ async fn cmd_allwinner_flash_image(
     
     let cb = {
         let app_handle = app.clone();
-        move |progress: phoenix_lib::flash_amlogic::FlashProgress| {
+        move |progress: FlashProgress| {
             let _ = emit_progress(
                 &app_handle,
                 "flash",
@@ -195,8 +195,7 @@ async fn cmd_list_serial_ports() -> Result<Vec<String>, AppError> {
 
 #[tauri::command]
 async fn cmd_flash_image(image_path: String, target_device: String) -> Result<(), AppError> {
-    preflight(Path::new(&image_path), &target_device)?;
-    flash_image(Path::new(&image_path), &target_device)
+    flash_image_async(Path::new(&image_path), &target_device, None).await
 }
 
 #[tauri::command]

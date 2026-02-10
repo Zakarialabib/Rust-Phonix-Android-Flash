@@ -11,7 +11,7 @@ use std::time::Duration;
 use tracing::{debug, info};
 
 use crate::error::AppError;
-use crate::flash_amlogic::{FlashProgress, ProgressCallback};
+use crate::flash::{FlashProgress, ProgressCallback};
 
 /// Allwinner USB VID
 pub const ALLWINNER_VID: u16 = 0x1F3A;
