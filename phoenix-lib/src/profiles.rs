@@ -134,3 +134,33 @@ pub fn default_profiles() -> ProfileDatabase {
         ],
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_find_existing() {
+        let db = default_profiles();
+        // Allwinner H3 (Generic)
+        let profile = db.find(0x1f3a, 0xefe8).expect("Should find Allwinner H3");
+        assert_eq!(profile.name, "Allwinner H3 (Generic)");
+        assert_eq!(profile.soc, "h3");
+    }
+
+    #[test]
+    fn test_find_non_existent() {
+        let db = default_profiles();
+        let profile = db.find(0x0000, 0x0000);
+        assert!(profile.is_none());
+    }
+
+    #[test]
+    fn test_find_multiple_matches() {
+        let db = default_profiles();
+        // Multiple profiles have 0x1b8e:0xc003. The first one is S905W.
+        let profile = db.find(0x1b8e, 0xc003).expect("Should find Amlogic profile");
+        assert_eq!(profile.name, "Amlogic S905W (Generic)");
+        assert_eq!(profile.soc, "s905w");
+    }
+}
