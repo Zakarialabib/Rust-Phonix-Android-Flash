@@ -1,0 +1,223 @@
+services:
+  # =============================================================================
+  # Development Environment (Hot Reload + Full Tooling)
+  # =============================================================================
+  dev:
+    build:
+      context: .
+      target: dev
+      dockerfile: Dockerfile
+    image: phoenix-dev:latest
+    container_name: phoenix-dev
+    
+    volumes:
+      # Mount source code for hot reload
+      - .:/app:cached
+      
+      # Persistent caches (faster rebuilds)
+      - cargo_registry:/home/developer/.cargo/registry
+      - cargo_git:/home/developer/.cargo/git
+      - target_cache:/app/target
+      - npm_cache:/home/developer/.npm
+      - node_modules:/app/ui/node_modules
+      
+      # Mount USB devices (Linux)
+      - /dev/bus/usb:/dev/bus/usb:rw
+      - /run/udev:/run/udev:ro
+      
+      # X11 for GUI development (Linux)
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ${HOME}/.Xauthority:/home/developer/.Xauthority:ro
+    
+    environment:
+      # Development settings
+      - TAURI_ENV_PLATFORM=linux
+      - TAURI_ENV_DEBUG=true
+      - RUST_BACKTRACE=full
+      - RUST_LOG=debug,phoenix=trace
+      
+      # Display forwarding (Linux)
+      - DISPLAY=${DISPLAY:-:0}
+      
+      # User context (avoid permission issues)
+      - USER_ID=${UID:-1000}
+      - GROUP_ID=${GID:-1000}
+    
+    ports:
+      - "1420:1420"    # Vite dev server
+      - "5173:5173"    # Alternative frontend port
+      - "9229:9229"    # Node.js debugger
+    
+    # Hardware access
+    privileged: true
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0  # UART adapter
+      - /dev/ttyACM0:/dev/ttyACM0  # Alternative UART
+    
+    networks:
+      - phoenix-net
+    
+    # Keep container running
+    tty: true
+    stdin_open: true
+    
+    command: /usr/local/bin/dev-start.sh bash
+
+  # =============================================================================
+  # CLI Development (Lightweight, Faster Startup)
+  # =============================================================================
+  dev-cli:
+    build:
+      context: .
+      target: dev
+      dockerfile: Dockerfile
+    image: phoenix-dev:latest
+    container_name: phoenix-dev-cli
+    
+    volumes:
+      - .:/app:cached
+      - cargo_registry:/home/developer/.cargo/registry
+      - cargo_git:/home/developer/.cargo/git
+      - target_cache:/app/target
+      - /dev/bus/usb:/dev/bus/usb:rw
+      - /run/udev:/run/udev:ro
+    
+    environment:
+      - RUST_BACKTRACE=1
+      - RUST_LOG=info,phoenix=debug
+    
+    privileged: true
+    networks:
+      - phoenix-net
+    
+    working_dir: /app
+    entrypoint: ["cargo"]
+    command: ["watch", "-x", "run --bin phoenix"]
+
+  # =============================================================================
+  # GUI Development (Frontend Only)
+  # =============================================================================
+  dev-gui:
+    build:
+      context: .
+      target: dev
+      dockerfile: Dockerfile
+    image: phoenix-dev:latest
+    container_name: phoenix-dev-gui
+    
+    volumes:
+      - ./ui:/app/ui:cached
+      - npm_cache:/home/developer/.npm
+      - node_modules:/app/ui/node_modules
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ${HOME}/.Xauthority:/home/developer/.Xauthority:ro
+    
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - NODE_ENV=development
+    
+    ports:
+      - "1420:1420"
+      - "5173:5173"
+    
+    networks:
+      - phoenix-net
+    
+    working_dir: /app/ui
+    command: npm run tauri dev
+
+  # =============================================================================
+  # Production Build (Self-Contained Binary)
+  # =============================================================================
+  prod:
+    build:
+      context: .
+      target: prod
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: phoenix:latest
+    container_name: phoenix-prod
+    
+    volumes:
+      # Only mount configs and data (no source)
+      - ./configs:/app/configs:ro
+      - phoenix_data:/app/data
+      - /dev/bus/usb:/dev/bus/usb:rw
+      - /run/udev:/run/udev:ro
+    
+    environment:
+      - RUST_LOG=info
+    
+    privileged: true
+    networks:
+      - phoenix-net
+    
+    restart: unless-stopped
+    
+    command: phoenix
+
+  # =============================================================================
+  # CLI-Only Production (Minimal Image)
+  # =============================================================================
+  cli:
+    build:
+      context: .
+      target: cli
+      dockerfile: Dockerfile
+    image: phoenix-cli:latest
+    container_name: phoenix-cli
+    
+    volumes:
+      - ./configs:/app/configs:ro
+      - phoenix_data:/app/data
+      - /dev/bus/usb:/dev/bus/usb:rw
+      - /run/udev:/run/udev:ro
+    
+    privileged: true
+    networks:
+      - phoenix-net
+    
+    entrypoint: ["phoenix"]
+    command: ["detect"]
+
+  # =============================================================================
+  # Testing Environment
+  # =============================================================================
+  test:
+    build:
+      context: .
+      target: dev
+      dockerfile: Dockerfile
+    image: phoenix-dev:latest
+    
+    volumes:
+      - .:/app:cached
+      - cargo_registry:/home/developer/.cargo/registry
+      - cargo_git:/home/developer/.cargo/git
+      - target_cache:/app/target
+    
+    environment:
+      - RUST_BACKTRACE=1
+      - RUST_LOG=debug
+      - RUST_TEST_THREADS=1
+    
+    networks:
+      - phoenix-net
+    
+    command: cargo test --workspace --all-features
+
+networks:
+  phoenix-net:
+    driver: bridge
+
+volumes:
+  # Build caches
+  cargo_registry:
+  cargo_git:
+  target_cache:
+  npm_cache:
+  node_modules:
+  
+  # Application data
+  phoenix_data:
