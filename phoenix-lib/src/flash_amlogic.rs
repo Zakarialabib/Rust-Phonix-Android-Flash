@@ -17,6 +17,7 @@ use tracing::{debug, info};
 use rusb::{DeviceHandle, GlobalContext};
 
 use crate::error::AppError;
+use crate::flash::{FlashProgress, ProgressCallback};
 
 /// Amlogic USB VID/PID pairs for different modes
 pub const AMLOGIC_VID: u16 = 0x1B8E;
@@ -97,26 +98,6 @@ pub struct AmlogicChipInfo {
     pub ddr_type: String,
 }
 
-/// Flash progress callback type
-pub type ProgressCallback = Box<dyn Fn(FlashProgress) + Send>;
-
-/// Flash progress information
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FlashProgress {
-    /// Current operation
-    pub operation: String,
-    /// Partition being flashed
-    pub partition: Option<String>,
-    /// Progress percentage (0-100)
-    pub percent: u8,
-    /// Bytes transferred
-    pub bytes_transferred: u64,
-    /// Total bytes
-    pub total_bytes: u64,
-    /// Current speed in bytes/sec
-    pub speed_bps: u64,
-}
 
 /// Burn State Machine
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

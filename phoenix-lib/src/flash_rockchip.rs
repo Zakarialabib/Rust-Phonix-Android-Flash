@@ -17,7 +17,7 @@ use tracing::{debug, info, warn};
 use rusb::{DeviceHandle, GlobalContext};
 
 use crate::error::AppError;
-use crate::flash_amlogic::{FlashProgress, ProgressCallback};
+use crate::flash::{FlashProgress, ProgressCallback};
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
