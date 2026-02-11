@@ -260,7 +260,9 @@ async fn cmd_allwinner_flash_image(app: AppHandle, image_path: String) -> Result
 #[tauri::command]
 #[instrument]
 async fn cmd_list_serial_ports() -> Result<Vec<String>, AppError> {
-    list_serial_ports().map_err(AppError::from)
+    tauri::async_runtime::spawn_blocking(move || list_serial_ports().map_err(AppError::from))
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
