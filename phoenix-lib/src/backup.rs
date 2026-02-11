@@ -85,24 +85,28 @@ impl BackupManager {
     }
 
     pub async fn verify_backup(image_path: &Path) -> Result<String, AppError> {
-        let mut file = File::open(image_path)
-            .await
-            .map_err(|e| AppError::IoError(e.to_string()))?;
-        let mut hasher = Sha256::new();
-        let mut buffer = vec![0u8; 1024 * 1024];
+        let path = image_path.to_path_buf();
 
-        loop {
-            let read = file
-                .read(&mut buffer)
-                .await
-                .map_err(|e| AppError::IoError(e.to_string()))?;
-            if read == 0 {
-                break;
+        tokio::task::spawn_blocking(move || {
+            let mut file = std::fs::File::open(&path).map_err(|e| AppError::IoError(e.to_string()))?;
+            let mut hasher = Sha256::new();
+            let mut buffer = vec![0u8; 1024 * 1024];
+
+            loop {
+                use std::io::Read;
+                let read = file
+                    .read(&mut buffer)
+                    .map_err(|e| AppError::IoError(e.to_string()))?;
+                if read == 0 {
+                    break;
+                }
+                hasher.update(&buffer[..read]);
             }
-            hasher.update(&buffer[..read]);
-        }
 
-        Ok(format!("{:x}", hasher.finalize()))
+            Ok(format!("{:x}", hasher.finalize()))
+        })
+        .await
+        .map_err(|e| AppError::Unknown(format!("Task join error: {}", e)))?
     }
 
     pub async fn extract_from_image(
