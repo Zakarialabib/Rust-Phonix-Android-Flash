@@ -105,7 +105,7 @@ impl BackupManager {
             Ok(format!("{:x}", hasher.finalize()))
         })
         .await
-        .map_err(|e| AppError::Unknown(e.to_string()))?
+        .map_err(|e| AppError::Unknown(format!("Task join error: {}", e)))?
     }
 
     pub async fn extract_from_image(
