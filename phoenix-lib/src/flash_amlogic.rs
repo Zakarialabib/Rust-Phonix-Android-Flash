@@ -118,9 +118,6 @@ pub struct AmlogicDevice {
     /// USB device handle (real rusb handle)
     #[cfg(feature = "usb")]
     handle: Option<DeviceHandle<GlobalContext>>,
-    /// Device path string for reference
-    #[allow(dead_code)]
-    device_path: String,
     /// Chip info after identification
     chip_info: Option<AmlogicChipInfo>,
     /// Transfer timeout
@@ -141,7 +138,6 @@ impl AmlogicDevice {
         Ok(AmlogicDevice {
             #[cfg(feature = "usb")]
             handle: None, // Will be populated in detect or explicit open
-            device_path: device_path.to_string(),
             chip_info: None,
             timeout: Duration::from_secs(30),
             state: BurnState::WaitingForDevice,
@@ -183,11 +179,6 @@ impl AmlogicDevice {
 
                             return Ok(AmlogicDevice {
                                 handle: Some(handle),
-                                device_path: format!(
-                                    "usb:{:03}:{:03}",
-                                    device.bus_number(),
-                                    device.address()
-                                ),
                                 chip_info: None,
                                 timeout: Duration::from_secs(30),
                                 state: BurnState::Connecting,

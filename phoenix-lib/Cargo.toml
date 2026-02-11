@@ -11,8 +11,8 @@ serde_json.workspace = true
 serde_yaml.workspace = true
 jsonschema.workspace = true
 handlebars.workspace = true
-rusb.workspace = true
-serialport.workspace = true
+rusb = { workspace = true, optional = true }
+serialport = { workspace = true, optional = true }
 tokio.workspace = true
 tracing.workspace = true
 walkdir.workspace = true
@@ -36,5 +36,6 @@ zip = "7.4.0"
 tempfile.workspace = true
 
 [features]
-default = ["usb"]
-usb = []
+default = ["usb", "serial"]
+usb = ["dep:rusb"]
+serial = ["dep:serialport"]

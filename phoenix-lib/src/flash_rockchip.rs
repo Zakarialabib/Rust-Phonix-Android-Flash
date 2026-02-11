@@ -740,8 +740,6 @@ pub struct RockchipChipInfo {
 pub struct RockchipDevice {
     #[cfg(feature = "usb")]
     handle: Option<DeviceHandle<GlobalContext>>,
-    #[allow(dead_code)]
-    device_path: String,
     chip_info: Option<RockchipChipInfo>,
     timeout: Duration,
     endpoint: u8,
@@ -754,7 +752,6 @@ impl RockchipDevice {
         Ok(Self {
             #[cfg(feature = "usb")]
             handle: None,
-            device_path: device_path.to_string(),
             chip_info: None,
             timeout: Duration::from_secs(30),
             endpoint: 0x02,
@@ -815,11 +812,6 @@ impl RockchipDevice {
 
                             return Ok(Self {
                                 handle: Some(handle),
-                                device_path: format!(
-                                    "usb:{:03}:{:03}",
-                                    device.bus_number(),
-                                    device.address()
-                                ),
                                 chip_info: None,
                                 timeout: Duration::from_secs(30),
                                 endpoint: ep,
@@ -1268,7 +1260,6 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         let dev = RockchipDevice {
             #[cfg(feature = "usb")]
             handle: None,
-            device_path: String::new(),
             chip_info: None,
             timeout: Duration::from_secs(1),
             endpoint: 0x02,

@@ -391,3 +391,32 @@ pub fn create_default_config(soc: &str, name: &str) -> DeviceConfig {
         },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_default_config() {
+        // Test S905W
+        let config = create_default_config("s905w", "My S905W Box");
+        assert_eq!(config.device.name, "My S905W Box");
+        assert_eq!(config.device.soc, "s905w");
+        assert_eq!(config.hardware.memory.size_mb, 2048);
+        assert_eq!(config.boot.reference_dtb, "meson-gxl-s905w-p281.dtb");
+
+        // Test RK3229
+        let config = create_default_config("rk3229", "My RK3229 Box");
+        assert_eq!(config.device.name, "My RK3229 Box");
+        assert_eq!(config.device.soc, "rk3229");
+        assert_eq!(config.hardware.memory.size_mb, 1024);
+        assert_eq!(config.boot.reference_dtb, "rk3229-evb.dtb");
+
+        // Test Unknown
+        let config = create_default_config("unknown_soc", "Generic Box");
+        assert_eq!(config.device.name, "Generic Box");
+        assert_eq!(config.device.soc, "unknown_soc");
+        assert_eq!(config.hardware.memory.size_mb, 1024);
+        assert_eq!(config.boot.reference_dtb, "unknown.dtb");
+    }
+}
