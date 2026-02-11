@@ -85,24 +85,27 @@ impl BackupManager {
     }
 
     pub async fn verify_backup(image_path: &Path) -> Result<String, AppError> {
-        let mut file = File::open(image_path)
-            .await
-            .map_err(|e| AppError::IoError(e.to_string()))?;
-        let mut hasher = Sha256::new();
-        let mut buffer = vec![0u8; 1024 * 1024];
+        let image_path = image_path.to_path_buf();
+        tokio::task::spawn_blocking(move || {
+            let mut file = std::fs::File::open(&image_path).map_err(|e| AppError::IoError(e.to_string()))?;
+            let mut hasher = Sha256::new();
+            let mut buffer = vec![0u8; 1024 * 1024];
 
-        loop {
-            let read = file
-                .read(&mut buffer)
-                .await
-                .map_err(|e| AppError::IoError(e.to_string()))?;
-            if read == 0 {
-                break;
+            loop {
+                use std::io::Read;
+                let read = file
+                    .read(&mut buffer)
+                    .map_err(|e| AppError::IoError(e.to_string()))?;
+                if read == 0 {
+                    break;
+                }
+                hasher.update(&buffer[..read]);
             }
-            hasher.update(&buffer[..read]);
-        }
 
-        Ok(format!("{:x}", hasher.finalize()))
+            Ok(format!("{:x}", hasher.finalize()))
+        })
+        .await
+        .map_err(|e| AppError::Unknown(e.to_string()))?
     }
 
     pub async fn extract_from_image(
@@ -204,5 +207,56 @@ mod tests {
             AppError::DeviceNotFound(_) => {}
             _ => panic!("Expected DeviceNotFound, got {:?}", err),
         }
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+    use tokio::time::{sleep, Duration};
+    use std::time::Instant;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    #[tokio::test]
+    async fn test_verify_backup_performance() {
+        // Setup: Create a large temporary file (e.g., 50MB)
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("large_file.img");
+        let size_mb = 50;
+        {
+            let mut file = File::create(&file_path).unwrap();
+            let data = vec![0u8; 1024 * 1024]; // 1MB chunk
+            for _ in 0..size_mb {
+                file.write_all(&data).unwrap();
+            }
+        }
+
+        // Measure: Spawn a background task to count ticks (simulating other work)
+        let ticks = Arc::new(AtomicUsize::new(0));
+        let ticks_clone = ticks.clone();
+
+        let handle = tokio::spawn(async move {
+            loop {
+                sleep(Duration::from_millis(1)).await;
+                ticks_clone.fetch_add(1, Ordering::Relaxed);
+            }
+        });
+
+        println!("Starting verification of {}MB file...", size_mb);
+        let start = Instant::now();
+
+        // Execute the function under test
+        let result = BackupManager::verify_backup(&file_path).await;
+
+        let duration = start.elapsed();
+        handle.abort(); // Stop the counter
+
+        assert!(result.is_ok());
+        println!("Verification took: {:?}", duration);
+        println!("Background ticks: {}", ticks.load(Ordering::Relaxed));
     }
 }
