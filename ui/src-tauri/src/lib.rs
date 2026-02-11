@@ -121,14 +121,24 @@ async fn cmd_amlogic_detect(state: State<'_, AppState>) -> Result<AmlogicChipInf
     // If we don't have a handle, try to detect one
     if device_guard.is_none() {
         info!("Attempting to detect Amlogic device...");
-        let device = AmlogicDevice::detect()?;
+        let device = tauri::async_runtime::spawn_blocking(move || AmlogicDevice::detect())
+            .await
+            .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))??;
         *device_guard = Some(device);
     }
 
     // Identify the chip
-    if let Some(device) = device_guard.as_mut() {
+    if let Some(mut device) = device_guard.take() {
         info!("Identifying Amlogic device...");
-        device.identify()
+        let (device, result) = tauri::async_runtime::spawn_blocking(move || {
+            let res = device.identify();
+            (device, res)
+        })
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?;
+
+        *device_guard = Some(device);
+        result
     } else {
         Err(AppError::DeviceNotFound(
             "Failed to open device after detection".to_string(),
@@ -146,7 +156,7 @@ async fn cmd_amlogic_flash_image(
 ) -> Result<(), AppError> {
     let mut device_guard = state.amlogic_device.lock().await;
 
-    if let Some(device) = device_guard.as_mut() {
+    if let Some(mut device) = device_guard.take() {
         let app_handle = app.clone();
 
         // Create progress callback
@@ -155,7 +165,16 @@ async fn cmd_amlogic_flash_image(
         });
 
         info!("Starting Amlogic flash: {}", image_path);
-        device.flash_image(Path::new(&image_path), Some(progress_cb))
+
+        let (device, result) = tauri::async_runtime::spawn_blocking(move || {
+            let res = device.flash_image(Path::new(&image_path), Some(progress_cb));
+            (device, res)
+        })
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?;
+
+        *device_guard = Some(device);
+        result
     } else {
         Err(AppError::DeviceNotFound(
             "No Amlogic device connected".to_string(),
@@ -168,8 +187,12 @@ async fn cmd_amlogic_flash_image(
 #[instrument]
 async fn cmd_amlogic_extract_image(image_path: String, output_dir: String) -> Result<(), AppError> {
     info!("Extracting Amlogic image: {}", image_path);
-    let header = phoenix_lib::flash_amlogic::AmlogicImageHeader::parse(Path::new(&image_path))?;
-    header.extract_to(Path::new(&image_path), Path::new(&output_dir))
+    tauri::async_runtime::spawn_blocking(move || {
+        let header = phoenix_lib::flash_amlogic::AmlogicImageHeader::parse(Path::new(&image_path))?;
+        header.extract_to(Path::new(&image_path), Path::new(&output_dir))
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 // ─── Rockchip Commands ──────────────────────────────────────────────────────
@@ -178,14 +201,20 @@ async fn cmd_amlogic_extract_image(image_path: String, output_dir: String) -> Re
 #[instrument]
 async fn cmd_rockchip_detect() -> Result<RockchipChipInfo, AppError> {
     info!("Detecting Rockchip device...");
-    let mut device = RockchipDevice::detect()?;
-    device.read_chip_info()
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut device = RockchipDevice::detect()?;
+        device.read_chip_info()
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
 #[instrument]
 async fn cmd_rockchip_parse_image(image_path: String) -> Result<RkImageHeader, AppError> {
-    RkImageHeader::parse(Path::new(&image_path))
+    tauri::async_runtime::spawn_blocking(move || RkImageHeader::parse(Path::new(&image_path)))
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
@@ -195,14 +224,23 @@ async fn cmd_rockchip_extract_image(
     output_dir: String,
 ) -> Result<(), AppError> {
     info!("Extracting Rockchip image: {}", image_path);
-    let header = RkImageHeader::parse(Path::new(&image_path))?;
-    header.extract_to(Path::new(&image_path), Path::new(&output_dir))
+    tauri::async_runtime::spawn_blocking(move || {
+        let header = RkImageHeader::parse(Path::new(&image_path))?;
+        header.extract_to(Path::new(&image_path), Path::new(&output_dir))
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
 #[instrument(skip(content))]
 async fn cmd_rockchip_parse_parameter(content: String) -> Result<RkParameter, AppError> {
-    RkParameter::parse(&content)
+    // This parses string content, CPU bound, but likely fast enough.
+    // However for consistency let's spawn blocking if content is huge.
+    // Assuming content can be large (parameter file):
+    tauri::async_runtime::spawn_blocking(move || RkParameter::parse(&content))
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 // ─── Allwinner Commands ─────────────────────────────────────────────────────
@@ -211,14 +249,20 @@ async fn cmd_rockchip_parse_parameter(content: String) -> Result<RkParameter, Ap
 #[instrument]
 async fn cmd_allwinner_detect() -> Result<AllwinnerVersion, AppError> {
     info!("Detecting Allwinner device...");
-    let mut device = AllwinnerDevice::detect()?;
-    device.get_version()
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut device = AllwinnerDevice::detect()?;
+        device.get_version()
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
 #[instrument]
 async fn cmd_allwinner_parse_image(image_path: String) -> Result<AllwinnerImageHeader, AppError> {
-    AllwinnerImageHeader::parse(Path::new(&image_path))
+    tauri::async_runtime::spawn_blocking(move || AllwinnerImageHeader::parse(Path::new(&image_path)))
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
@@ -271,8 +315,12 @@ async fn cmd_list_serial_ports() -> Result<Vec<String>, AppError> {
 #[instrument]
 async fn cmd_flash_image(image_path: String, target_device: String) -> Result<(), AppError> {
     info!("Generic flash image: {} to {}", image_path, target_device);
-    preflight(Path::new(&image_path), &target_device)?;
-    flash_image(Path::new(&image_path), &target_device)
+    tauri::async_runtime::spawn_blocking(move || {
+        preflight(Path::new(&image_path), &target_device)?;
+        flash_image(Path::new(&image_path), &target_device)
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
@@ -381,7 +429,9 @@ async fn cmd_check_compatibility(
 #[instrument]
 async fn cmd_security_scan(image_path: String) -> Result<SecurityReport, AppError> {
     info!("Starting security scan: {}", image_path);
-    SecurityScanner::scan_image(Path::new(&image_path))
+    tauri::async_runtime::spawn_blocking(move || SecurityScanner::scan_image(Path::new(&image_path)))
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
@@ -651,7 +701,9 @@ async fn resolve_settings_path(app: &AppHandle, state: &AppState) -> Result<Path
 #[instrument]
 async fn cmd_forensics_deep_scan(device: Option<String>) -> Result<ForensicsReport, AppError> {
     info!("Starting forensics deep scan");
-    perform_deep_scan(device.as_deref())
+    tauri::async_runtime::spawn_blocking(move || perform_deep_scan(device.as_deref()))
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
@@ -679,7 +731,11 @@ async fn cmd_generate_remote_conf(name: String) -> Result<String, AppError> {
 #[instrument]
 async fn cmd_extract_archive(archive_path: String, output_dir: String) -> Result<(), AppError> {
     info!("Extracting archive: {}", archive_path);
-    extract_archive(Path::new(&archive_path), Path::new(&output_dir))
+    tauri::async_runtime::spawn_blocking(move || {
+        extract_archive(Path::new(&archive_path), Path::new(&output_dir))
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
