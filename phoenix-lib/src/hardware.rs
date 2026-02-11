@@ -71,6 +71,14 @@ pub mod ddr_patterns {
     pub const MICRON: &str = "06060606";
 }
 
+/// Known DDR Vendor names
+pub mod ddr_vendors {
+    pub const SAMSUNG: &str = "Samsung";
+    pub const HYNIX: &str = "Hynix";
+    pub const MICRON: &str = "Micron";
+    pub const UNKNOWN: &str = "Unknown";
+}
+
 /// Detected device information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -161,6 +169,7 @@ pub fn detect_devices() -> Result<Vec<DetectedDevice>> {
 }
 
 /// Identify a device by its USB VID/PID
+#[cfg(feature = "usb")]
 fn identify_device(
     vendor_id: u16,
     product_id: u16,
@@ -219,10 +228,18 @@ fn identify_device(
 
 /// List available serial ports for UART detection
 pub fn list_serial_ports() -> Result<Vec<String>> {
-    let ports = serialport::available_ports()
-        .map_err(|e| anyhow::anyhow!("Failed to list serial ports: {}", e))?;
-    
-    Ok(ports.iter().map(|p| p.port_name.clone()).collect())
+    #[cfg(feature = "serial")]
+    {
+        let ports = serialport::available_ports()
+            .map_err(|e| anyhow::anyhow!("Failed to list serial ports: {}", e))?;
+
+        Ok(ports.iter().map(|p| p.port_name.clone()).collect())
+    }
+
+    #[cfg(not(feature = "serial"))]
+    {
+        Ok(Vec::new())
+    }
 }
 
 /// UART console detection result
@@ -255,14 +272,27 @@ impl DdrTiming {
     pub fn vendor_from_pattern(pattern: &str) -> String {
         // Common patterns from Amlogic DDR training results:
         if pattern.contains(ddr_patterns::SAMSUNG) {
-            "Samsung".to_string()
+            ddr_vendors::SAMSUNG.to_string()
         } else if pattern.contains(ddr_patterns::HYNIX) {
-            "Hynix".to_string()
+            ddr_vendors::HYNIX.to_string()
         } else if pattern.contains(ddr_patterns::MICRON) {
-            "Micron".to_string()
+            ddr_vendors::MICRON.to_string()
         } else {
-            "Unknown".to_string()
+            ddr_vendors::UNKNOWN.to_string()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ddr_vendor_from_pattern() {
+        assert_eq!(DdrTiming::vendor_from_pattern("04040404"), ddr_vendors::SAMSUNG);
+        assert_eq!(DdrTiming::vendor_from_pattern("Training result: 05050505"), ddr_vendors::HYNIX);
+        assert_eq!(DdrTiming::vendor_from_pattern("06060606"), ddr_vendors::MICRON);
+        assert_eq!(DdrTiming::vendor_from_pattern("00000000"), ddr_vendors::UNKNOWN);
     }
 }
 
@@ -489,65 +519,77 @@ impl ForensicsReport {
 
 /// Probe a serial port for bootloader presence
 pub fn probe_uart(port: &str, baud: u32) -> Result<UartDetection> {
-    use std::time::Duration;
-    use std::io::{Read, Write};
-    
-    let port_settings = serialport::new(port, baud)
-        .timeout(Duration::from_millis(100));
-    
-    match port_settings.open() {
-        Ok(mut serial) => {
-            // Send newlines to wake up the console
-            let _ = serial.write_all(b"\r\n\r\n");
-            
-            let mut buffer = Vec::new();
-            let mut read_buf = [0u8; 256];
-            let mut is_responding = false;
-            let mut bootloader = None;
+    #[cfg(feature = "serial")]
+    {
+        use std::time::Duration;
+        use std::io::{Read, Write};
 
-            // Attempt to read for up to 500ms to catch boot logs or prompt
-            let start = std::time::Instant::now();
-            while start.elapsed() < Duration::from_millis(500) {
-                 if let Ok(n) = serial.read(&mut read_buf) {
-                     if n > 0 {
-                         is_responding = true;
-                         buffer.extend_from_slice(&read_buf[..n]);
+        let port_settings = serialport::new(port, baud)
+            .timeout(Duration::from_millis(100));
+
+        match port_settings.open() {
+            Ok(mut serial) => {
+                // Send newlines to wake up the console
+                let _ = serial.write_all(b"\r\n\r\n");
+
+                let mut buffer = Vec::new();
+                let mut read_buf = [0u8; 256];
+                let mut is_responding = false;
+                let mut bootloader = None;
+
+                // Attempt to read for up to 500ms to catch boot logs or prompt
+                let start = std::time::Instant::now();
+                while start.elapsed() < Duration::from_millis(500) {
+                     if let Ok(n) = serial.read(&mut read_buf) {
+                         if n > 0 {
+                             is_responding = true;
+                             buffer.extend_from_slice(&read_buf[..n]);
+                         }
                      }
-                 }
-                 std::thread::sleep(Duration::from_millis(10));
-            }
-
-            if is_responding {
-                let output = String::from_utf8_lossy(&buffer);
-                // Simple heuristic detection
-                if output.contains("U-Boot") || output.contains("=>") || output.contains("msh>") {
-                     bootloader = Some(BootloaderInfo {
-                        version: "Detected via UART".to_string(),
-                        bootloader_type: if output.contains("U-Boot") { "U-Boot".to_string() } else { "Unknown".to_string() },
-                        secure_boot: output.contains("Secure boot enabled"),
-                        bl2_signed: output.contains("BL2 verified"),
-                        unlock_possible: !output.contains("Secure boot enabled"),
-                        notes: vec![],
-                    });
+                     std::thread::sleep(Duration::from_millis(10));
                 }
+
+                if is_responding {
+                    let output = String::from_utf8_lossy(&buffer);
+                    // Simple heuristic detection
+                    if output.contains("U-Boot") || output.contains("=>") || output.contains("msh>") {
+                         bootloader = Some(BootloaderInfo {
+                            version: "Detected via UART".to_string(),
+                            bootloader_type: if output.contains("U-Boot") { "U-Boot".to_string() } else { "Unknown".to_string() },
+                            secure_boot: output.contains("Secure boot enabled"),
+                            bl2_signed: output.contains("BL2 verified"),
+                            unlock_possible: !output.contains("Secure boot enabled"),
+                            notes: vec![],
+                        });
+                    }
+                }
+
+                Ok(UartDetection {
+                    port: port.to_string(),
+                    baud,
+                    bootloader: bootloader.map(|b| b.version),
+                    is_responding,
+                })
             }
-            
-            Ok(UartDetection {
-                port: port.to_string(),
-                baud,
-                bootloader: bootloader.map(|b| b.version),
-                is_responding,
-            })
+            Err(e) => {
+                debug!("Failed to open {}: {}", port, e);
+                Ok(UartDetection {
+                    port: port.to_string(),
+                    baud,
+                    bootloader: None,
+                    is_responding: false,
+                })
+            }
         }
-        Err(e) => {
-            debug!("Failed to open {}: {}", port, e);
-            Ok(UartDetection {
-                port: port.to_string(),
-                baud,
-                bootloader: None,
-                is_responding: false,
-            })
-        }
+    }
+    #[cfg(not(feature = "serial"))]
+    {
+        Ok(UartDetection {
+            port: port.to_string(),
+            baud,
+            bootloader: None,
+            is_responding: false,
+        })
     }
 }
 
@@ -605,7 +647,7 @@ pub fn perform_deep_scan(
     
     // For demonstration purposes, we'll populate it with "detected" values
     report.ddr_timing = Some(DdrTiming {
-        vendor: "Samsung".to_string(),
+        vendor: ddr_vendors::SAMSUNG.to_string(),
         speed: "DDR3-1600".to_string(),
         timing_pattern: "04040404".to_string(),
         size_mb: 2048,

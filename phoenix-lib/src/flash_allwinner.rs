@@ -114,8 +114,6 @@ pub struct AllwinnerDevice {
     #[cfg(feature = "usb")]
     #[allow(dead_code)]
     device: Option<rusb::Device<rusb::GlobalContext>>,
-    #[allow(dead_code)]
-    device_path: String,
     version: Option<AllwinnerVersion>,
     #[allow(dead_code)]
     timeout: Duration,
@@ -129,7 +127,6 @@ impl AllwinnerDevice {
         Ok(AllwinnerDevice {
             #[cfg(feature = "usb")]
             device: None,
-            device_path: device_path.to_string(),
             version: None,
             timeout: Duration::from_secs(30),
         })
