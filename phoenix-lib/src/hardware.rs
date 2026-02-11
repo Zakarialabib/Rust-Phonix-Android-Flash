@@ -20,6 +20,8 @@ pub mod vendor_ids {
     pub const ROCKCHIP: u16 = 0x2207;
     /// Allwinner (FEL mode)
     pub const ALLWINNER: u16 = 0x1F3A;
+    /// Google (ADB/Fastboot)
+    pub const GOOGLE: u16 = 0x18D1;
 }
 
 /// Known USB Product IDs
@@ -38,6 +40,35 @@ pub mod product_ids {
 
     // Allwinner
     pub const H3: u16 = 0xEFE8;
+
+    // Google
+    pub const GOOGLE_FASTBOOT: u16 = 0x4EE7;
+}
+
+/// Known SDIO Vendor IDs
+pub mod sdio_vendor_ids {
+    pub const BROADCOM: u16 = 0x02D0;
+    pub const REALTEK: u16 = 0x024C;
+}
+
+/// Known SDIO Device IDs
+pub mod sdio_device_ids {
+    pub const BCM43438: u16 = 0x4343;
+}
+
+/// Known eMMC Manufacturer IDs
+pub mod emmc_vendor_ids {
+    pub const SAMSUNG: u8 = 0x15;
+    pub const HYNIX: u8 = 0x90;
+    pub const SANDISK: u8 = 0x45;
+    pub const TOSHIBA: u8 = 0x11;
+}
+
+/// Known DDR training patterns
+pub mod ddr_patterns {
+    pub const SAMSUNG: &str = "04040404";
+    pub const HYNIX: &str = "05050505";
+    pub const MICRON: &str = "06060606";
 }
 
 /// Detected device information
@@ -163,9 +194,9 @@ fn identify_device(
             };
             ("Allwinner", family, model, mode)
         }
-        0x18D1 => {
+        vendor_ids::GOOGLE => {
             // Google (ADB/Fastboot)
-            if product_id == 0x4EE7 {
+            if product_id == product_ids::GOOGLE_FASTBOOT {
                 ("Android", "android", None, DeviceMode::Fastboot)
             } else {
                 ("Android", "android", None, DeviceMode::Adb)
@@ -223,14 +254,11 @@ impl DdrTiming {
     /// Detect DDR vendor from timing pattern
     pub fn vendor_from_pattern(pattern: &str) -> String {
         // Common patterns from Amlogic DDR training results:
-        // Samsung: 0x04040404 pattern
-        // Hynix:   0x05050505 pattern
-        // Micron:  0x06060606 pattern
-        if pattern.contains("04040404") {
+        if pattern.contains(ddr_patterns::SAMSUNG) {
             "Samsung".to_string()
-        } else if pattern.contains("05050505") {
+        } else if pattern.contains(ddr_patterns::HYNIX) {
             "Hynix".to_string()
-        } else if pattern.contains("06060606") {
+        } else if pattern.contains(ddr_patterns::MICRON) {
             "Micron".to_string()
         } else {
             "Unknown".to_string()
@@ -319,7 +347,7 @@ impl WifiChipInfo {
     /// Create WifiChipInfo from SDIO vendor/device IDs
     pub fn from_sdio_ids(vid: u16, did: u16) -> Self {
         match (vid, did) {
-            (0x02D0, _) => WifiChipInfo {
+            (sdio_vendor_ids::BROADCOM, _) => WifiChipInfo {
                 chip: "BCM43438 (AP6212)".to_string(),
                 vendor: "Broadcom".to_string(),
                 sdio_vid: Some(vid),
@@ -331,7 +359,7 @@ impl WifiChipInfo {
                 ],
                 nvram_path: Some("/lib/firmware/brcm/brcmfmac43430-sdio.txt".to_string()),
             },
-            (0x024C, _) => WifiChipInfo {
+            (sdio_vendor_ids::REALTEK, _) => WifiChipInfo {
                 chip: "RTL8189FS".to_string(),
                 vendor: "Realtek".to_string(),
                 sdio_vid: Some(vid),
@@ -373,10 +401,10 @@ impl EmmcInfo {
     /// Detect vendor from manufacturer ID (CID register byte 0)
     pub fn vendor_from_mid(mid: u8) -> String {
         match mid {
-            0x15 => "Samsung".to_string(),
-            0x90 => "SK Hynix".to_string(),
-            0x45 => "SanDisk".to_string(),
-            0x11 => "Toshiba".to_string(),
+            emmc_vendor_ids::SAMSUNG => "Samsung".to_string(),
+            emmc_vendor_ids::HYNIX => "SK Hynix".to_string(),
+            emmc_vendor_ids::SANDISK => "SanDisk".to_string(),
+            emmc_vendor_ids::TOSHIBA => "Toshiba".to_string(),
             _ => format!("Unknown (0x{:02X})", mid),
         }
     }
@@ -551,13 +579,16 @@ pub fn perform_deep_scan(
     
     report.pcb_variant = Some(PcbVariant::P281);
     
-    report.wifi_chip = Some(WifiChipInfo::from_sdio_ids(0x02D0, 0x4343));
+    report.wifi_chip = Some(WifiChipInfo::from_sdio_ids(
+        sdio_vendor_ids::BROADCOM,
+        sdio_device_ids::BCM43438,
+    ));
     
     report.emmc_info = Some(EmmcInfo {
         vendor: "Samsung".to_string(),
         version: "5.1".to_string(),
         capacity_gb: 16,
-        manufacturer_id: Some(0x15),
+        manufacturer_id: Some(emmc_vendor_ids::SAMSUNG),
         model: Some("KLMAG2GEAC-B031".to_string()),
     });
     
