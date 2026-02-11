@@ -226,15 +226,77 @@ impl SecurityScanner {
             return Err(AppError::CommandFailed("ADB tool not found in PATH".to_string()));
         }
 
-        // TODO: Implement ADB-based scanning
-        // This would require:
-        // 1. adb shell ls to check for malware paths
-        // 2. adb shell cat to read build.prop
-        // 3. adb shell pm list packages to check for suspicious apps
-        
-        Err(AppError::NotImplemented(
-            "Live device scanning via ADB is not yet implemented".to_string()
-        ))
+        let mut threats = Vec::new();
+        let mut recommendations = Vec::new();
+
+        // Helper to run ADB command
+        let run_adb = |args: &[&str]| -> Result<String, AppError> {
+            let output = std::process::Command::new("adb")
+                .args(["-s", device_serial, "shell"])
+                .args(args)
+                .output()
+                .map_err(|e| AppError::CommandFailed(format!("Failed to run adb: {}", e)))?;
+            
+            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        };
+
+        // 1. Check for known malware paths
+        // We use 'ls' to check for existence. Exit code might be non-zero if not found, 
+        // but sometimes we get "No such file" in stdout/stderr.
+        let known_malware_paths = [
+            "/data/system/Corejava",
+            "/system/xbin/fp_check", 
+            "/system/bin/rtk_fp_check",
+            "/data/system/shared_prefs/openpreserve.xml",
+        ];
+
+        for path in known_malware_paths {
+            // Run ls <path>
+            // We ignore errors here because "file not found" is a common error state we expect
+            if let Ok(output) = run_adb(&["ls", path]) {
+                 let output = output.trim();
+                 if !output.is_empty() && !output.contains("No such file") && !output.contains("not found") {
+                    threats.push(ThreatDetection {
+                        name: "Known Malware Artifact".to_string(),
+                        severity: ThreatLevel::Critical,
+                        path: path.to_string(),
+                        description: "Found file associated with known Android TV box malware".to_string(),
+                        remediation: "Flash clean firmware immediately".to_string(),
+                    });
+                 }
+            }
+        }
+
+        // 2. Check build.prop
+        if let Ok(build_prop) = run_adb(&["cat", "/system/build.prop"]) {
+             Self::check_build_prop(&build_prop, &mut threats, &mut recommendations);
+        }
+
+        // 3. Check for suspicious packages
+        if let Ok(packages) = run_adb(&["pm", "list", "packages"]) {
+            let suspicious_pkgs = ["com.android.system.corejava", "com.fota.update", "com.adups.fota"];
+            for pkg in suspicious_pkgs {
+                if packages.contains(pkg) {
+                    threats.push(ThreatDetection {
+                        name: "Malicious Package".to_string(),
+                        severity: ThreatLevel::High,
+                        path: pkg.to_string(),
+                        description: "Known malicious package installed".to_string(),
+                        remediation: "Uninstall package via ADB or reflash".to_string(),
+                    });
+                }
+            }
+        }
+
+        let is_infected = !threats.is_empty();
+
+        Ok(SecurityReport {
+            is_infected,
+            threats,
+            recommendations,
+            scan_path: format!("adb://{}", device_serial),
+            scan_type: ScanType::LiveDevice,
+        })
     }
 
     /// Check build.prop for suspicious OTA servers and other red flags

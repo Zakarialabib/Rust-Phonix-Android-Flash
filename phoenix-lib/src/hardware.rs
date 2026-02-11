@@ -493,21 +493,49 @@ pub fn probe_uart(port: &str, baud: u32) -> Result<UartDetection> {
     use std::io::{Read, Write};
     
     let port_settings = serialport::new(port, baud)
-        .timeout(Duration::from_millis(500));
+        .timeout(Duration::from_millis(100));
     
     match port_settings.open() {
         Ok(mut serial) => {
-            // Send a newline to wake up the console
-            let _ = serial.write_all(b"\n");
+            // Send newlines to wake up the console
+            let _ = serial.write_all(b"\r\n\r\n");
             
-            // Try to read a bit to see if there's any response (basic liveness check)
-            let mut buf = [0u8; 32];
-            let is_responding = serial.read(&mut buf).is_ok();
+            let mut buffer = Vec::new();
+            let mut read_buf = [0u8; 256];
+            let mut is_responding = false;
+            let mut bootloader = None;
 
+            // Attempt to read for up to 500ms to catch boot logs or prompt
+            let start = std::time::Instant::now();
+            while start.elapsed() < Duration::from_millis(500) {
+                 if let Ok(n) = serial.read(&mut read_buf) {
+                     if n > 0 {
+                         is_responding = true;
+                         buffer.extend_from_slice(&read_buf[..n]);
+                     }
+                 }
+                 std::thread::sleep(Duration::from_millis(10));
+            }
+
+            if is_responding {
+                let output = String::from_utf8_lossy(&buffer);
+                // Simple heuristic detection
+                if output.contains("U-Boot") || output.contains("=>") || output.contains("msh>") {
+                     bootloader = Some(BootloaderInfo {
+                        version: "Detected via UART".to_string(),
+                        bootloader_type: if output.contains("U-Boot") { "U-Boot".to_string() } else { "Unknown".to_string() },
+                        secure_boot: output.contains("Secure boot enabled"),
+                        bl2_signed: output.contains("BL2 verified"),
+                        unlock_possible: !output.contains("Secure boot enabled"),
+                        notes: vec![],
+                    });
+                }
+            }
+            
             Ok(UartDetection {
                 port: port.to_string(),
                 baud,
-                bootloader: None,
+                bootloader: bootloader.map(|b| b.version),
                 is_responding,
             })
         }
