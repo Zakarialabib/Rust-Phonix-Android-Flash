@@ -222,6 +222,10 @@ impl SecurityScanner {
     pub fn scan_live_device(device_serial: &str) -> Result<SecurityReport, AppError> {
         debug!("Scanning live device: {}", device_serial);
         
+        if which::which("adb").is_err() {
+            return Err(AppError::CommandFailed("ADB tool not found in PATH".to_string()));
+        }
+
         // TODO: Implement ADB-based scanning
         // This would require:
         // 1. adb shell ls to check for malware paths

@@ -53,6 +53,10 @@ impl Default for RecipeEnv {
 pub fn execute_recipe(recipe_path: &Path, env: &RecipeEnv) -> Result<RecipeResult> {
     info!("Executing recipe: {:?}", recipe_path);
 
+    if !recipe_path.exists() {
+        return Err(anyhow::anyhow!("Recipe file not found: {:?}", recipe_path));
+    }
+
     // Determine shell based on platform
     let (shell, args) = if cfg!(target_os = "windows") {
         if recipe_path.extension().map_or(false, |ext| ext == "sh") {
@@ -63,7 +67,7 @@ pub fn execute_recipe(recipe_path: &Path, env: &RecipeEnv) -> Result<RecipeResul
             ("powershell", vec!["-File".to_string(), recipe_path.to_string_lossy().to_string()])
         }
     } else {
-        ("bash", vec!["-c".to_string(), recipe_path.to_string_lossy().to_string()])
+        ("bash", vec![recipe_path.to_string_lossy().to_string()])
     };
 
     // Build environment variables
@@ -111,6 +115,10 @@ where
 {
     info!("Executing recipe: {:?}", recipe_path);
 
+    if !recipe_path.exists() {
+        return Err(anyhow::anyhow!("Recipe file not found: {:?}", recipe_path));
+    }
+
     let (shell, args) = if cfg!(target_os = "windows") {
         if recipe_path.extension().map_or(false, |ext| ext == "sh") {
             ("wsl", vec![recipe_path.to_string_lossy().to_string()])
@@ -118,7 +126,7 @@ where
             ("powershell", vec!["-File".to_string(), recipe_path.to_string_lossy().to_string()])
         }
     } else {
-        ("bash", vec!["-c".to_string(), recipe_path.to_string_lossy().to_string()])
+        ("bash", vec![recipe_path.to_string_lossy().to_string()])
     };
 
     let mut cmd = Command::new(shell);

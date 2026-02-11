@@ -490,18 +490,25 @@ impl ForensicsReport {
 /// Probe a serial port for bootloader presence
 pub fn probe_uart(port: &str, baud: u32) -> Result<UartDetection> {
     use std::time::Duration;
+    use std::io::{Read, Write};
     
     let port_settings = serialport::new(port, baud)
         .timeout(Duration::from_millis(500));
     
     match port_settings.open() {
-        Ok(_serial) => {
-            // TODO: Send probe bytes and detect response
+        Ok(mut serial) => {
+            // Send a newline to wake up the console
+            let _ = serial.write_all(b"\n");
+            
+            // Try to read a bit to see if there's any response (basic liveness check)
+            let mut buf = [0u8; 32];
+            let is_responding = serial.read(&mut buf).is_ok();
+
             Ok(UartDetection {
                 port: port.to_string(),
                 baud,
                 bootloader: None,
-                is_responding: true,
+                is_responding,
             })
         }
         Err(e) => {

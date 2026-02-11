@@ -9,9 +9,9 @@ use phoenix_lib::{
     },
     config::{create_default_config, DeviceConfig},
     error::AppError,
-    flash::{flash_image, preflight},
+    flash::{flash_image, preflight, FlashProgress},
     flash_allwinner::{AllwinnerDevice, AllwinnerImageHeader, AllwinnerVersion},
-    flash_amlogic::{AmlogicChipInfo, AmlogicDevice, FlashProgress},
+    flash_amlogic::{AmlogicChipInfo, AmlogicDevice},
     flash_rockchip::{RkImageHeader, RkParameter, RockchipChipInfo, RockchipDevice},
     hardware::{
         detect_devices, list_serial_ports, perform_deep_scan, DetectedDevice, ForensicsReport,
@@ -107,7 +107,9 @@ async fn cmd_resolve_profile(
 #[instrument]
 async fn cmd_detect_devices() -> Result<Vec<DetectedDevice>, AppError> {
     info!("Detecting devices...");
-    detect_devices().map_err(AppError::from)
+    tauri::async_runtime::spawn_blocking(move || detect_devices().map_err(AppError::from))
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 /// Detect Amlogic Device (WorldCup Mode)

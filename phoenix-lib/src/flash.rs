@@ -6,6 +6,33 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use crate::error::AppError;
 
+fn validate_target_device(device: &str) -> Result<(), AppError> {
+    if device.trim().is_empty() {
+        return Err(AppError::ValidationError("Target device cannot be empty".to_string()));
+    }
+
+    if cfg!(target_os = "windows") {
+        if !device.starts_with(r"\\.\PhysicalDrive") {
+            return Err(AppError::ValidationError(
+                "Target device must be a physical drive (e.g., \\\\.\\PhysicalDrive1)".to_string(),
+            ));
+        }
+    } else if cfg!(target_os = "linux") {
+        if !device.starts_with("/dev/") {
+            return Err(AppError::ValidationError(
+                "Target device must be a block device path (e.g., /dev/sdX)".to_string(),
+            ));
+        }
+        // Basic protection for system drives
+        if device == "/dev/sda" || device == "/dev/nvme0n1" {
+             return Err(AppError::ValidationError(
+                "Operation on primary system drive /dev/sda or /dev/nvme0n1 is restricted.".to_string(),
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Flash progress information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -52,7 +79,14 @@ pub async fn flash_image_async(
     target_device: &str,
     progress: Option<ProgressCallback>,
 ) -> Result<(), AppError> {
-    preflight(image_path, target_device)?;
+    validate_target_device(target_device)?;
+    
+    let image_path_buf = image_path.to_path_buf();
+    let target_device_owned = target_device.to_string();
+    
+    tokio::task::spawn_blocking(move || preflight(&image_path_buf, &target_device_owned))
+        .await
+        .map_err(|e| AppError::Unknown(format!("Preflight join error: {}", e)))??;
 
     let mut f_in = tokio::fs::File::open(image_path)
         .await
@@ -112,6 +146,7 @@ pub async fn flash_image_async(
 
 /// Flash an image to a target device using dd
 pub fn flash_image(image_path: &Path, target_device: &str) -> Result<(), AppError> {
+    validate_target_device(target_device)?;
     preflight(image_path, target_device)?;
 
     // Construct dd command
