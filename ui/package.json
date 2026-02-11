@@ -1,6 +1,7 @@
 {
     "name": "phoenix-ui",
     "version": "0.1.0",
+    "author": "Zakaria Labib <https://github.com/zakarialabib>",
     "private": true,
     "type": "module",
     "scripts": {

@@ -1,218 +1,124 @@
-# Phoenix Tools
+# Phoenix Tools (Phoenix-ARM)
 
-Rust-based CLI and GUI for liberating Android TV boxes.
+![Version](https://img.shields.io/badge/version-0.1.0--alpha-blue.svg?style=for-the-badge)
+![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-green.svg?style=for-the-badge)
+![Platform](https://img.shields.io/badge/platform-Windows%20|%20Linux%20|%20macOS-lightgrey.svg?style=for-the-badge)
+![Stars](https://img.shields.io/github/stars/zakarialabib/phoenix-tools?style=for-the-badge)
 
-## Quick Start
+> **"Hardware liberation should be as easy as installing Ubuntu on a laptop."**
+
+**Phoenix Tools** is an open-source circular computing platform that transforms e-waste (abandoned Android TV boxes) into secure, sovereign infrastructure. It is not just a flashing tool; it is a complete ecosystem where heterogenous ARM hardware becomes a unified compute fabric.
+
+---
+
+## 🚀 The Vision
+
+50+ million Android TV boxes become obsolete annually. They are perfectly good computers (Quad-core ARM64, 2GB+ RAM) that are artificially limited.
+
+**Phoenix** treats this e-waste as a resource:
+1.  **Detect** unknown hardware via USB/UART forensics.
+2.  **Unlock** bootloaders safely.
+3.  **Repurpose** them into servers, nodes, or privacy tools.
+
+---
+
+## 🏗 System Architecture: The Three Layers
+
+Phoenix is built on a "Three-Layer Cake" architecture:
+
+### 1. The Hardware Liberation Engine (HLE)
+*Safely turns a "brick" into a "blank canvas".*
+- **SoC Sherlock**: Computer vision & forensic analysis to identify hardware.
+- **BootROM Negotiator**: Handles low-level protocols (Amlogic, Rockchip, Allwinner).
+- **The Vault**: **Mandatory** encrypted backup of original firmware (MAC, WiFi keys, DRM).
+
+### 2. The Foundry (Image Build Pipeline)
+*Transforms blank hardware into purpose-specific infrastructure.*
+- **Intent-Based Builds**: You declare "I want a home server", Phoenix builds the OS.
+- **Compatibility Matrix**: A rule engine that prevents invalid combinations (e.g., mismatched RAM timings).
+- **Patch Engine**: Applies binary patches and DTB overlays automatically.
+
+### 3. The Colony (Mesh Network)
+*Connects liberated nodes.*
+- **Roost**: Discovery and onboarding.
+- **Molting**: OTA update system.
+
+---
+
+## 🛠 Supported Hardware
+
+We maintain a strict **Compatibility Matrix** to ensure safety.
+
+| SoC | Aliases | Architecture | Notes |
+|-----|---------|--------------|-------|
+| **S905W** | `amlogic_s905w` | Amlogic | Common in X96 Mini, TX3 Mini (P281/P282) |
+| **S905X** | `amlogic_s905x` | Amlogic | HDR support, slightly different pinout |
+| **H3** | `allwinner_h3` | Allwinner | Quad-core Cortex-A7 (Orange Pi compatible) |
+| **RK3229** | `rk3229` | Rockchip | Legacy budget boxes |
+| **RK3328** | `rk3328` | Rockchip | USB 3.0 support |
+| **RK3399** | `rk3399` | Rockchip | High performance, big.LITTLE |
+
+*Deep forensics can also detect RAM vendors (Samsung, Hynix, Micron) and WiFi chips (AP6212, RTL8189FS).*
+
+---
+
+## ⚡ Quick Start
 
 ### Windows
+Run the bootstrap script to set up Rust, Node.js, and dependencies:
 ```powershell
-# Run the bootstrap script to set up everything (including GUI)
 .\scripts\bootstrap.ps1 -Gui
 ```
 
-### Linux/macOS
+### Linux / macOS
 ```bash
 chmod +x scripts/bootstrap.sh
 ./scripts/bootstrap.sh --gui
 ```
 
-## Running the GUI manually
-
-If you prefer to run the GUI manually:
-
+### Running Manually
 ```bash
-cd phoenix-tools/ui
+cd ui
 npm install
 npm run tauri dev
 ```
 
-Alternatively, start the frontend dev server:
+---
 
-```bash
-npm run dev
-# Open http://localhost:5173
-```
+## 🔮 The Phoenix Workflow: "The Five Rites"
 
-## Usage
+1.  **Reconnaissance** (`phoenix forensics`): Deep scan of RAM vendor, PCB revision, and eMMC health.
+2.  **Reservation** (`phoenix vault`): **Critical step.** Full eMMC dump and extraction of unique device keys.
+3.  **Restoration** (`phoenix check` → `phoenix patch`): Validate hardware against the Compatibility Matrix.
+4.  **Rebirth** (`phoenix flash`): Atomic flashing operation using SoC-specific protocols.
+5.  **Reclamation** (`phoenix validate`): Hardware-in-loop testing before deployment.
 
-### The Golden Rule: Vault Before Flash
-Always create a secure backup of your original firmware before any flash operation. This preserves unique MAC addresses, WiFi calibration (NVRAM), and HDCP keys.
+---
 
-```bash
-# Create encrypted backup of original firmware
-phoenix vault create --device COM3 --name "tx3-original"
+## 🗺 Roadmap
 
-# List available backups
-phoenix vault list
+| Phase | Goal | Features |
+|-------|------|----------|
+| **Now** | **Alpha (v0.1.0)** | Amlogic/Rockchip/Allwinner flashing, Device Detection, Tauri GUI. |
+| **Q1 2026** | **Universal Support** | Text-based config profiles, full Rockchip/Allwinner support. |
+| **Q2 2026** | **Modding Tools** | Image unpack/repack, "Phoenix Forge" for custom ROMs. |
+| **Q3 2026** | **Security** | "Phoenix Doctor" malware scanner, RAM verification. |
+| **Q4 2026** | **Cloud** | Firmware repo integration, profile sharing. |
 
-# Verify backup integrity
-phoenix vault verify --name "tx3-original"
+---
 
-# Restore if something goes wrong
-phoenix vault restore --name "tx3-original" --device COM3
-```
+## 👨‍💻 Creator & Contributors
 
-### Hardware Forensics & Detection
-```bash
-# Detect connected devices (USB/UART)
-phoenix detect
+**Creator & Lead Developer**  
+**Zakaria Labib** ([@zakarialabib](https://github.com/zakarialabib))
 
-# Deep forensics (RAM vendor, PCB variant, WiFi chip)
-phoenix forensics deep-scan --device COM3
+**Core Contributors**
+*   [Phoenix Team](https://github.com/phoenix-arm)
 
-# Check specific PCB variant (Critical for S905W p281 vs p282)
-phoenix forensics pcb-variant --device COM3
-```
+We welcome contributions! Please see our [Contribution Guide](docs/guides/Community%20Contribution%20Guide.md).
 
-### Build & Flash
-```bash
-# Check compatibility against target firmware (e.g., SlimBoxTV)
-phoenix check --profile my-tx3.yaml --firmware slimbox_v15.img
+---
 
-# Build customized firmware
-phoenix build --profile minimal --board my-tx3.yaml
+## 📄 License
 
-# Flash to SD card or eMMC
-phoenix flash --target sd --device /dev/sdb --image output/phoenix.img
-```
-
-## Project Structure
-
-```
-phoenix-tools/
-├── phoenix-cli/      # CLI tool (Rust)
-├── phoenix-lib/      # Shared library (Rust)
-├── ui/               # Desktop GUI (Tauri 2.0)
-│   ├── src/          # Frontend logic
-│   ├── src-tauri/    # Rust backend
-│   └── package.json
-├── configs/          # Device YAML configs
-├── recipes/          # Build scripts
-└── scripts/          # Bootstrap scripts
-```
-
-## License
-
-Apache-2.0 OR MIT
-
-## New Commands (alpha)
-
-- Forensics: aggregates USB and UART signals to infer device profile
-- Check: evaluates hardware/firmware compatibility via a rule-based matrix
-- Patch Plan: outputs a sequenced plan of DTB overlays and blob operations
-- Validate: hardware-in-loop stubs for post-flash sanity checks
-- **Security**: scan firmware for malware (Corejava botnet, BadBox, etc.)
-- **Remote**: generate IR remote configurations (remote.conf, keylayout files)
-
-### Security Scanning
-
-```bash
-# Scan extracted firmware for malware
-phoenix security scan --image /path/to/extracted/firmware --format text
-
-# JSON output for automation
-phoenix security scan --image /path/to/firmware --format json
-```
-
-### Remote Configuration
-
-```bash
-# List available remote configurations
-phoenix remote list
-
-# Generate remote.conf for X96 Mini
-phoenix remote generate-conf --name "X96" --output remote.conf
-
-# Generate Android keylayout
-phoenix remote generate-keylayout --name "X96" --output Generic.kl
-```
-
-## Platform Prerequisites
-
-### Windows
-- [Zadig](https://zadig.akeo.ie/) (for USB drivers)
-- USB Burning Tool drivers (Amlogic) or Rockchip DriverAssistant
-- **Critical**: CH340/CP2102 UART drivers (3.3V logic only)
-
-### Linux
-```bash
-# Ubuntu/Debian
-sudo apt install libusb-1.0-0-dev libudev-dev minicom
-
-# For Rockchip
-sudo apt install libusb-1.0-0 python3-pyusb
-sudo cp 50-rockchip.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules
-```
-
-### macOS
-```bash
-brew install libusb minicom
-# Note: Some Amlogic tools require virtualized Linux due to driver restrictions
-```
-
-## Platform-Specific Entry
-
-### Amlogic (S905W, S905X, S912)
-- **Entry**: USB Burning Tool protocol (VID: 1B8E)
-- **Unlock**: UART interrupt or eMMC pin short (pins 8-9)
-- **Warning**: 3.3V UART only (5V will destroy SoC)
-
-### Rockchip (RK3229, RK3399)
-- **Entry**: Maskrom mode (RKDevTool)
-- **Unlock**: Short CLK/D0 or use Recovery button
-- **Baud**: 1.5Mbps (non-standard)
-
-### Allwinner (H3, H6)
-- **Entry**: FEL mode (USB-OTG)
-- **Unlock**: Hold FEL button during boot
-
-## Troubleshooting
-
-### "Device not detected in Download mode"
-- **USB Ports**: Try USB 2.0 ports instead of 3.0.
-- **Cables**: Ensure you are using a high-quality USB-A to USB-A cable (not a standard phone charger cable).
-- **Power**: Some boxes require separate 5V 2A power even when connected via USB.
-
-### "Boot loop after flash"
-- **RAM Timing**: Incorrect DDR timing detected? Run `phoenix forensics ram-vendor`.
-- **DTB Mismatch**: Ensure you used the correct pcb-variant (p281 vs p282).
-
-## Resources & Attribution
-- [Armbian](https://www.armbian.com/) - Linux for ARM.
-
-## Setup & Prerequisites
-
-### Windows Users
-*   **Rust**: Install via [rustup.rs](https://rustup.rs/) (default installation).
-*   **Node.js**: Install Node.js 18+ (LTS) via [nodejs.org](https://nodejs.org/).
-*   **Visual Studio Build Tools**: "Desktop development with C++" workload required for compiling system APIs.
-
-### Setup Steps
-1.  **Clone the Repository**
-    ```powershell
-    git clone https://github.com/phoenix-arm/phoenix-tools.git
-    cd phoenix-tools
-    ```
-
-2.  **Frontend Setup**
-    ```powershell
-    cd ui
-    npm install
-    ```
-
-3.  **Run the Application**
-    ```powershell
-    # From 'ui' directory
-    npm run tauri dev
-    ```
-
-## Common Issues
-
-### "WinRAR" or "Unzip" Loops
-*   **Do NOT run older automated scripts** like `rockchip_automate.ps1`.
-*   The application has **native Rust support** for archives. Do not use external shell commands.
-
-### Build Errors
-*   **"Linker not found"**: Ensure Visual Studio C++ Build Tools are installed.
-*   **"WSL not found"**: Only required for compiling new firmware images, not for flashing.
+Distributed under the **MIT** or **Apache-2.0** license. See `LICENSE` for more information.
