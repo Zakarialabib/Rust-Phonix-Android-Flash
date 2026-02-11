@@ -4,7 +4,6 @@ use sha2::{Digest, Sha256};
 use std::path::Path;
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
-use tokio::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BackupTarget {
@@ -16,14 +15,8 @@ pub enum BackupTarget {
 pub struct BackupManager;
 
 impl BackupManager {
-    async fn validate_device_path(path: &str) -> Result<(), AppError> {
-        let path_obj = Path::new(path);
-
-        if !path_obj.exists() {
-            return Err(AppError::DeviceNotFound(path.to_string()));
-        }
-
-        let metadata = tokio::fs::metadata(path_obj)
+    async fn validate_device_file(file: &File, path: &str) -> Result<(), AppError> {
+        let metadata = file.metadata()
             .await
             .map_err(|e| AppError::IoError(e.to_string()))?;
 
@@ -63,22 +56,30 @@ impl BackupManager {
             BackupTarget::Bootloader => device_path,
         };
 
-        Self::validate_device_path(input_path).await?;
+        // Open file first to get handle
+        let mut input_file = File::open(input_path).await
+            .map_err(|_| AppError::DeviceNotFound(input_path.to_string()))?;
 
-        let input_arg = format!("if={}", input_path);
+        // Validate on the open file handle (prevents TOCTOU)
+        Self::validate_device_file(&input_file, input_path).await?;
 
-        let status = Command::new("dd")
-            .arg(&input_arg)
-            .arg(format!("of={}", output_path.display()))
-            .arg("bs=4M")
-            .arg("status=progress")
-            .status()
-            .await
+        let mut output_file = File::create(output_path).await
             .map_err(|e| AppError::IoError(e.to_string()))?;
 
-        if !status.success() {
-            return Err(AppError::CommandFailed(format!("Backup failed for {}", device_path)));
+        let mut buffer = vec![0u8; 4 * 1024 * 1024]; // 4MB buffer
+        loop {
+            let n = input_file.read(&mut buffer).await
+                .map_err(|e| AppError::IoError(format!("Read failed: {}", e)))?;
+
+            if n == 0 {
+                break;
+            }
+
+            output_file.write_all(&buffer[..n]).await
+                .map_err(|e| AppError::IoError(format!("Write failed: {}", e)))?;
         }
+
+        output_file.flush().await.map_err(|e| AppError::IoError(e.to_string()))?;
 
         Ok(())
     }

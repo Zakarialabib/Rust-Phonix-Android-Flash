@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::str::FromStr;
 
 use crate::config::DeviceConfig;
 use crate::error::AppError;
@@ -17,9 +18,11 @@ pub enum SoC {
     Unknown(String),
 }
 
-impl SoC {
-    fn from_str(value: &str) -> Self {
-        match value.to_lowercase().as_str() {
+impl FromStr for SoC {
+    type Err = std::convert::Infallible;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(match value.to_lowercase().as_str() {
             "s905w" | "amlogic_s905w" => SoC::S905W,
             "s905x" | "amlogic_s905x" => SoC::S905X,
             "rk3229" => SoC::RK3229,
@@ -28,9 +31,11 @@ impl SoC {
             "rk3399" => SoC::RK3399,
             "h3" | "allwinner_h3" => SoC::H3,
             other => SoC::Unknown(other.to_string()),
-        }
+        })
     }
+}
 
+impl SoC {
     fn is_unknown(&self) -> bool {
         matches!(self, SoC::Unknown(_))
     }
@@ -44,15 +49,19 @@ pub enum PcbVariant {
     Unknown(String),
 }
 
-impl PcbVariant {
-    fn from_str(value: &str) -> Self {
-        match value.to_lowercase().as_str() {
+impl FromStr for PcbVariant {
+    type Err = std::convert::Infallible;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(match value.to_lowercase().as_str() {
             "p281" => PcbVariant::P281,
             "p282" => PcbVariant::P282,
             other => PcbVariant::Unknown(other.to_string()),
-        }
+        })
     }
+}
 
+impl PcbVariant {
     fn is_unknown(&self) -> bool {
         matches!(self, PcbVariant::Unknown(_))
     }
@@ -67,10 +76,12 @@ pub enum RamVendor {
     Unknown(String),
 }
 
-impl RamVendor {
-    fn from_str(value: &str) -> Self {
+impl FromStr for RamVendor {
+    type Err = std::convert::Infallible;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
         let lower = value.to_lowercase();
-        if lower.contains("samsung") {
+        Ok(if lower.contains("samsung") {
             RamVendor::Samsung
         } else if lower.contains("hynix") || lower.contains("skhynix") {
             RamVendor::Hynix
@@ -78,9 +89,11 @@ impl RamVendor {
             RamVendor::Micron
         } else {
             RamVendor::Unknown(value.to_string())
-        }
+        })
     }
+}
 
+impl RamVendor {
     fn is_unknown(&self) -> bool {
         matches!(self, RamVendor::Unknown(_))
     }
@@ -95,16 +108,20 @@ pub enum WifiChip {
     Unknown(String),
 }
 
-impl WifiChip {
-    fn from_str(value: &str) -> Self {
-        match value.to_lowercase().as_str() {
+impl FromStr for WifiChip {
+    type Err = std::convert::Infallible;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(match value.to_lowercase().as_str() {
             "ap6212" => WifiChip::AP6212,
             "rtl8189fs" => WifiChip::RTL8189FS,
             "ssv6051" => WifiChip::SSV6051,
             other => WifiChip::Unknown(other.to_string()),
-        }
+        })
     }
+}
 
+impl WifiChip {
     fn is_unknown(&self) -> bool {
         matches!(self, WifiChip::Unknown(_))
     }
@@ -150,17 +167,21 @@ pub enum OsType {
     Unknown(String),
 }
 
-impl OsType {
-    fn from_str(value: &str) -> Self {
-        match value.to_lowercase().as_str() {
+impl FromStr for OsType {
+    type Err = std::convert::Infallible;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(match value.to_lowercase().as_str() {
             "android" => OsType::Android,
             "linux" => OsType::Linux,
             "coreelec" => OsType::CoreElec,
             "armbian" => OsType::Armbian,
             other => OsType::Unknown(other.to_string()),
-        }
+        })
     }
+}
 
+impl OsType {
     fn is_unknown(&self) -> bool {
         matches!(self, OsType::Unknown(_))
     }
@@ -182,19 +203,19 @@ impl HardwareProfile {
         let pcb_variant = if config.device.variant.is_empty() {
             PcbVariant::Unknown("unknown".to_string())
         } else {
-            PcbVariant::from_str(&config.device.variant)
+            PcbVariant::from_str(&config.device.variant).unwrap()
         };
 
-        let ram_vendor = RamVendor::from_str(&config.hardware.memory.chip);
+        let ram_vendor = RamVendor::from_str(&config.hardware.memory.chip).unwrap();
         let wifi_chip = config
             .hardware
             .wifi
             .as_ref()
-            .map(|wifi| WifiChip::from_str(&wifi.chip))
+            .map(|wifi| WifiChip::from_str(&wifi.chip).unwrap())
             .unwrap_or_else(|| WifiChip::Unknown("unknown".to_string()));
 
         HardwareProfile {
-            soc: SoC::from_str(&config.device.soc),
+            soc: SoC::from_str(&config.device.soc).unwrap(),
             pcb_variant,
             ram_vendor,
             wifi_chip,
@@ -232,7 +253,7 @@ impl FirmwareTarget {
             .unwrap_or_default();
 
         let os_type = match os_override {
-            Some(value) => OsType::from_str(value),
+            Some(value) => OsType::from_str(value).unwrap(),
             None => infer_os_type(file_name),
         };
 
@@ -649,26 +670,29 @@ mod tests {
     #[test]
     fn test_soc_from_str() {
         // Test Amlogic
-        assert_eq!(SoC::from_str("s905w"), SoC::S905W);
-        assert_eq!(SoC::from_str("S905W"), SoC::S905W);
-        assert_eq!(SoC::from_str("amlogic_s905w"), SoC::S905W);
+        assert_eq!(SoC::from_str("s905w").unwrap(), SoC::S905W);
+        assert_eq!(SoC::from_str("S905W").unwrap(), SoC::S905W);
+        assert_eq!(SoC::from_str("amlogic_s905w").unwrap(), SoC::S905W);
 
-        assert_eq!(SoC::from_str("s905x"), SoC::S905X);
-        assert_eq!(SoC::from_str("amlogic_s905x"), SoC::S905X);
+        assert_eq!(SoC::from_str("s905x").unwrap(), SoC::S905X);
+        assert_eq!(SoC::from_str("amlogic_s905x").unwrap(), SoC::S905X);
 
         // Test Rockchip
-        assert_eq!(SoC::from_str("rk3229"), SoC::RK3229);
-        assert_eq!(SoC::from_str("RK3229"), SoC::RK3229);
-        assert_eq!(SoC::from_str("rk3036"), SoC::RK3036);
-        assert_eq!(SoC::from_str("rk3328"), SoC::RK3328);
-        assert_eq!(SoC::from_str("rk3399"), SoC::RK3399);
+        assert_eq!(SoC::from_str("rk3229").unwrap(), SoC::RK3229);
+        assert_eq!(SoC::from_str("RK3229").unwrap(), SoC::RK3229);
+        assert_eq!(SoC::from_str("rk3036").unwrap(), SoC::RK3036);
+        assert_eq!(SoC::from_str("rk3328").unwrap(), SoC::RK3328);
+        assert_eq!(SoC::from_str("rk3399").unwrap(), SoC::RK3399);
 
         // Test Allwinner
-        assert_eq!(SoC::from_str("h3"), SoC::H3);
-        assert_eq!(SoC::from_str("allwinner_h3"), SoC::H3);
+        assert_eq!(SoC::from_str("h3").unwrap(), SoC::H3);
+        assert_eq!(SoC::from_str("allwinner_h3").unwrap(), SoC::H3);
 
         // Test Unknown
-        assert!(matches!(SoC::from_str("unknown_soc"), SoC::Unknown(ref s) if s == "unknown_soc"));
+        assert!(matches!(SoC::from_str("unknown_soc"), Ok(SoC::Unknown(ref s)) if s == "unknown_soc"));
+
+        // Test parsing via string parse method
+        assert_eq!("s905w".parse::<SoC>(), Ok(SoC::S905W));
     }
 
     #[test]
@@ -679,13 +703,13 @@ mod tests {
 
     #[test]
     fn test_os_type_from_str() {
-        assert_eq!(OsType::from_str("android"), OsType::Android);
-        assert_eq!(OsType::from_str("Android"), OsType::Android);
-        assert_eq!(OsType::from_str("linux"), OsType::Linux);
-        assert_eq!(OsType::from_str("coreelec"), OsType::CoreElec);
-        assert_eq!(OsType::from_str("armbian"), OsType::Armbian);
+        assert_eq!(OsType::from_str("android").unwrap(), OsType::Android);
+        assert_eq!(OsType::from_str("Android").unwrap(), OsType::Android);
+        assert_eq!(OsType::from_str("linux").unwrap(), OsType::Linux);
+        assert_eq!(OsType::from_str("coreelec").unwrap(), OsType::CoreElec);
+        assert_eq!(OsType::from_str("armbian").unwrap(), OsType::Armbian);
 
-        assert!(matches!(OsType::from_str("windows"), OsType::Unknown(ref s) if s == "windows"));
+        assert!(matches!(OsType::from_str("windows"), Ok(OsType::Unknown(ref s)) if s == "windows"));
     }
 
     #[test]

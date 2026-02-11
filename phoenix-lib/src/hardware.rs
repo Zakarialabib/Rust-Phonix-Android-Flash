@@ -56,6 +56,27 @@ pub mod sdio_device_ids {
     pub const BCM43438: u16 = 0x4343;
 }
 
+/// Known Wifi Chips
+pub mod wifi_chips {
+    pub mod bcm43438 {
+        pub const NAME: &str = "BCM43438 (AP6212)";
+        pub const VENDOR: &str = "Broadcom";
+        pub const FIRMWARE_BIN: &str = "brcmfmac43430-sdio.bin";
+        pub const FIRMWARE_TXT: &str = "brcmfmac43430-sdio.txt";
+        pub const NVRAM_PATH: &str = "/lib/firmware/brcm/brcmfmac43430-sdio.txt";
+    }
+
+    pub mod rtl8189fs {
+        pub const NAME: &str = "RTL8189FS";
+        pub const VENDOR: &str = "Realtek";
+    }
+
+    pub mod unknown {
+        pub const NAME: &str = "Unknown";
+        pub const VENDOR: &str = "Unknown";
+    }
+}
+
 /// Known eMMC Manufacturer IDs
 pub mod emmc_vendor_ids {
     pub const SAMSUNG: u8 = 0x15;
@@ -378,20 +399,20 @@ impl WifiChipInfo {
     pub fn from_sdio_ids(vid: u16, did: u16) -> Self {
         match (vid, did) {
             (sdio_vendor_ids::BROADCOM, _) => WifiChipInfo {
-                chip: "BCM43438 (AP6212)".to_string(),
-                vendor: "Broadcom".to_string(),
+                chip: wifi_chips::bcm43438::NAME.to_string(),
+                vendor: wifi_chips::bcm43438::VENDOR.to_string(),
                 sdio_vid: Some(vid),
                 sdio_did: Some(did),
                 mainline_driver: true,
                 firmware_files: vec![
-                    "brcmfmac43430-sdio.bin".to_string(),
-                    "brcmfmac43430-sdio.txt".to_string(),
+                    wifi_chips::bcm43438::FIRMWARE_BIN.to_string(),
+                    wifi_chips::bcm43438::FIRMWARE_TXT.to_string(),
                 ],
-                nvram_path: Some("/lib/firmware/brcm/brcmfmac43430-sdio.txt".to_string()),
+                nvram_path: Some(wifi_chips::bcm43438::NVRAM_PATH.to_string()),
             },
             (sdio_vendor_ids::REALTEK, _) => WifiChipInfo {
-                chip: "RTL8189FS".to_string(),
-                vendor: "Realtek".to_string(),
+                chip: wifi_chips::rtl8189fs::NAME.to_string(),
+                vendor: wifi_chips::rtl8189fs::VENDOR.to_string(),
                 sdio_vid: Some(vid),
                 sdio_did: Some(did),
                 mainline_driver: false,
@@ -399,8 +420,8 @@ impl WifiChipInfo {
                 nvram_path: None,
             },
             _ => WifiChipInfo {
-                chip: "Unknown".to_string(),
-                vendor: "Unknown".to_string(),
+                chip: wifi_chips::unknown::NAME.to_string(),
+                vendor: wifi_chips::unknown::VENDOR.to_string(),
                 sdio_vid: Some(vid),
                 sdio_did: Some(did),
                 mainline_driver: false,
