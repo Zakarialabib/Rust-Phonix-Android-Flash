@@ -57,18 +57,7 @@ pub fn execute_recipe(recipe_path: &Path, env: &RecipeEnv) -> Result<RecipeResul
         return Err(anyhow::anyhow!("Recipe file not found: {:?}", recipe_path));
     }
 
-    // Determine shell based on platform
-    let (shell, args) = if cfg!(target_os = "windows") {
-        if recipe_path.extension().map_or(false, |ext| ext == "sh") {
-            // Use WSL for shell scripts on Windows
-            ("wsl", vec![recipe_path.to_string_lossy().to_string()])
-        } else {
-            // Use PowerShell for everything else
-            ("powershell", vec!["-File".to_string(), recipe_path.to_string_lossy().to_string()])
-        }
-    } else {
-        ("bash", vec![recipe_path.to_string_lossy().to_string()])
-    };
+    let (shell, args) = determine_shell_command(recipe_path);
 
     // Build environment variables
     let mut cmd = Command::new(shell);
@@ -119,15 +108,7 @@ where
         return Err(anyhow::anyhow!("Recipe file not found: {:?}", recipe_path));
     }
 
-    let (shell, args) = if cfg!(target_os = "windows") {
-        if recipe_path.extension().map_or(false, |ext| ext == "sh") {
-            ("wsl", vec![recipe_path.to_string_lossy().to_string()])
-        } else {
-            ("powershell", vec!["-File".to_string(), recipe_path.to_string_lossy().to_string()])
-        }
-    } else {
-        ("bash", vec![recipe_path.to_string_lossy().to_string()])
-    };
+    let (shell, args) = determine_shell_command(recipe_path);
 
     let mut cmd = Command::new(shell);
     cmd.args(&args)
@@ -204,6 +185,26 @@ where
         stderr: stderr_buffer,
         exit_code,
     })
+}
+
+fn determine_shell_command(recipe_path: &Path) -> (&'static str, Vec<String>) {
+    if cfg!(target_os = "windows") {
+        if recipe_path.extension().map_or(false, |ext| ext == "sh") {
+            // Use WSL for shell scripts on Windows
+            ("wsl", vec![recipe_path.to_string_lossy().to_string()])
+        } else {
+            // Use PowerShell for everything else
+            (
+                "powershell",
+                vec![
+                    "-File".to_string(),
+                    recipe_path.to_string_lossy().to_string(),
+                ],
+            )
+        }
+    } else {
+        ("bash", vec![recipe_path.to_string_lossy().to_string()])
+    }
 }
 
 /// Parse artifact path from recipe JSON output
@@ -313,4 +314,41 @@ pub fn check_prerequisites() -> Result<Vec<String>> {
     }
 
     Ok(missing)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_determine_shell_command_sh() {
+        let recipe_path = PathBuf::from("test/recipe.sh");
+        let (shell, args) = determine_shell_command(&recipe_path);
+
+        if cfg!(target_os = "windows") {
+            assert_eq!(shell, "wsl");
+            assert_eq!(args, vec![recipe_path.to_string_lossy().to_string()]);
+        } else {
+            assert_eq!(shell, "bash");
+            assert_eq!(args, vec![recipe_path.to_string_lossy().to_string()]);
+        }
+    }
+
+    #[test]
+    fn test_determine_shell_command_other() {
+        let recipe_path = PathBuf::from("test/recipe.ps1");
+        let (shell, args) = determine_shell_command(&recipe_path);
+
+        if cfg!(target_os = "windows") {
+            assert_eq!(shell, "powershell");
+            assert_eq!(args, vec![
+                "-File".to_string(),
+                recipe_path.to_string_lossy().to_string()
+            ]);
+        } else {
+            assert_eq!(shell, "bash");
+            assert_eq!(args, vec![recipe_path.to_string_lossy().to_string()]);
+        }
+    }
 }
