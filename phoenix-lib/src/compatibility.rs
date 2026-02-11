@@ -641,3 +641,66 @@ pub fn get_recommendations(profile: &HardwareProfile) -> Vec<FirmwareRecommendat
     
     recs
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_soc_from_str() {
+        // Test Amlogic
+        assert_eq!(SoC::from_str("s905w"), SoC::S905W);
+        assert_eq!(SoC::from_str("S905W"), SoC::S905W);
+        assert_eq!(SoC::from_str("amlogic_s905w"), SoC::S905W);
+
+        assert_eq!(SoC::from_str("s905x"), SoC::S905X);
+        assert_eq!(SoC::from_str("amlogic_s905x"), SoC::S905X);
+
+        // Test Rockchip
+        assert_eq!(SoC::from_str("rk3229"), SoC::RK3229);
+        assert_eq!(SoC::from_str("RK3229"), SoC::RK3229);
+        assert_eq!(SoC::from_str("rk3036"), SoC::RK3036);
+        assert_eq!(SoC::from_str("rk3328"), SoC::RK3328);
+        assert_eq!(SoC::from_str("rk3399"), SoC::RK3399);
+
+        // Test Allwinner
+        assert_eq!(SoC::from_str("h3"), SoC::H3);
+        assert_eq!(SoC::from_str("allwinner_h3"), SoC::H3);
+
+        // Test Unknown
+        assert!(matches!(SoC::from_str("unknown_soc"), SoC::Unknown(ref s) if s == "unknown_soc"));
+    }
+
+    #[test]
+    fn test_soc_is_unknown() {
+        assert!(!SoC::S905W.is_unknown());
+        assert!(SoC::Unknown("test".to_string()).is_unknown());
+    }
+
+    #[test]
+    fn test_os_type_from_str() {
+        assert_eq!(OsType::from_str("android"), OsType::Android);
+        assert_eq!(OsType::from_str("Android"), OsType::Android);
+        assert_eq!(OsType::from_str("linux"), OsType::Linux);
+        assert_eq!(OsType::from_str("coreelec"), OsType::CoreElec);
+        assert_eq!(OsType::from_str("armbian"), OsType::Armbian);
+
+        assert!(matches!(OsType::from_str("windows"), OsType::Unknown(ref s) if s == "windows"));
+    }
+
+    #[test]
+    fn test_extract_version() {
+        assert_eq!(extract_version("android-11-image.img"), Some("11".to_string()));
+        assert_eq!(extract_version("linux-v5.10-test.bin"), Some("5.10".to_string()));
+        assert_eq!(extract_version("no-version"), None);
+    }
+
+    #[test]
+    fn test_infer_os_type() {
+        assert_eq!(infer_os_type("my-android-box.img"), OsType::Android);
+        assert_eq!(infer_os_type("CoreELEC-9.2.img"), OsType::CoreElec);
+        assert_eq!(infer_os_type("Armbian_21.img"), OsType::Armbian);
+        assert_eq!(infer_os_type("linux_firmware.bin"), OsType::Linux);
+        assert!(matches!(infer_os_type("unknown.bin"), OsType::Unknown(_)));
+    }
+}
