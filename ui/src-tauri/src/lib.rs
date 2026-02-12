@@ -107,6 +107,7 @@ async fn cmd_resolve_profile(
 #[instrument]
 async fn cmd_detect_devices() -> Result<Vec<DetectedDevice>, AppError> {
     info!("Detecting devices...");
+    // Optimized: Run blocking detection in a separate thread to avoid stalling the async runtime
     tauri::async_runtime::spawn_blocking(move || detect_devices().map_err(AppError::from))
         .await
         .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
@@ -269,8 +270,7 @@ async fn cmd_allwinner_parse_image(image_path: String) -> Result<AllwinnerImageH
 #[instrument(skip(app))]
 async fn cmd_allwinner_flash_image(app: AppHandle, image_path: String) -> Result<(), AppError> {
     info!("Starting Allwinner flash: {}", image_path);
-    // Ensure device is present before spawning thread
-    let _ = AllwinnerDevice::detect()?;
+    // We detect inside the blocking thread to avoid stalling the async runtime
 
     let cb = {
         let app_handle = app.clone();
