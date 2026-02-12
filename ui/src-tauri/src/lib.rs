@@ -401,20 +401,25 @@ async fn cmd_check_compatibility(
     .map_err(|e| AppError::Unknown(e.to_string()))?;
 
     let yaml = fs::read_to_string(&profile).await.map_err(AppError::from)?;
-    DeviceConfig::validate_schema_yaml(&yaml)?;
-    let config = DeviceConfig::from_str(&yaml).map_err(AppError::from)?;
-    config.validate()?;
 
-    let hardware = resolve_hardware_profile(&config);
-    let firmware_target = resolve_firmware_target(
-        Path::new(&firmware),
-        os.as_deref(),
-        version.as_deref(),
-        kernel.as_deref(),
-    )?;
+    let report = tauri::async_runtime::spawn_blocking(move || {
+        DeviceConfig::validate_schema_yaml(&yaml)?;
+        let config = DeviceConfig::from_str(&yaml).map_err(AppError::from)?;
+        config.validate()?;
 
-    let matrix = CompatibilityMatrix::default_matrix();
-    let report = matrix.evaluate(hardware, firmware_target);
+        let hardware = resolve_hardware_profile(&config);
+        let firmware_target = resolve_firmware_target(
+            Path::new(&firmware),
+            os.as_deref(),
+            version.as_deref(),
+            kernel.as_deref(),
+        )?;
+
+        let matrix = CompatibilityMatrix::default_matrix();
+        Ok(matrix.evaluate(hardware, firmware_target))
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))??;
 
     app.emit(
         "workflow:phase",
@@ -452,21 +457,27 @@ async fn cmd_plan_patches(
     .map_err(|e| AppError::Unknown(e.to_string()))?;
 
     let yaml = fs::read_to_string(&profile).await.map_err(AppError::from)?;
-    DeviceConfig::validate_schema_yaml(&yaml)?;
-    let config = DeviceConfig::from_str(&yaml).map_err(AppError::from)?;
-    config.validate()?;
 
-    let hardware = resolve_hardware_profile(&config);
-    let firmware_target = resolve_firmware_target(
-        Path::new(&firmware),
-        os.as_deref(),
-        version.as_deref(),
-        kernel.as_deref(),
-    )?;
+    let (report, plan) = tauri::async_runtime::spawn_blocking(move || {
+        DeviceConfig::validate_schema_yaml(&yaml)?;
+        let config = DeviceConfig::from_str(&yaml).map_err(AppError::from)?;
+        config.validate()?;
 
-    let matrix = CompatibilityMatrix::default_matrix();
-    let report = matrix.evaluate(hardware, firmware_target);
-    let plan = build_patch_plan(&report);
+        let hardware = resolve_hardware_profile(&config);
+        let firmware_target = resolve_firmware_target(
+            Path::new(&firmware),
+            os.as_deref(),
+            version.as_deref(),
+            kernel.as_deref(),
+        )?;
+
+        let matrix = CompatibilityMatrix::default_matrix();
+        let report = matrix.evaluate(hardware, firmware_target);
+        let plan = build_patch_plan(&report);
+        Ok((report, plan))
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))??;
 
     app.emit(
         "workflow:phase",
