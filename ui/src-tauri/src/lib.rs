@@ -802,3 +802,99 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod performance_test {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use std::time::{Duration, Instant};
+    use tempfile::tempdir;
+    use tokio::time::sleep;
+
+    #[tokio::test()]
+    async fn test_blocking_extract_performance() {
+        // 1. Setup: Create a large dummy archive (tar.gz)
+        let dir = tempdir().unwrap();
+        let archive_path = dir.path().join("test_archive.tar.gz");
+        let output_dir = dir.path().join("output");
+        std::fs::create_dir(&output_dir).unwrap();
+
+        // Create a large file (20MB)
+        let large_file_path = dir.path().join("large_file.bin");
+        {
+            let mut f = File::create(&large_file_path).unwrap();
+            let chunk = vec![0u8; 1024 * 1024]; // 1MB
+            for _ in 0..20 {
+                f.write_all(&chunk).unwrap();
+            }
+        }
+
+        // Create tar.gz
+        {
+            let tar_gz = File::create(&archive_path).unwrap();
+            let enc = flate2::write::GzEncoder::new(tar_gz, flate2::Compression::default());
+            let mut tar = tar::Builder::new(enc);
+            tar.append_path_with_name(&large_file_path, "large_file.bin").unwrap();
+            // finish() writes EOF blocks and returns inner writer (encoder) in recent versions if into_inner is used?
+            // Actually tar::Builder::finish() does not return inner.
+            // Correct way:
+            let enc = tar.into_inner().unwrap();
+            enc.finish().unwrap();
+        }
+
+        // 2. Measure Event Loop Latency
+        let (tx, mut rx) = tokio::sync::mpsc::channel(100);
+
+        // Spawn a monitoring task that should run frequently
+        let monitor_handle = tokio::spawn(async move {
+            let mut last_tick = Instant::now();
+            loop {
+                // Sleep for a short duration
+                sleep(Duration::from_millis(10)).await;
+                let now = Instant::now();
+                let elapsed = now.duration_since(last_tick);
+                // We expect elapsed to be close to 10ms. If it's much larger, we were blocked.
+                if tx.send(elapsed).await.is_err() {
+                    break;
+                }
+                last_tick = now;
+            }
+        });
+
+        // 3. Run Extraction
+        let archive_str = archive_path.to_string_lossy().to_string();
+        let output_str = output_dir.to_string_lossy().to_string();
+
+        // Wait for monitor to start ticking
+        sleep(Duration::from_millis(50)).await;
+
+        info!("Starting extraction test...");
+        // Call the command
+        cmd_extract_archive(archive_str, output_str).await.expect("Extraction failed");
+        info!("Extraction complete.");
+
+        // Wait for one more tick to capture the latency
+        sleep(Duration::from_millis(20)).await;
+
+        // Stop monitor
+        monitor_handle.abort();
+
+        // 4. Analyze Latency
+        let mut max_latency = Duration::from_millis(0);
+        let mut count = 0;
+        while let Ok(latency) = rx.try_recv() {
+            count += 1;
+            if latency > max_latency {
+                max_latency = latency;
+            }
+        }
+
+        println!("Test stats: {} ticks monitored. Max latency: {:?}", count, max_latency);
+
+        assert!(max_latency < Duration::from_millis(100),
+            "Event loop blocked for too long! Max latency: {:?}. Expected < 100ms",
+            max_latency
+        );
+    }
+}
