@@ -102,22 +102,53 @@ pub async fn flash_image_async(
         .await
         .map_err(|e| AppError::IoError(format!("Failed to open target device: {}", e)))?;
 
-    let mut buffer = vec![0u8; 4 * 1024 * 1024]; // 4MB buffer
+    // Create channels for pipelined reading/writing with buffer recycling
+    // Capacity of 2 allows for double buffering (one being read, one being written)
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<Result<Vec<u8>, AppError>>(2);
+    let (recycle_tx, mut recycle_rx) = tokio::sync::mpsc::channel::<Vec<u8>>(2);
+
+    // Pre-allocate 2 buffers and send them to the recycle channel
+    for _ in 0..2 {
+        recycle_tx.send(vec![0u8; 4 * 1024 * 1024]).await.ok();
+    }
+
+    // Spawn a reader task
+    tokio::spawn(async move {
+        loop {
+            // Get a buffer from the recycle channel
+            let mut buffer = match recycle_rx.recv().await {
+                Some(b) => b,
+                None => break, // Writer closed or finished
+            };
+
+            match f_in.read(&mut buffer).await {
+                Ok(0) => break, // EOF
+                Ok(n) => {
+                    // Truncate to actual data size
+                    buffer.truncate(n);
+                    // Send the data chunk
+                    if tx.send(Ok(buffer)).await.is_err() {
+                        break; // Receiver dropped
+                    }
+                }
+                Err(e) => {
+                    let _ = tx.send(Err(AppError::IoError(format!("Read error: {}", e)))).await;
+                    break;
+                }
+            }
+        }
+    });
+
     let mut bytes_transferred = 0u64;
     let start_time = std::time::Instant::now();
 
-    loop {
-        let n = f_in.read(&mut buffer).await
-            .map_err(|e| AppError::IoError(format!("Read error: {}", e)))?;
+    while let Some(result) = rx.recv().await {
+        let mut chunk = result?;
 
-        if n == 0 {
-            break;
-        }
-
-        f_out.write_all(&buffer[..n]).await
+        f_out.write_all(&chunk).await
             .map_err(|e| AppError::IoError(format!("Write error: {}", e)))?;
 
-        bytes_transferred += n as u64;
+        bytes_transferred += chunk.len() as u64;
 
         if let Some(ref cb) = progress {
             let elapsed = start_time.elapsed().as_secs_f64();
@@ -136,6 +167,11 @@ pub async fn flash_image_async(
                 speed_bps,
             });
         }
+
+        // Recycle the buffer
+        // Resize back to 4MB capacity for the next read
+        chunk.resize(4 * 1024 * 1024, 0);
+        let _ = recycle_tx.send(chunk).await;
     }
 
     f_out.sync_all().await

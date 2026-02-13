@@ -1,3 +1,7 @@
 ## 2026-01-22 - Async Blocking in BackupManager
 **Learning:** `BackupManager::verify_backup` was performing CPU-intensive SHA256 hashing directly on the async runtime thread, causing ~63ms blocking delays per 1MB chunk. This violates the architectural rule to use `spawn_blocking` for CPU-bound tasks.
 **Action:** Always verify if file processing loops in async functions are CPU-bound (hashing, compression, encryption) and move them to `spawn_blocking` with synchronous I/O to maintain responsiveness.
+
+## 2026-02-12 - Parallelizing Flashing I/O
+**Learning:** `flash_image_async` was performing sequential read-then-write operations, leaving the I/O bus idle half the time. By using `tokio::spawn` and `mpsc` channels with buffer recycling, I implemented a producer-consumer pipeline that allows concurrent reading and writing. This significantly improves throughput when source and target are on different buses.
+**Action:** Look for opportunities to pipeline sequential I/O operations using channels and spawned tasks, ensuring buffer recycling to avoid allocation overhead.
