@@ -39,7 +39,12 @@ pub async fn run(profile: &str, board: &str, output: &str, dry_run: bool) -> Res
         anyhow::bail!(
             "Profile '{}' not found. Available: {}",
             profile,
-            config.profiles.keys().cloned().collect::<Vec<_>>().join(", ")
+            config
+                .profiles
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(", ")
         );
     }
 
@@ -74,19 +79,21 @@ pub async fn run(profile: &str, board: &str, output: &str, dry_run: bool) -> Res
 
     // Create progress bar
     let pb = ProgressBar::new(4);
-    pb.set_style(ProgressStyle::default_bar()
-        .template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} {msg}")?
-        .progress_chars("█▓░"));
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} {msg}")?
+            .progress_chars("█▓░"),
+    );
 
     let recipes_dir = PathBuf::from("recipes");
     let pipeline = BuildPipeline::image_build(&recipes_dir);
 
     for step in &pipeline.steps {
         pb.set_message(format!("Building {}...", step.name));
-        
+
         // Simulate build step for now
         tokio::time::sleep(Duration::from_millis(500)).await;
-        
+
         pb.inc(1);
     }
 
@@ -98,7 +105,10 @@ pub async fn run(profile: &str, board: &str, output: &str, dry_run: bool) -> Res
     println!("   - fip.bin (bootloader)");
     println!("   - meson-gxl-*.dtb");
     println!();
-    println!("Next: phoenix flash --target sd --device /dev/sdX --image {}/phoenix.img", output);
+    println!(
+        "Next: phoenix flash --target sd --device /dev/sdX --image {}/phoenix.img",
+        output
+    );
 
     Ok(())
 }

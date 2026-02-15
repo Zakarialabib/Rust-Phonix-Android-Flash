@@ -1,7 +1,16 @@
+use crate::cli::UnlockAction;
 use anyhow::Result;
 use colored::Colorize;
 use phoenix_lib::hardware::{detect_devices, list_serial_ports};
 use phoenix_lib::unlock::get_unlock_instructions;
+
+pub async fn run(action: UnlockAction) -> Result<()> {
+    match action {
+        UnlockAction::Detect { method, port } => detect(&method, port.as_deref()).await,
+        UnlockAction::Maskrom { soc } => maskrom(&soc).await,
+        UnlockAction::Status { method } => status(&method).await,
+    }
+}
 
 pub async fn detect(method: &str, port: Option<&str>) -> Result<()> {
     println!("{}", "Phoenix Unlock Detect".bold().magenta());

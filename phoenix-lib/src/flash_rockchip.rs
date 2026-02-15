@@ -8,7 +8,7 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::Write;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::time::Duration;
 use tracing::{debug, info, warn};
@@ -565,21 +565,26 @@ pub struct RkImageHeader {
 impl RkImageHeader {
     /// Parse a Rockchip firmware image (update.img or rkfw)
     pub fn parse(image_path: &Path) -> Result<Self, AppError> {
-        let data = std::fs::read(image_path)
+        let file = std::fs::File::open(image_path)
             .map_err(|e| AppError::IoError(format!("Read image: {}", e)))?;
+        let mut reader = std::io::BufReader::new(file);
 
-        if data.len() < 16 {
-            return Err(AppError::ValidationError("Image too small".into()));
-        }
-
-        let magic = std::str::from_utf8(&data[0..4])
+        let mut magic_buf = [0u8; 4];
+        reader
+            .read_exact(&mut magic_buf)
+            .map_err(|e| AppError::IoError(format!("Read magic: {}", e)))?;
+        let magic = std::str::from_utf8(&magic_buf)
             .unwrap_or("????")
             .to_string();
 
+        reader
+            .seek(SeekFrom::Start(0))
+            .map_err(|e| AppError::IoError(format!("Seek: {}", e)))?;
+
         match magic.as_str() {
-            "RKAF" => Self::parse_rkaf(&data),
-            "RKFW" => Self::parse_rkfw(&data),
-            "RKFP" => Self::parse_rkfp(&data),
+            "RKAF" => Self::parse_rkaf(&mut reader),
+            "RKFW" => Self::parse_rkfw(&mut reader),
+            "RKFP" => Self::parse_rkfp(&mut reader),
             _ => Err(AppError::ValidationError(format!(
                 "Unknown Rockchip image magic: {}",
                 magic
@@ -587,17 +592,20 @@ impl RkImageHeader {
         }
     }
 
-    fn parse_rkaf(buf: &[u8]) -> Result<Self, AppError> {
-        let fsize = get32le(buf, RKAF_FSIZE_OFF) as usize + 4;
-        let manufacturer = String::from_utf8_lossy(
-            &buf[RKAF_MANUFACTURER_OFF..RKAF_MANUFACTURER_OFF + RKAF_MANUFACTURER_LEN],
-        )
-        .trim_matches('\0')
-        .to_string();
-        let model = String::from_utf8_lossy(&buf[RKAF_MODEL_OFF..RKAF_MODEL_OFF + RKAF_MODEL_LEN])
+    fn parse_rkaf<R: Read + Seek>(reader: &mut R) -> Result<Self, AppError> {
+        let mut header = [0u8; 0x8c];
+        reader
+            .read_exact(&mut header)
+            .map_err(|e| AppError::IoError(format!("Read RKAF header: {}", e)))?;
+
+        let fsize = get32le(&header, 4) as usize + 4;
+        let manufacturer = String::from_utf8_lossy(&header[0x48..0x88])
             .trim_matches('\0')
             .to_string();
-        let count = get32le(buf, RKAF_COUNT_OFF) as usize;
+        let model = String::from_utf8_lossy(&header[0x08..0x48])
+            .trim_matches('\0')
+            .to_string();
+        let count = get32le(&header, 0x88) as usize;
 
         info!(
             "RKAF: manufacturer={} model={} files={} total={}",
@@ -606,22 +614,20 @@ impl RkImageHeader {
 
         let mut entries = Vec::new();
         for i in 0..count {
-            let p = RKAF_ENTRIES_OFF + i * RKAF_ENTRY_SIZE;
-            if p + RKAF_ENTRY_SIZE > buf.len() {
-                break;
-            }
-            let name = String::from_utf8_lossy(&buf[p..p + RKAF_ENTRY_NAME_LEN])
+            let mut entry_buf = [0u8; 0x70];
+            reader
+                .read_exact(&mut entry_buf)
+                .map_err(|e| AppError::IoError(format!("Read RKAF entry {}: {}", i, e)))?;
+
+            let name = String::from_utf8_lossy(&entry_buf[0..0x20])
                 .trim_matches('\0')
                 .to_string();
-            let path = String::from_utf8_lossy(
-                &buf[p + RKAF_ENTRY_PATH_OFF..p + RKAF_ENTRY_PATH_OFF + RKAF_ENTRY_PATH_LEN],
-            )
-            .trim_matches('\0')
-            .to_string();
-            let ioff = get32le(buf, p + RKAF_ENTRY_IOFF_OFF) as u64;
-            let _noff = get32le(buf, p + RKAF_ENTRY_NOFF_OFF) as u64;
-            let isize = get32le(buf, p + RKAF_ENTRY_ISIZE_OFF) as u64;
-            let file_size = get32le(buf, p + RKAF_ENTRY_FILE_SIZE_OFF) as u64;
+            let path = String::from_utf8_lossy(&entry_buf[0x20..0x60])
+                .trim_matches('\0')
+                .to_string();
+            let ioff = get32le(&entry_buf, 0x60) as u64;
+            let isize = get32le(&entry_buf, 0x68) as u64;
+            let file_size = get32le(&entry_buf, 0x6c) as u64;
 
             entries.push(RkImageEntry {
                 name,
@@ -642,14 +648,19 @@ impl RkImageHeader {
         })
     }
 
-    fn parse_rkfw(buf: &[u8]) -> Result<Self, AppError> {
+    fn parse_rkfw<R: Read + Seek>(reader: &mut R) -> Result<Self, AppError> {
+        let mut header = [0u8; 0x29];
+        reader
+            .read_exact(&mut header)
+            .map_err(|e| AppError::IoError(format!("Read RKFW header: {}", e)))?;
+
         let version = format!(
             "{}.{}.{}",
-            buf[RKFW_VERSION_OFF + 3],
-            buf[RKFW_VERSION_OFF + 2],
-            (buf[RKFW_VERSION_OFF + 1] as u16) << 8 | buf[RKFW_VERSION_OFF] as u16
+            header[9],
+            header[8],
+            (header[7] as u16) << 8 | header[6] as u16
         );
-        let chip_family = match buf[RKFW_CHIP_FAMILY_OFF] {
+        let chip_family = match header[0x15] {
             0x50 => "rk29xx",
             0x60 => "rk30xx",
             0x70 => "rk31xx",
@@ -665,7 +676,15 @@ impl RkImageHeader {
         let update_off = get32le(buf, RKFW_UPDATE_OFF_OFF) as u64;
         let update_size = get32le(buf, RKFW_UPDATE_SIZE_OFF) as u64;
 
-        let boot_name = if &buf[boot_off as usize..boot_off as usize + 4] == b"BOOT" {
+        let mut boot_magic = [0u8; 4];
+        reader
+            .seek(SeekFrom::Start(boot_off))
+            .map_err(|e| AppError::IoError(format!("Seek to boot: {}", e)))?;
+        reader
+            .read_exact(&mut boot_magic)
+            .map_err(|e| AppError::IoError(format!("Read boot magic: {}", e)))?;
+
+        let boot_name = if &boot_magic == b"BOOT" {
             "BOOT"
         } else {
             "LDR"
@@ -698,7 +717,12 @@ impl RkImageHeader {
         })
     }
 
-    fn parse_rkfp(buf: &[u8]) -> Result<Self, AppError> {
+    fn parse_rkfp<R: Read + Seek>(reader: &mut R) -> Result<Self, AppError> {
+        let mut header = [0u8; 0x24];
+        reader
+            .read_exact(&mut header)
+            .map_err(|e| AppError::IoError(format!("Read RKFP header: {}", e)))?;
+
         let pss = get32le(buf, RKFP_PSS_OFF) as usize;
         let peo = get32le(buf, RKFP_PEO_OFF) as usize;
         let pes = get32le(buf, RKFP_PES_OFF) as usize;
@@ -707,15 +731,21 @@ impl RkImageHeader {
         let mut entries = Vec::new();
         for i in 0..pec {
             let p = pss * peo + i * pes;
-            if p + pes > buf.len() {
-                break;
-            }
-            let path = String::from_utf8_lossy(&buf[p..p + RKFP_ENTRY_PATH_LEN])
+            reader
+                .seek(SeekFrom::Start(p as u64))
+                .map_err(|e| AppError::IoError(format!("Seek to RKFP entry {}: {}", i, e)))?;
+
+            let mut entry_buf = [0u8; 48];
+            reader
+                .read_exact(&mut entry_buf)
+                .map_err(|e| AppError::IoError(format!("Read RKFP entry {}: {}", i, e)))?;
+
+            let path = String::from_utf8_lossy(&entry_buf[0..32])
                 .trim_matches('\0')
                 .to_string();
-            let ioff = get32le(buf, p + RKFP_ENTRY_IOFF_OFF) as u64;
-            let isize = get32le(buf, p + RKFP_ENTRY_ISIZE_OFF) as u64;
-            let fsize = get32le(buf, p + RKFP_ENTRY_FILE_SIZE_OFF) as u64;
+            let ioff = get32le(&entry_buf, 36) as u64;
+            let isize = get32le(&entry_buf, 40) as u64;
+            let fsize = get32le(&entry_buf, 44) as u64;
             entries.push(RkImageEntry {
                 name: path.clone(),
                 path,
@@ -745,15 +775,19 @@ impl RkImageHeader {
         std::fs::create_dir_all(output_dir)
             .map_err(|e| AppError::IoError(format!("mkdir: {}", e)))?;
 
-        let data =
-            std::fs::read(image_path).map_err(|e| AppError::IoError(format!("read: {}", e)))?;
+        let mut file = std::fs::File::open(image_path)
+            .map_err(|e| AppError::IoError(format!("Open image for extraction: {}", e)))?;
+        let total_len = file
+            .metadata()
+            .map(|m| m.len())
+            .map_err(|e| AppError::IoError(format!("stat image: {}", e)))?;
 
         for entry in &self.entries {
             if entry.path == "SELF" {
                 continue;
             }
-            let mut off = entry.offset as usize;
-            let mut sz = entry.file_size as usize;
+            let mut off = entry.offset;
+            let mut sz = entry.file_size;
 
             // Strip parameter header/footer
             if entry.name.starts_with("parameter") {
@@ -761,7 +795,7 @@ impl RkImageHeader {
                 sz = sz.saturating_sub(RK_PARAM_HEAD_SIZE + RK_PARAM_FOOT_SIZE);
             }
 
-            if off + sz > data.len() {
+            if off + sz > total_len {
                 warn!("Entry {} exceeds image bounds, skipping", entry.name);
                 continue;
             }
@@ -775,8 +809,13 @@ impl RkImageHeader {
 
             let mut f = std::fs::File::create(&out_path)
                 .map_err(|e| AppError::IoError(format!("create {}: {}", out_path.display(), e)))?;
-            f.write_all(&data[off..off + sz])
-                .map_err(|e| AppError::IoError(format!("write: {}", e)))?;
+
+            file.seek(SeekFrom::Start(off))
+                .map_err(|e| AppError::IoError(format!("Seek to entry {}: {}", entry.name, e)))?;
+
+            let mut take = file.by_ref().take(sz);
+            std::io::copy(&mut take, &mut f)
+                .map_err(|e| AppError::IoError(format!("Extract {}: {}", entry.path, e)))?;
 
             info!(
                 "  {:08x}-{:08x} {} ({} bytes)",
