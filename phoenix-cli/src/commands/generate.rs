@@ -1,9 +1,18 @@
 //! File generation commands
 
+use crate::cli::GenerateTarget;
 use anyhow::Result;
 use phoenix_lib::config::DeviceConfig;
 use phoenix_lib::templates::{DtsContext, ExtlinuxContext, KconfigContext, TemplateEngine};
 use std::path::Path;
+
+pub fn run(target: GenerateTarget) -> Result<()> {
+    match target {
+        GenerateTarget::Dts { board, output } => dts(&board, &output),
+        GenerateTarget::Kconfig { board, output } => kconfig(&board, &output),
+        GenerateTarget::Extlinux { board, output } => extlinux(&board, &output),
+    }
+}
 
 pub fn dts(board: &str, output: &str) -> Result<()> {
     println!("🔧 Generating device tree source...");
@@ -23,13 +32,17 @@ pub fn dts(board: &str, output: &str) -> Result<()> {
         reference_dtb: config.boot.reference_dtb.replace(".dtb", ".dtsi"),
         memory_size_mb: config.hardware.memory.size_mb,
         has_wifi: config.hardware.wifi.is_some(),
-        wifi_chip: config.hardware.wifi.as_ref().map_or(String::new(), |w| w.chip.clone()),
+        wifi_chip: config
+            .hardware
+            .wifi
+            .as_ref()
+            .map_or(String::new(), |w| w.chip.clone()),
         has_ethernet: config.hardware.ethernet.is_some(),
         led_gpio: None,
     };
 
     engine.render_to_file("dts", &context, Path::new(output))?;
-    
+
     println!("✅ Generated: {}", output);
     println!();
     println!("To compile: dtc -I dts -O dtb -o device.dtb {}", output);
@@ -48,16 +61,23 @@ pub fn kconfig(board: &str, output: &str) -> Result<()> {
         enable_panfrost: config.device.soc.starts_with("s905"),
         enable_vdec: true,
         enable_wifi: config.hardware.wifi.is_some(),
-        wifi_driver: config.hardware.wifi.as_ref().map_or(String::new(), |w| w.driver.clone()),
+        wifi_driver: config
+            .hardware
+            .wifi
+            .as_ref()
+            .map_or(String::new(), |w| w.driver.clone()),
         enable_cec: true,
         cma_size_mb: 256,
     };
 
     engine.render_to_file("kconfig", &context, Path::new(output))?;
-    
+
     println!("✅ Generated: {}", output);
     println!();
-    println!("Usage: ./scripts/kconfig/merge_config.sh .config {}", output);
+    println!(
+        "Usage: ./scripts/kconfig/merge_config.sh .config {}",
+        output
+    );
 
     Ok(())
 }
@@ -68,8 +88,13 @@ pub fn extlinux(board: &str, output: &str) -> Result<()> {
     let config = DeviceConfig::from_file(board)?;
     let engine = TemplateEngine::new()?;
 
-    let console = config.boot.uart.as_ref()
-        .map_or("ttyAML0,115200".to_string(), |u| format!("{},{}", u.port, u.baud));
+    let console = config
+        .boot
+        .uart
+        .as_ref()
+        .map_or("ttyAML0,115200".to_string(), |u| {
+            format!("{},{}", u.port, u.baud)
+        });
 
     let context = ExtlinuxContext {
         label: config.device.name.to_uppercase().replace(' ', "_"),
@@ -81,7 +106,7 @@ pub fn extlinux(board: &str, output: &str) -> Result<()> {
     };
 
     engine.render_to_file("extlinux", &context, Path::new(output))?;
-    
+
     println!("✅ Generated: {}", output);
 
     Ok(())
