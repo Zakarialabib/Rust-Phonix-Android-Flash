@@ -467,11 +467,14 @@ impl RkParameter {
 
 // ─── Image unpacker (ported from rkunpack.c) ────────────────────────────────
 
-fn get32le(buf: &[u8], off: usize) -> u32 {
-    buf[off] as u32
+fn get32le(buf: &[u8], off: usize) -> Result<u32, AppError> {
+    if off + 4 > buf.len() {
+        return Err(AppError::ParseError("Buffer too short".to_string()));
+    }
+    Ok(buf[off] as u32
         | (buf[off + 1] as u32) << 8
         | (buf[off + 2] as u32) << 16
-        | (buf[off + 3] as u32) << 24
+        | (buf[off + 3] as u32) << 24)
 }
 
 /// Entry extracted from an RKAF image
@@ -523,14 +526,17 @@ impl RkImageHeader {
     }
 
     fn parse_rkaf(buf: &[u8]) -> Result<Self, AppError> {
-        let fsize = get32le(buf, 4) as usize + 4;
+        if buf.len() < 0x8c {
+            return Err(AppError::ParseError("RKAF buffer too short".to_string()));
+        }
+        let fsize = get32le(buf, 4)? as usize + 4;
         let manufacturer = String::from_utf8_lossy(&buf[0x48..0x88])
             .trim_matches('\0')
             .to_string();
         let model = String::from_utf8_lossy(&buf[0x08..0x48])
             .trim_matches('\0')
             .to_string();
-        let count = get32le(buf, 0x88) as usize;
+        let count = get32le(buf, 0x88)? as usize;
 
         info!(
             "RKAF: manufacturer={} model={} files={} total={}",
@@ -549,10 +555,10 @@ impl RkImageHeader {
             let path = String::from_utf8_lossy(&buf[p + 0x20..p + 0x60])
                 .trim_matches('\0')
                 .to_string();
-            let ioff = get32le(buf, p + 0x60) as u64;
-            let _noff = get32le(buf, p + 0x64) as u64;
-            let isize = get32le(buf, p + 0x68) as u64;
-            let file_size = get32le(buf, p + 0x6c) as u64;
+            let ioff = get32le(buf, p + 0x60)? as u64;
+            let _noff = get32le(buf, p + 0x64)? as u64;
+            let isize = get32le(buf, p + 0x68)? as u64;
+            let file_size = get32le(buf, p + 0x6c)? as u64;
 
             entries.push(RkImageEntry {
                 name,
@@ -574,6 +580,9 @@ impl RkImageHeader {
     }
 
     fn parse_rkfw(buf: &[u8]) -> Result<Self, AppError> {
+        if buf.len() < 0x29 {
+            return Err(AppError::ParseError("RKFW buffer too short".to_string()));
+        }
         let version = format!(
             "{}.{}.{}",
             buf[9],
@@ -591,10 +600,10 @@ impl RkImageHeader {
         }
         .to_string();
 
-        let boot_off = get32le(buf, 0x19) as u64;
-        let boot_size = get32le(buf, 0x1d) as u64;
-        let update_off = get32le(buf, 0x21) as u64;
-        let update_size = get32le(buf, 0x25) as u64;
+        let boot_off = get32le(buf, 0x19)? as u64;
+        let boot_size = get32le(buf, 0x1d)? as u64;
+        let update_off = get32le(buf, 0x21)? as u64;
+        let update_size = get32le(buf, 0x25)? as u64;
 
         let boot_name = if &buf[boot_off as usize..boot_off as usize + 4] == b"BOOT" {
             "BOOT"
@@ -630,10 +639,13 @@ impl RkImageHeader {
     }
 
     fn parse_rkfp(buf: &[u8]) -> Result<Self, AppError> {
-        let pss = get32le(buf, 0x10) as usize;
-        let peo = get32le(buf, 0x14) as usize;
-        let pes = get32le(buf, 0x1c) as usize;
-        let pec = get32le(buf, 0x20) as usize;
+        if buf.len() < 0x24 {
+            return Err(AppError::ParseError("RKFP buffer too short".to_string()));
+        }
+        let pss = get32le(buf, 0x10)? as usize;
+        let peo = get32le(buf, 0x14)? as usize;
+        let pes = get32le(buf, 0x1c)? as usize;
+        let pec = get32le(buf, 0x20)? as usize;
 
         let mut entries = Vec::new();
         for i in 0..pec {
@@ -644,9 +656,9 @@ impl RkImageHeader {
             let path = String::from_utf8_lossy(&buf[p..p + 32])
                 .trim_matches('\0')
                 .to_string();
-            let ioff = get32le(buf, p + 36) as u64;
-            let isize = get32le(buf, p + 40) as u64;
-            let fsize = get32le(buf, p + 44) as u64;
+            let ioff = get32le(buf, p + 36)? as u64;
+            let isize = get32le(buf, p + 40)? as u64;
+            let fsize = get32le(buf, p + 44)? as u64;
             entries.push(RkImageEntry {
                 name: path.clone(),
                 path,
@@ -954,13 +966,13 @@ impl RockchipDevice {
         let buf = self.recv_buf(RKFT_BLOCKSIZE)?;
         self.recv_res()?;
 
-        let size = get32le(&buf, 4) as usize;
+        let size = get32le(&buf, 4)? as usize;
         if size > MAX_PARAM_LENGTH {
             return Err(AppError::ValidationError("Bad parameter length".into()));
         }
 
         // Verify CRC
-        let stored_crc = get32le(&buf, 8 + size);
+        let stored_crc = get32le(&buf, 8 + size)?;
         let calc_crc = rkcrc32(&buf[8..8 + size]);
         if stored_crc != calc_crc {
             warn!(
@@ -1114,7 +1126,7 @@ impl RkBoot {
             ));
         }
 
-        let tag = get32le(buf, 0);
+        let tag = get32le(buf, 0)?;
         if tag != 0x4C4E524B && tag != 0x544F4F42 {
             // "KRNL" or "BOOT"
             return Err(AppError::ParseError(format!(
@@ -1126,8 +1138,8 @@ impl RkBoot {
         let header = RkBootHeader {
             tag,
             size: (buf[4] as u16) | ((buf[5] as u16) << 8),
-            version: get32le(buf, 6),
-            merge_version: get32le(buf, 10),
+            version: get32le(buf, 6)?,
+            merge_version: get32le(buf, 10)?,
             release_time: format!(
                 "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
                 (buf[14] as u16) | ((buf[15] as u16) << 8),
@@ -1137,15 +1149,15 @@ impl RkBoot {
                 buf[19],
                 buf[20]
             ),
-            support_chip: get32le(buf, 21), // Enum value
+            support_chip: get32le(buf, 21)?, // Enum value
             entry_471_count: buf[25],
-            entry_471_offset: get32le(buf, 26),
+            entry_471_offset: get32le(buf, 26)?,
             entry_471_size: buf[30],
             entry_472_count: buf[31],
-            entry_472_offset: get32le(buf, 32),
+            entry_472_offset: get32le(buf, 32)?,
             entry_472_size: buf[36],
             entry_loader_count: buf[37],
-            entry_loader_offset: get32le(buf, 38),
+            entry_loader_offset: get32le(buf, 38)?,
             entry_loader_size: buf[42],
             sign_flag: buf[43],
             rc4_flag: buf[44],
@@ -1154,7 +1166,7 @@ impl RkBoot {
         let mut entries = Vec::new();
 
         // Helper to parse entries
-        let parse_entries = |count: u8, offset: u32, size: u8, type_id: u32| -> Vec<RkBootEntry> {
+        let parse_entries = |count: u8, offset: u32, size: u8, type_id: u32| -> Result<Vec<RkBootEntry>, AppError> {
             let mut result = Vec::new();
             for i in 0..count {
                 let off = offset as usize + (i as usize * size as usize);
@@ -1174,12 +1186,12 @@ impl RkBoot {
                     size: buf[off],
                     entry_type: type_id,
                     name,
-                    data_offset: get32le(buf, off + 42),
-                    data_size: get32le(buf, off + 46),
-                    data_delay: get32le(buf, off + 50),
+                    data_offset: get32le(buf, off + 42)?,
+                    data_size: get32le(buf, off + 46)?,
+                    data_delay: get32le(buf, off + 50)?,
                 });
             }
-            result
+            Ok(result)
         };
 
         entries.extend(parse_entries(
@@ -1187,19 +1199,19 @@ impl RkBoot {
             header.entry_471_offset,
             header.entry_471_size,
             1,
-        ));
+        )?);
         entries.extend(parse_entries(
             header.entry_472_count,
             header.entry_472_offset,
             header.entry_472_size,
             2,
-        ));
+        )?);
         entries.extend(parse_entries(
             header.entry_loader_count,
             header.entry_loader_offset,
             header.entry_loader_size,
             4,
-        ));
+        )?);
 
         Ok(RkBoot { header, entries })
     }
@@ -1271,6 +1283,22 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         assert_eq!(cmd[13], 0x00);
         assert_eq!(cmd[14], 0x06);
         assert_eq!(cmd[15], 0x00);
+    }
+
+    #[test]
+    fn test_rkaf_short_buffer() {
+        // Construct a buffer with RKAF magic but too short for count
+        let mut buf = Vec::new();
+        buf.extend_from_slice(b"RKAF");
+        buf.resize(20, 0); // Short buffer
+        // parse_rkaf is private, but we can test via public interface if we mock file read,
+        // or just call it directly since we are in the same module (cfg(test) mod tests)
+        // However, RkImageHeader::parse calls read_file.
+        // We can call RkImageHeader::parse_rkaf directly as we are in the module.
+        // Wait, RkImageHeader::parse_rkaf is private associated function.
+        // Test module is submodule, so it can access private items of parent.
+        let res = RkImageHeader::parse_rkaf(&buf);
+        assert!(res.is_err());
     }
 
     #[test]
