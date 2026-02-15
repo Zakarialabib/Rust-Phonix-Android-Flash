@@ -1,7 +1,17 @@
+use crate::cli::ExtractTarget;
 use anyhow::Result;
 use colored::Colorize;
 use phoenix_lib::extract::Extractor;
 use std::path::Path;
+
+pub async fn run(target: ExtractTarget) -> Result<()> {
+    match target {
+        ExtractTarget::Wifi { mount, output } => wifi(&mount, &output).await,
+        ExtractTarget::Ddr { mount, output } => ddr(&mount, &output).await,
+        ExtractTarget::Dtb { mount, output } => dtb(&mount, &output).await,
+        ExtractTarget::Config { mount, output } => config(&mount, &output).await,
+    }
+}
 
 pub async fn wifi(mount: &str, output: &str) -> Result<()> {
     println!("{}", "Phoenix Artifact Extractor".bold().cyan());

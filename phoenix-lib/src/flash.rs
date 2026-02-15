@@ -55,9 +55,7 @@ pub struct FlashProgress {
 pub type ProgressCallback = Box<dyn Fn(FlashProgress) + Send>;
 
 pub fn preflight(image_path: &Path, target_device: &str) -> Result<(), AppError> {
-    if target_device.trim().is_empty() {
-        return Err(AppError::ValidationError("Target device cannot be empty".to_string()));
-    }
+    validate_target_device(target_device)?;
 
     if !image_path.exists() {
         return Err(AppError::ValidationError(format!("Image file not found: {:?}", image_path)));
@@ -73,14 +71,38 @@ pub fn preflight(image_path: &Path, target_device: &str) -> Result<(), AppError>
     Ok(())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_preflight_validation() {
+        let mut file = NamedTempFile::new().unwrap();
+        file.write_all(b"test data").unwrap();
+        let image_path = file.path();
+
+        // Empty string should fail
+        let result = preflight(image_path, "");
+        assert!(matches!(result, Err(AppError::ValidationError(_))));
+
+        // On Linux, non-/dev path should fail
+        if cfg!(target_os = "linux") {
+            let result = preflight(image_path, "/tmp/not_a_device");
+            // This assertion currently FAILS because preflight doesn't check
+            // After fix, it should PASS
+            assert!(matches!(result, Err(AppError::ValidationError(_))), "Expected ValidationError for non-/dev path on Linux");
+        }
+    }
+}
+
 /// Flash an image to a target device asynchronously with progress reporting
 pub async fn flash_image_async(
     image_path: &Path,
     target_device: &str,
     progress: Option<ProgressCallback>,
 ) -> Result<(), AppError> {
-    validate_target_device(target_device)?;
-    
     let image_path_buf = image_path.to_path_buf();
     let target_device_owned = target_device.to_string();
     
@@ -182,7 +204,6 @@ pub async fn flash_image_async(
 
 /// Flash an image to a target device using dd
 pub fn flash_image(image_path: &Path, target_device: &str) -> Result<(), AppError> {
-    validate_target_device(target_device)?;
     preflight(image_path, target_device)?;
 
     // Construct dd command

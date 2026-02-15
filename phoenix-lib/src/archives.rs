@@ -1,6 +1,7 @@
 use crate::error::AppError;
 use flate2::read::GzDecoder;
 use std::fs::{self, File};
+use std::io::{BufReader, BufWriter};
 use std::path::Path;
 use tar::Archive;
 use tracing::info;
@@ -25,6 +26,7 @@ pub fn extract_archive(archive_path: &Path, destination: &Path) -> Result<(), Ap
         .and_then(|e| e.to_str())
         .unwrap_or("");
     let file = File::open(archive_path).map_err(|e| AppError::IoError(e.to_string()))?;
+    let file = BufReader::new(file);
 
     match extension {
         "zip" => extract_zip(file, destination),
@@ -44,7 +46,7 @@ pub fn extract_archive(archive_path: &Path, destination: &Path) -> Result<(), Ap
     }
 }
 
-fn extract_zip(file: File, destination: &Path) -> Result<(), AppError> {
+fn extract_zip(file: BufReader<File>, destination: &Path) -> Result<(), AppError> {
     let mut archive =
         ZipArchive::new(file).map_err(|e| AppError::IoError(format!("Invalid zip: {}", e)))?;
 
@@ -65,8 +67,8 @@ fn extract_zip(file: File, destination: &Path) -> Result<(), AppError> {
                     fs::create_dir_all(p).map_err(|e| AppError::IoError(e.to_string()))?;
                 }
             }
-            let mut outfile =
-                File::create(&outpath).map_err(|e| AppError::IoError(e.to_string()))?;
+            let outfile = File::create(&outpath).map_err(|e| AppError::IoError(e.to_string()))?;
+            let mut outfile = BufWriter::new(outfile);
             std::io::copy(&mut file, &mut outfile).map_err(|e| AppError::IoError(e.to_string()))?;
         }
     }
@@ -75,7 +77,7 @@ fn extract_zip(file: File, destination: &Path) -> Result<(), AppError> {
     Ok(())
 }
 
-fn extract_tar(file: File, destination: &Path) -> Result<(), AppError> {
+fn extract_tar(file: BufReader<File>, destination: &Path) -> Result<(), AppError> {
     let mut archive = Archive::new(file);
     archive
         .unpack(destination)
@@ -85,7 +87,7 @@ fn extract_tar(file: File, destination: &Path) -> Result<(), AppError> {
     Ok(())
 }
 
-fn extract_targz(file: File, destination: &Path) -> Result<(), AppError> {
+fn extract_targz(file: BufReader<File>, destination: &Path) -> Result<(), AppError> {
     let tar = GzDecoder::new(file);
     let mut archive = Archive::new(tar);
     archive

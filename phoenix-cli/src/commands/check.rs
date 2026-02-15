@@ -1,12 +1,12 @@
 use std::path::Path;
 
+use crate::commands::phase;
 use anyhow::Result;
 use phoenix_lib::compatibility::{
-    CompatibilityMatrix, CompatibilityStatus, resolve_firmware_target, resolve_hardware_profile,
+    resolve_firmware_target, resolve_hardware_profile, CompatibilityMatrix, CompatibilityStatus,
 };
 use phoenix_lib::config::DeviceConfig;
 use phoenix_lib::workflow::{Phase, PhaseStatus};
-use crate::commands::phase;
 
 pub async fn run(
     profile: &str,
@@ -18,15 +18,12 @@ pub async fn run(
 ) -> Result<()> {
     phase::emit(Phase::Check, PhaseStatus::Started, None);
     let config = DeviceConfig::from_file(profile)?;
-    config.validate().map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    config
+        .validate()
+        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
     let hardware = resolve_hardware_profile(&config);
-    let firmware_target = resolve_firmware_target(
-        Path::new(firmware),
-        os_type,
-        version,
-        kernel,
-    )?;
+    let firmware_target = resolve_firmware_target(Path::new(firmware), os_type, version, kernel)?;
 
     let matrix = CompatibilityMatrix::default_matrix();
     let report = matrix.evaluate(hardware, firmware_target);

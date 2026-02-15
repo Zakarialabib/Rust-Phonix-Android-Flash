@@ -1,7 +1,25 @@
+use crate::cli::BackupAction;
 use anyhow::Result;
 use colored::Colorize;
 use phoenix_lib::backup::{BackupManager, BackupTarget};
 use std::path::Path;
+
+pub async fn run(action: BackupAction) -> Result<()> {
+    match action {
+        BackupAction::Dump {
+            device,
+            output,
+            partition,
+        } => dump(&device, &output, partition.as_deref()).await,
+        BackupAction::Extract {
+            firmware,
+            output,
+            offset,
+            size,
+        } => extract(&firmware, &output, offset, size).await,
+        BackupAction::Verify { firmware } => verify(&firmware).await,
+    }
+}
 
 pub async fn dump(device: &str, output: &str, partition: Option<&str>) -> Result<()> {
     println!("{}", "Phoenix Backup Tool".bold().blue());

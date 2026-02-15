@@ -342,7 +342,7 @@ async fn cmd_download_assets(
         .map_err(AppError::from)?;
     let destination = destination_dir.join(&filename);
     let url = format!("{}/{}", base_url.trim_end_matches('/'), filename);
-    download_file(&url, &destination)
+    download_file(&url, &destination, None)
         .await
         .map_err(AppError::from)?;
     Ok(destination.to_string_lossy().to_string())
