@@ -28,6 +28,71 @@ const MAX_PARAM_LENGTH: usize = 128 * 512 - 12;
 const CMD_PKT_SIZE: usize = 31;
 const RES_PKT_SIZE: usize = 13;
 
+// Rockchip Image Parsing Constants
+const RKAF_FSIZE_OFF: usize = 4;
+const RKAF_MODEL_OFF: usize = 0x08;
+const RKAF_MODEL_LEN: usize = 0x40;
+const RKAF_MANUFACTURER_OFF: usize = 0x48;
+const RKAF_MANUFACTURER_LEN: usize = 0x40;
+const RKAF_COUNT_OFF: usize = 0x88;
+const RKAF_ENTRIES_OFF: usize = 0x8c;
+const RKAF_ENTRY_SIZE: usize = 0x70;
+const RKAF_ENTRY_NAME_LEN: usize = 0x20;
+const RKAF_ENTRY_PATH_OFF: usize = 0x20;
+const RKAF_ENTRY_PATH_LEN: usize = 0x40;
+const RKAF_ENTRY_IOFF_OFF: usize = 0x60;
+const RKAF_ENTRY_NOFF_OFF: usize = 0x64;
+const RKAF_ENTRY_ISIZE_OFF: usize = 0x68;
+const RKAF_ENTRY_FILE_SIZE_OFF: usize = 0x6c;
+
+const RKFW_VERSION_OFF: usize = 6;
+const RKFW_CHIP_FAMILY_OFF: usize = 0x15;
+const RKFW_BOOT_OFF_OFF: usize = 0x19;
+const RKFW_BOOT_SIZE_OFF: usize = 0x1d;
+const RKFW_UPDATE_OFF_OFF: usize = 0x21;
+const RKFW_UPDATE_SIZE_OFF: usize = 0x25;
+
+const RKFP_PSS_OFF: usize = 0x10;
+const RKFP_PEO_OFF: usize = 0x14;
+const RKFP_PES_OFF: usize = 0x1c;
+const RKFP_PEC_OFF: usize = 0x20;
+const RKFP_ENTRY_PATH_LEN: usize = 32;
+const RKFP_ENTRY_IOFF_OFF: usize = 36;
+const RKFP_ENTRY_ISIZE_OFF: usize = 40;
+const RKFP_ENTRY_FILE_SIZE_OFF: usize = 44;
+
+const RK_PARAM_SIZE_OFF: usize = 4;
+const RK_PARAM_HEAD_SIZE: usize = 8;
+const RK_PARAM_FOOT_SIZE: usize = 4;
+
+const RK_BOOT_HEADER_SIZE: usize = 106;
+const RK_BOOT_TAG_OFF: usize = 0;
+const RK_BOOT_SIZE_OFF: usize = 4;
+const RK_BOOT_VERSION_OFF: usize = 6;
+const RK_BOOT_MERGE_VERSION_OFF: usize = 10;
+const RK_BOOT_TIME_OFF: usize = 14;
+const RK_BOOT_CHIP_OFF: usize = 21;
+const RK_BOOT_471_COUNT_OFF: usize = 25;
+const RK_BOOT_471_OFFSET_OFF: usize = 26;
+const RK_BOOT_471_SIZE_OFF: usize = 30;
+const RK_BOOT_472_COUNT_OFF: usize = 31;
+const RK_BOOT_472_OFFSET_OFF: usize = 32;
+const RK_BOOT_472_SIZE_OFF: usize = 36;
+const RK_BOOT_LDR_COUNT_OFF: usize = 37;
+const RK_BOOT_LDR_OFFSET_OFF: usize = 38;
+const RK_BOOT_LDR_SIZE_OFF: usize = 42;
+const RK_BOOT_SIGN_FLAG_OFF: usize = 43;
+const RK_BOOT_RC4_FLAG_OFF: usize = 44;
+
+const RK_BOOT_ENTRY_NAME_OFF: usize = 2;
+const RK_BOOT_ENTRY_NAME_LEN: usize = 40;
+const RK_BOOT_ENTRY_DATA_OFFSET_OFF: usize = 42;
+const RK_BOOT_ENTRY_DATA_SIZE_OFF: usize = 46;
+const RK_BOOT_ENTRY_DATA_DELAY_OFF: usize = 50;
+const RK_BOOT_ENTRY_SIZE: usize = 54;
+
+const RK_CHIP_INFO_LEN: usize = 16;
+
 // ─── CRC (ported from rkcrc.h) ──────────────────────────────────────────────
 
 #[rustfmt::skip]
@@ -523,14 +588,16 @@ impl RkImageHeader {
     }
 
     fn parse_rkaf(buf: &[u8]) -> Result<Self, AppError> {
-        let fsize = get32le(buf, 4) as usize + 4;
-        let manufacturer = String::from_utf8_lossy(&buf[0x48..0x88])
+        let fsize = get32le(buf, RKAF_FSIZE_OFF) as usize + 4;
+        let manufacturer = String::from_utf8_lossy(
+            &buf[RKAF_MANUFACTURER_OFF..RKAF_MANUFACTURER_OFF + RKAF_MANUFACTURER_LEN],
+        )
+        .trim_matches('\0')
+        .to_string();
+        let model = String::from_utf8_lossy(&buf[RKAF_MODEL_OFF..RKAF_MODEL_OFF + RKAF_MODEL_LEN])
             .trim_matches('\0')
             .to_string();
-        let model = String::from_utf8_lossy(&buf[0x08..0x48])
-            .trim_matches('\0')
-            .to_string();
-        let count = get32le(buf, 0x88) as usize;
+        let count = get32le(buf, RKAF_COUNT_OFF) as usize;
 
         info!(
             "RKAF: manufacturer={} model={} files={} total={}",
@@ -539,20 +606,22 @@ impl RkImageHeader {
 
         let mut entries = Vec::new();
         for i in 0..count {
-            let p = 0x8c + i * 0x70;
-            if p + 0x70 > buf.len() {
+            let p = RKAF_ENTRIES_OFF + i * RKAF_ENTRY_SIZE;
+            if p + RKAF_ENTRY_SIZE > buf.len() {
                 break;
             }
-            let name = String::from_utf8_lossy(&buf[p..p + 0x20])
+            let name = String::from_utf8_lossy(&buf[p..p + RKAF_ENTRY_NAME_LEN])
                 .trim_matches('\0')
                 .to_string();
-            let path = String::from_utf8_lossy(&buf[p + 0x20..p + 0x60])
-                .trim_matches('\0')
-                .to_string();
-            let ioff = get32le(buf, p + 0x60) as u64;
-            let _noff = get32le(buf, p + 0x64) as u64;
-            let isize = get32le(buf, p + 0x68) as u64;
-            let file_size = get32le(buf, p + 0x6c) as u64;
+            let path = String::from_utf8_lossy(
+                &buf[p + RKAF_ENTRY_PATH_OFF..p + RKAF_ENTRY_PATH_OFF + RKAF_ENTRY_PATH_LEN],
+            )
+            .trim_matches('\0')
+            .to_string();
+            let ioff = get32le(buf, p + RKAF_ENTRY_IOFF_OFF) as u64;
+            let _noff = get32le(buf, p + RKAF_ENTRY_NOFF_OFF) as u64;
+            let isize = get32le(buf, p + RKAF_ENTRY_ISIZE_OFF) as u64;
+            let file_size = get32le(buf, p + RKAF_ENTRY_FILE_SIZE_OFF) as u64;
 
             entries.push(RkImageEntry {
                 name,
@@ -576,11 +645,11 @@ impl RkImageHeader {
     fn parse_rkfw(buf: &[u8]) -> Result<Self, AppError> {
         let version = format!(
             "{}.{}.{}",
-            buf[9],
-            buf[8],
-            (buf[7] as u16) << 8 | buf[6] as u16
+            buf[RKFW_VERSION_OFF + 3],
+            buf[RKFW_VERSION_OFF + 2],
+            (buf[RKFW_VERSION_OFF + 1] as u16) << 8 | buf[RKFW_VERSION_OFF] as u16
         );
-        let chip_family = match buf[0x15] {
+        let chip_family = match buf[RKFW_CHIP_FAMILY_OFF] {
             0x50 => "rk29xx",
             0x60 => "rk30xx",
             0x70 => "rk31xx",
@@ -591,10 +660,10 @@ impl RkImageHeader {
         }
         .to_string();
 
-        let boot_off = get32le(buf, 0x19) as u64;
-        let boot_size = get32le(buf, 0x1d) as u64;
-        let update_off = get32le(buf, 0x21) as u64;
-        let update_size = get32le(buf, 0x25) as u64;
+        let boot_off = get32le(buf, RKFW_BOOT_OFF_OFF) as u64;
+        let boot_size = get32le(buf, RKFW_BOOT_SIZE_OFF) as u64;
+        let update_off = get32le(buf, RKFW_UPDATE_OFF_OFF) as u64;
+        let update_size = get32le(buf, RKFW_UPDATE_SIZE_OFF) as u64;
 
         let boot_name = if &buf[boot_off as usize..boot_off as usize + 4] == b"BOOT" {
             "BOOT"
@@ -630,10 +699,10 @@ impl RkImageHeader {
     }
 
     fn parse_rkfp(buf: &[u8]) -> Result<Self, AppError> {
-        let pss = get32le(buf, 0x10) as usize;
-        let peo = get32le(buf, 0x14) as usize;
-        let pes = get32le(buf, 0x1c) as usize;
-        let pec = get32le(buf, 0x20) as usize;
+        let pss = get32le(buf, RKFP_PSS_OFF) as usize;
+        let peo = get32le(buf, RKFP_PEO_OFF) as usize;
+        let pes = get32le(buf, RKFP_PES_OFF) as usize;
+        let pec = get32le(buf, RKFP_PEC_OFF) as usize;
 
         let mut entries = Vec::new();
         for i in 0..pec {
@@ -641,12 +710,12 @@ impl RkImageHeader {
             if p + pes > buf.len() {
                 break;
             }
-            let path = String::from_utf8_lossy(&buf[p..p + 32])
+            let path = String::from_utf8_lossy(&buf[p..p + RKFP_ENTRY_PATH_LEN])
                 .trim_matches('\0')
                 .to_string();
-            let ioff = get32le(buf, p + 36) as u64;
-            let isize = get32le(buf, p + 40) as u64;
-            let fsize = get32le(buf, p + 44) as u64;
+            let ioff = get32le(buf, p + RKFP_ENTRY_IOFF_OFF) as u64;
+            let isize = get32le(buf, p + RKFP_ENTRY_ISIZE_OFF) as u64;
+            let fsize = get32le(buf, p + RKFP_ENTRY_FILE_SIZE_OFF) as u64;
             entries.push(RkImageEntry {
                 name: path.clone(),
                 path,
@@ -688,8 +757,8 @@ impl RkImageHeader {
 
             // Strip parameter header/footer
             if entry.name.starts_with("parameter") {
-                off += 8;
-                sz = sz.saturating_sub(12);
+                off += RK_PARAM_HEAD_SIZE;
+                sz = sz.saturating_sub(RK_PARAM_HEAD_SIZE + RK_PARAM_FOOT_SIZE);
             }
 
             if off + sz > data.len() {
@@ -906,7 +975,7 @@ impl RockchipDevice {
         std::thread::sleep(Duration::from_millis(20));
 
         self.send_cmd(RockusbCmd::ReadChipInfo, 0, 0)?;
-        let buf = self.recv_buf(16)?;
+        let buf = self.recv_buf(RK_CHIP_INFO_LEN)?;
         self.recv_res()?;
 
         let chip_id = format!(
@@ -954,14 +1023,14 @@ impl RockchipDevice {
         let buf = self.recv_buf(RKFT_BLOCKSIZE)?;
         self.recv_res()?;
 
-        let size = get32le(&buf, 4) as usize;
+        let size = get32le(&buf, RK_PARAM_SIZE_OFF) as usize;
         if size > MAX_PARAM_LENGTH {
             return Err(AppError::ValidationError("Bad parameter length".into()));
         }
 
         // Verify CRC
-        let stored_crc = get32le(&buf, 8 + size);
-        let calc_crc = rkcrc32(&buf[8..8 + size]);
+        let stored_crc = get32le(&buf, RK_PARAM_HEAD_SIZE + size);
+        let calc_crc = rkcrc32(&buf[RK_PARAM_HEAD_SIZE..RK_PARAM_HEAD_SIZE + size]);
         if stored_crc != calc_crc {
             warn!(
                 "Parameter CRC mismatch: stored=0x{:08X} calc=0x{:08X}",
@@ -969,7 +1038,7 @@ impl RockchipDevice {
             );
         }
 
-        let content = String::from_utf8_lossy(&buf[8..8 + size]);
+        let content = String::from_utf8_lossy(&buf[RK_PARAM_HEAD_SIZE..RK_PARAM_HEAD_SIZE + size]);
         RkParameter::parse(&content)
     }
 
@@ -1108,13 +1177,13 @@ impl RkBoot {
     }
 
     pub fn parse_buf(buf: &[u8]) -> Result<Self, AppError> {
-        if buf.len() < 106 {
+        if buf.len() < RK_BOOT_HEADER_SIZE {
             return Err(AppError::ParseError(
                 "File too small for RKBoot header".to_string(),
             ));
         }
 
-        let tag = get32le(buf, 0);
+        let tag = get32le(buf, RK_BOOT_TAG_OFF);
         if tag != 0x4C4E524B && tag != 0x544F4F42 {
             // "KRNL" or "BOOT"
             return Err(AppError::ParseError(format!(
@@ -1125,30 +1194,30 @@ impl RkBoot {
 
         let header = RkBootHeader {
             tag,
-            size: (buf[4] as u16) | ((buf[5] as u16) << 8),
-            version: get32le(buf, 6),
-            merge_version: get32le(buf, 10),
+            size: (buf[RK_BOOT_SIZE_OFF] as u16) | ((buf[RK_BOOT_SIZE_OFF + 1] as u16) << 8),
+            version: get32le(buf, RK_BOOT_VERSION_OFF),
+            merge_version: get32le(buf, RK_BOOT_MERGE_VERSION_OFF),
             release_time: format!(
                 "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-                (buf[14] as u16) | ((buf[15] as u16) << 8),
-                buf[16],
-                buf[17],
-                buf[18],
-                buf[19],
-                buf[20]
+                (buf[RK_BOOT_TIME_OFF] as u16) | ((buf[RK_BOOT_TIME_OFF + 1] as u16) << 8),
+                buf[RK_BOOT_TIME_OFF + 2],
+                buf[RK_BOOT_TIME_OFF + 3],
+                buf[RK_BOOT_TIME_OFF + 4],
+                buf[RK_BOOT_TIME_OFF + 5],
+                buf[RK_BOOT_TIME_OFF + 6]
             ),
-            support_chip: get32le(buf, 21), // Enum value
-            entry_471_count: buf[25],
-            entry_471_offset: get32le(buf, 26),
-            entry_471_size: buf[30],
-            entry_472_count: buf[31],
-            entry_472_offset: get32le(buf, 32),
-            entry_472_size: buf[36],
-            entry_loader_count: buf[37],
-            entry_loader_offset: get32le(buf, 38),
-            entry_loader_size: buf[42],
-            sign_flag: buf[43],
-            rc4_flag: buf[44],
+            support_chip: get32le(buf, RK_BOOT_CHIP_OFF), // Enum value
+            entry_471_count: buf[RK_BOOT_471_COUNT_OFF],
+            entry_471_offset: get32le(buf, RK_BOOT_471_OFFSET_OFF),
+            entry_471_size: buf[RK_BOOT_471_SIZE_OFF],
+            entry_472_count: buf[RK_BOOT_472_COUNT_OFF],
+            entry_472_offset: get32le(buf, RK_BOOT_472_OFFSET_OFF),
+            entry_472_size: buf[RK_BOOT_472_SIZE_OFF],
+            entry_loader_count: buf[RK_BOOT_LDR_COUNT_OFF],
+            entry_loader_offset: get32le(buf, RK_BOOT_LDR_OFFSET_OFF),
+            entry_loader_size: buf[RK_BOOT_LDR_SIZE_OFF],
+            sign_flag: buf[RK_BOOT_SIGN_FLAG_OFF],
+            rc4_flag: buf[RK_BOOT_RC4_FLAG_OFF],
         };
 
         let mut entries = Vec::new();
@@ -1164,7 +1233,8 @@ impl RkBoot {
 
                 // Name is WCHAR (2 bytes per char), 20 chars max = 40 bytes
                 // We'll just read bytes and convert strictly to ASCII for now
-                let name_bytes = &buf[off + 2..off + 42];
+                let name_bytes = &buf[off + RK_BOOT_ENTRY_NAME_OFF
+                    ..off + RK_BOOT_ENTRY_NAME_OFF + RK_BOOT_ENTRY_NAME_LEN];
                 let name = String::from_utf8_lossy(name_bytes)
                     .chars()
                     .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '_' || *c == '-')
@@ -1174,9 +1244,9 @@ impl RkBoot {
                     size: buf[off],
                     entry_type: type_id,
                     name,
-                    data_offset: get32le(buf, off + 42),
-                    data_size: get32le(buf, off + 46),
-                    data_delay: get32le(buf, off + 50),
+                    data_offset: get32le(buf, off + RK_BOOT_ENTRY_DATA_OFFSET_OFF),
+                    data_size: get32le(buf, off + RK_BOOT_ENTRY_DATA_SIZE_OFF),
+                    data_delay: get32le(buf, off + RK_BOOT_ENTRY_DATA_DELAY_OFF),
                 });
             }
             result
@@ -1289,11 +1359,11 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         buf[27] = 0;
         buf[28] = 0;
         buf[29] = 0;
-        // entry_471_size = 54 at offset 30 (typical)
-        buf[30] = 54;
+        // entry_471_size at offset 30
+        buf[30] = RK_BOOT_ENTRY_SIZE as u8;
 
-        // Need at least 100 + 54 bytes
-        buf.resize(200, 0);
+        // Need at least 100 + RK_BOOT_ENTRY_SIZE bytes
+        buf.resize(100 + RK_BOOT_ENTRY_SIZE, 0);
 
         let res = RkBoot::parse_buf(&buf);
         assert!(res.is_ok());
