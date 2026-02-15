@@ -601,14 +601,14 @@ impl RkImageHeader {
             .read_exact(&mut header)
             .map_err(|e| AppError::IoError(format!("Read RKAF header: {}", e)))?;
 
-        let fsize = get32le(&header, 4) as usize + 4;
+        let fsize = get32le(&header, 4)? as usize + 4;
         let manufacturer = String::from_utf8_lossy(&header[0x48..0x88])
             .trim_matches('\0')
             .to_string();
         let model = String::from_utf8_lossy(&header[0x08..0x48])
             .trim_matches('\0')
             .to_string();
-        let count = get32le(&header, 0x88) as usize;
+        let count = get32le(&header, 0x88)? as usize;
 
         info!(
             "RKAF: manufacturer={} model={} files={} total={}",
@@ -628,9 +628,9 @@ impl RkImageHeader {
             let path = String::from_utf8_lossy(&entry_buf[0x20..0x60])
                 .trim_matches('\0')
                 .to_string();
-            let ioff = get32le(&entry_buf, 0x60) as u64;
-            let isize = get32le(&entry_buf, 0x68) as u64;
-            let file_size = get32le(&entry_buf, 0x6c) as u64;
+            let ioff = get32le(&entry_buf, 0x60)? as u64;
+            let isize = get32le(&entry_buf, 0x68)? as u64;
+            let file_size = get32le(&entry_buf, 0x6c)? as u64;
 
             entries.push(RkImageEntry {
                 name,
@@ -674,10 +674,10 @@ impl RkImageHeader {
         }
         .to_string();
 
-        let boot_off = get32le(buf, RKFW_BOOT_OFF_OFF) as u64;
-        let boot_size = get32le(buf, RKFW_BOOT_SIZE_OFF) as u64;
-        let update_off = get32le(buf, RKFW_UPDATE_OFF_OFF) as u64;
-        let update_size = get32le(buf, RKFW_UPDATE_SIZE_OFF) as u64;
+        let boot_off = get32le(&header, RKFW_BOOT_OFF_OFF)? as u64;
+        let boot_size = get32le(&header, RKFW_BOOT_SIZE_OFF)? as u64;
+        let update_off = get32le(&header, RKFW_UPDATE_OFF_OFF)? as u64;
+        let update_size = get32le(&header, RKFW_UPDATE_SIZE_OFF)? as u64;
 
         let mut boot_magic = [0u8; 4];
         reader
@@ -726,10 +726,10 @@ impl RkImageHeader {
             .read_exact(&mut header)
             .map_err(|e| AppError::IoError(format!("Read RKFP header: {}", e)))?;
 
-        let pss = get32le(buf, RKFP_PSS_OFF) as usize;
-        let peo = get32le(buf, RKFP_PEO_OFF) as usize;
-        let pes = get32le(buf, RKFP_PES_OFF) as usize;
-        let pec = get32le(buf, RKFP_PEC_OFF) as usize;
+        let pss = get32le(&header, RKFP_PSS_OFF)? as usize;
+        let peo = get32le(&header, RKFP_PEO_OFF)? as usize;
+        let pes = get32le(&header, RKFP_PES_OFF)? as usize;
+        let pec = get32le(&header, RKFP_PEC_OFF)? as usize;
 
         let mut entries = Vec::new();
         for i in 0..pec {
@@ -746,9 +746,9 @@ impl RkImageHeader {
             let path = String::from_utf8_lossy(&entry_buf[0..32])
                 .trim_matches('\0')
                 .to_string();
-            let ioff = get32le(&entry_buf, 36) as u64;
-            let isize = get32le(&entry_buf, 40) as u64;
-            let fsize = get32le(&entry_buf, 44) as u64;
+            let ioff = get32le(&entry_buf, 36)? as u64;
+            let isize = get32le(&entry_buf, 40)? as u64;
+            let fsize = get32le(&entry_buf, 44)? as u64;
             entries.push(RkImageEntry {
                 name: path.clone(),
                 path,
@@ -794,8 +794,8 @@ impl RkImageHeader {
 
             // Strip parameter header/footer
             if entry.name.starts_with("parameter") {
-                off += RK_PARAM_HEAD_SIZE;
-                sz = sz.saturating_sub(RK_PARAM_HEAD_SIZE + RK_PARAM_FOOT_SIZE);
+                off += RK_PARAM_HEAD_SIZE as u64;
+                sz = sz.saturating_sub((RK_PARAM_HEAD_SIZE + RK_PARAM_FOOT_SIZE) as u64);
             }
 
             if off + sz > total_len {
@@ -816,8 +816,8 @@ impl RkImageHeader {
             file.seek(SeekFrom::Start(off))
                 .map_err(|e| AppError::IoError(format!("Seek to entry {}: {}", entry.name, e)))?;
 
-            let mut take = file.by_ref().take(sz);
-            std::io::copy(&mut take, &mut f)
+            let mut take = std::io::Read::by_ref(&mut file).take(sz);
+            std::io::copy(&mut take, &mut f_out)
                 .map_err(|e| AppError::IoError(format!("Extract {}: {}", entry.path, e)))?;
 
             info!(
@@ -1065,13 +1065,13 @@ impl RockchipDevice {
         let buf = self.recv_buf(RKFT_BLOCKSIZE)?;
         self.recv_res()?;
 
-        let size = get32le(&buf, RK_PARAM_SIZE_OFF) as usize;
+        let size = get32le(&buf, RK_PARAM_SIZE_OFF)? as usize;
         if size > MAX_PARAM_LENGTH {
             return Err(AppError::ValidationError("Bad parameter length".into()));
         }
 
         // Verify CRC
-        let stored_crc = get32le(&buf, RK_PARAM_HEAD_SIZE + size);
+        let stored_crc = get32le(&buf, RK_PARAM_HEAD_SIZE + size)?;
         let calc_crc = rkcrc32(&buf[RK_PARAM_HEAD_SIZE..RK_PARAM_HEAD_SIZE + size]);
         if stored_crc != calc_crc {
             warn!(
@@ -1225,7 +1225,7 @@ impl RkBoot {
             ));
         }
 
-        let tag = get32le(buf, RK_BOOT_TAG_OFF);
+        let tag = get32le(buf, RK_BOOT_TAG_OFF)?;
         if tag != 0x4C4E524B && tag != 0x544F4F42 {
             // "KRNL" or "BOOT"
             return Err(AppError::ParseError(format!(
@@ -1237,8 +1237,8 @@ impl RkBoot {
         let header = RkBootHeader {
             tag,
             size: (buf[RK_BOOT_SIZE_OFF] as u16) | ((buf[RK_BOOT_SIZE_OFF + 1] as u16) << 8),
-            version: get32le(buf, RK_BOOT_VERSION_OFF),
-            merge_version: get32le(buf, RK_BOOT_MERGE_VERSION_OFF),
+            version: get32le(buf, RK_BOOT_VERSION_OFF)?,
+            merge_version: get32le(buf, RK_BOOT_MERGE_VERSION_OFF)?,
             release_time: format!(
                 "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
                 (buf[RK_BOOT_TIME_OFF] as u16) | ((buf[RK_BOOT_TIME_OFF + 1] as u16) << 8),
@@ -1248,15 +1248,15 @@ impl RkBoot {
                 buf[RK_BOOT_TIME_OFF + 5],
                 buf[RK_BOOT_TIME_OFF + 6]
             ),
-            support_chip: get32le(buf, RK_BOOT_CHIP_OFF), // Enum value
+            support_chip: get32le(buf, RK_BOOT_CHIP_OFF)?, // Enum value
             entry_471_count: buf[RK_BOOT_471_COUNT_OFF],
-            entry_471_offset: get32le(buf, RK_BOOT_471_OFFSET_OFF),
+            entry_471_offset: get32le(buf, RK_BOOT_471_OFFSET_OFF)?,
             entry_471_size: buf[RK_BOOT_471_SIZE_OFF],
             entry_472_count: buf[RK_BOOT_472_COUNT_OFF],
-            entry_472_offset: get32le(buf, RK_BOOT_472_OFFSET_OFF),
+            entry_472_offset: get32le(buf, RK_BOOT_472_OFFSET_OFF)?,
             entry_472_size: buf[RK_BOOT_472_SIZE_OFF],
             entry_loader_count: buf[RK_BOOT_LDR_COUNT_OFF],
-            entry_loader_offset: get32le(buf, RK_BOOT_LDR_OFFSET_OFF),
+            entry_loader_offset: get32le(buf, RK_BOOT_LDR_OFFSET_OFF)?,
             entry_loader_size: buf[RK_BOOT_LDR_SIZE_OFF],
             sign_flag: buf[RK_BOOT_SIGN_FLAG_OFF],
             rc4_flag: buf[RK_BOOT_RC4_FLAG_OFF],
@@ -1286,9 +1286,9 @@ impl RkBoot {
                     size: buf[off],
                     entry_type: type_id,
                     name,
-                    data_offset: get32le(buf, off + RK_BOOT_ENTRY_DATA_OFFSET_OFF),
-                    data_size: get32le(buf, off + RK_BOOT_ENTRY_DATA_SIZE_OFF),
-                    data_delay: get32le(buf, off + RK_BOOT_ENTRY_DATA_DELAY_OFF),
+                    data_offset: get32le(buf, off + RK_BOOT_ENTRY_DATA_OFFSET_OFF)?,
+                    data_size: get32le(buf, off + RK_BOOT_ENTRY_DATA_SIZE_OFF)?,
+                    data_delay: get32le(buf, off + RK_BOOT_ENTRY_DATA_DELAY_OFF)?,
                 });
             }
             Ok(result)
@@ -1397,7 +1397,8 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         // We can call RkImageHeader::parse_rkaf directly as we are in the module.
         // Wait, RkImageHeader::parse_rkaf is private associated function.
         // Test module is submodule, so it can access private items of parent.
-        let res = RkImageHeader::parse_rkaf(&buf);
+        let mut cursor = std::io::Cursor::new(&buf);
+        let res = RkImageHeader::parse_rkaf(&mut cursor);
         assert!(res.is_err());
     }
 
