@@ -5,3 +5,7 @@
 ## 2026-02-12 - Parallelizing Flashing I/O
 **Learning:** `flash_image_async` was performing sequential read-then-write operations, leaving the I/O bus idle half the time. By using `tokio::spawn` and `mpsc` channels with buffer recycling, I implemented a producer-consumer pipeline that allows concurrent reading and writing. This significantly improves throughput when source and target are on different buses.
 **Action:** Look for opportunities to pipeline sequential I/O operations using channels and spawned tasks, ensuring buffer recycling to avoid allocation overhead.
+
+## 2026-02-12 - Streaming Large File Operations
+**Learning:** `RkImageHeader::extract_to` and `parse` were reading entire firmware images (often 2GB+) into memory, causing massive memory pressure and potential OOM.
+**Action:** Refactored to use `std::fs::File`, `Seek`, `Read::take`, and `std::io::copy` to stream data. Always verify if file operations on potentially large files are buffered or streaming.
