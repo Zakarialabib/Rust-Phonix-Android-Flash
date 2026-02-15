@@ -419,4 +419,130 @@ mod tests {
         assert_eq!(config.hardware.memory.size_mb, 1024);
         assert_eq!(config.boot.reference_dtb, "unknown.dtb");
     }
+
+    #[test]
+    fn test_validate_schema_valid() {
+        let yaml = r#"
+device:
+  name: "Test Device"
+  soc: "s905x"
+hardware:
+  memory:
+    type: "DDR3"
+    size_mb: 1024
+  storage:
+    type: "eMMC"
+    size_gb: 16
+boot:
+  reference_dtb: "test.dtb"
+"#;
+        assert!(DeviceConfig::validate_schema_yaml(yaml).is_ok());
+    }
+
+    #[test]
+    fn test_validate_schema_invalid_syntax() {
+        let yaml = "invalid: : yaml";
+        assert!(DeviceConfig::validate_schema_yaml(yaml).is_err());
+    }
+
+    #[test]
+    fn test_validate_schema_missing_top_level() {
+        let yaml = r#"
+hardware:
+  memory:
+    type: "DDR3"
+    size_mb: 1024
+  storage:
+    type: "eMMC"
+    size_gb: 16
+boot:
+  reference_dtb: "test.dtb"
+"#;
+        let result = DeviceConfig::validate_schema_yaml(yaml);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("\"device\" is a required property"));
+    }
+
+    #[test]
+    fn test_validate_schema_missing_nested() {
+        let yaml = r#"
+device:
+  name: "Test Device"
+hardware:
+  memory:
+    type: "DDR3"
+    size_mb: 1024
+  storage:
+    type: "eMMC"
+    size_gb: 16
+boot:
+  reference_dtb: "test.dtb"
+"#;
+        let result = DeviceConfig::validate_schema_yaml(yaml);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("\"soc\" is a required property"));
+    }
+
+    #[test]
+    fn test_validate_schema_minimum_value() {
+        let yaml = r#"
+device:
+  name: "Test Device"
+  soc: "s905x"
+hardware:
+  memory:
+    type: "DDR3"
+    size_mb: 0
+  storage:
+    type: "eMMC"
+    size_gb: 16
+boot:
+  reference_dtb: "test.dtb"
+"#;
+        let result = DeviceConfig::validate_schema_yaml(yaml);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("0 is less than the minimum of 1"));
+    }
+
+    #[test]
+    fn test_validate_schema_minimum_length() {
+        let yaml = r#"
+device:
+  name: ""
+  soc: "s905x"
+hardware:
+  memory:
+    type: "DDR3"
+    size_mb: 1024
+  storage:
+    type: "eMMC"
+    size_gb: 16
+boot:
+  reference_dtb: "test.dtb"
+"#;
+        let result = DeviceConfig::validate_schema_yaml(yaml);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("has a length less than 1"));
+    }
+
+    #[test]
+    fn test_validate_schema_type_mismatch() {
+        let yaml = r#"
+device:
+  name: "Test Device"
+  soc: "s905x"
+hardware:
+  memory:
+    type: "DDR3"
+    size_mb: "1024"
+  storage:
+    type: "eMMC"
+    size_gb: 16
+boot:
+  reference_dtb: "test.dtb"
+"#;
+        let result = DeviceConfig::validate_schema_yaml(yaml);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("is not of type \"number\""));
+    }
 }

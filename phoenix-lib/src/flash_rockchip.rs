@@ -8,7 +8,7 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::Write;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::time::Duration;
 use tracing::{debug, info, warn};
@@ -27,6 +27,71 @@ const RKFT_OFF_INCR: u32 = (RKFT_BLOCKSIZE >> 9) as u32; // 32 sectors
 const MAX_PARAM_LENGTH: usize = 128 * 512 - 12;
 const CMD_PKT_SIZE: usize = 31;
 const RES_PKT_SIZE: usize = 13;
+
+// Rockchip Image Parsing Constants
+const RKAF_FSIZE_OFF: usize = 4;
+const RKAF_MODEL_OFF: usize = 0x08;
+const RKAF_MODEL_LEN: usize = 0x40;
+const RKAF_MANUFACTURER_OFF: usize = 0x48;
+const RKAF_MANUFACTURER_LEN: usize = 0x40;
+const RKAF_COUNT_OFF: usize = 0x88;
+const RKAF_ENTRIES_OFF: usize = 0x8c;
+const RKAF_ENTRY_SIZE: usize = 0x70;
+const RKAF_ENTRY_NAME_LEN: usize = 0x20;
+const RKAF_ENTRY_PATH_OFF: usize = 0x20;
+const RKAF_ENTRY_PATH_LEN: usize = 0x40;
+const RKAF_ENTRY_IOFF_OFF: usize = 0x60;
+const RKAF_ENTRY_NOFF_OFF: usize = 0x64;
+const RKAF_ENTRY_ISIZE_OFF: usize = 0x68;
+const RKAF_ENTRY_FILE_SIZE_OFF: usize = 0x6c;
+
+const RKFW_VERSION_OFF: usize = 6;
+const RKFW_CHIP_FAMILY_OFF: usize = 0x15;
+const RKFW_BOOT_OFF_OFF: usize = 0x19;
+const RKFW_BOOT_SIZE_OFF: usize = 0x1d;
+const RKFW_UPDATE_OFF_OFF: usize = 0x21;
+const RKFW_UPDATE_SIZE_OFF: usize = 0x25;
+
+const RKFP_PSS_OFF: usize = 0x10;
+const RKFP_PEO_OFF: usize = 0x14;
+const RKFP_PES_OFF: usize = 0x1c;
+const RKFP_PEC_OFF: usize = 0x20;
+const RKFP_ENTRY_PATH_LEN: usize = 32;
+const RKFP_ENTRY_IOFF_OFF: usize = 36;
+const RKFP_ENTRY_ISIZE_OFF: usize = 40;
+const RKFP_ENTRY_FILE_SIZE_OFF: usize = 44;
+
+const RK_PARAM_SIZE_OFF: usize = 4;
+const RK_PARAM_HEAD_SIZE: usize = 8;
+const RK_PARAM_FOOT_SIZE: usize = 4;
+
+const RK_BOOT_HEADER_SIZE: usize = 106;
+const RK_BOOT_TAG_OFF: usize = 0;
+const RK_BOOT_SIZE_OFF: usize = 4;
+const RK_BOOT_VERSION_OFF: usize = 6;
+const RK_BOOT_MERGE_VERSION_OFF: usize = 10;
+const RK_BOOT_TIME_OFF: usize = 14;
+const RK_BOOT_CHIP_OFF: usize = 21;
+const RK_BOOT_471_COUNT_OFF: usize = 25;
+const RK_BOOT_471_OFFSET_OFF: usize = 26;
+const RK_BOOT_471_SIZE_OFF: usize = 30;
+const RK_BOOT_472_COUNT_OFF: usize = 31;
+const RK_BOOT_472_OFFSET_OFF: usize = 32;
+const RK_BOOT_472_SIZE_OFF: usize = 36;
+const RK_BOOT_LDR_COUNT_OFF: usize = 37;
+const RK_BOOT_LDR_OFFSET_OFF: usize = 38;
+const RK_BOOT_LDR_SIZE_OFF: usize = 42;
+const RK_BOOT_SIGN_FLAG_OFF: usize = 43;
+const RK_BOOT_RC4_FLAG_OFF: usize = 44;
+
+const RK_BOOT_ENTRY_NAME_OFF: usize = 2;
+const RK_BOOT_ENTRY_NAME_LEN: usize = 40;
+const RK_BOOT_ENTRY_DATA_OFFSET_OFF: usize = 42;
+const RK_BOOT_ENTRY_DATA_SIZE_OFF: usize = 46;
+const RK_BOOT_ENTRY_DATA_DELAY_OFF: usize = 50;
+const RK_BOOT_ENTRY_SIZE: usize = 54;
+
+const RK_CHIP_INFO_LEN: usize = 16;
 
 // ─── CRC (ported from rkcrc.h) ──────────────────────────────────────────────
 
@@ -467,11 +532,14 @@ impl RkParameter {
 
 // ─── Image unpacker (ported from rkunpack.c) ────────────────────────────────
 
-fn get32le(buf: &[u8], off: usize) -> u32 {
-    buf[off] as u32
+fn get32le(buf: &[u8], off: usize) -> Result<u32, AppError> {
+    if off + 4 > buf.len() {
+        return Err(AppError::ParseError("Buffer too short".to_string()));
+    }
+    Ok(buf[off] as u32
         | (buf[off + 1] as u32) << 8
         | (buf[off + 2] as u32) << 16
-        | (buf[off + 3] as u32) << 24
+        | (buf[off + 3] as u32) << 24)
 }
 
 /// Entry extracted from an RKAF image
@@ -500,21 +568,26 @@ pub struct RkImageHeader {
 impl RkImageHeader {
     /// Parse a Rockchip firmware image (update.img or rkfw)
     pub fn parse(image_path: &Path) -> Result<Self, AppError> {
-        let data = std::fs::read(image_path)
+        let file = std::fs::File::open(image_path)
             .map_err(|e| AppError::IoError(format!("Read image: {}", e)))?;
+        let mut reader = std::io::BufReader::new(file);
 
-        if data.len() < 16 {
-            return Err(AppError::ValidationError("Image too small".into()));
-        }
-
-        let magic = std::str::from_utf8(&data[0..4])
+        let mut magic_buf = [0u8; 4];
+        reader
+            .read_exact(&mut magic_buf)
+            .map_err(|e| AppError::IoError(format!("Read magic: {}", e)))?;
+        let magic = std::str::from_utf8(&magic_buf)
             .unwrap_or("????")
             .to_string();
 
+        reader
+            .seek(SeekFrom::Start(0))
+            .map_err(|e| AppError::IoError(format!("Seek: {}", e)))?;
+
         match magic.as_str() {
-            "RKAF" => Self::parse_rkaf(&data),
-            "RKFW" => Self::parse_rkfw(&data),
-            "RKFP" => Self::parse_rkfp(&data),
+            "RKAF" => Self::parse_rkaf(&mut reader),
+            "RKFW" => Self::parse_rkfw(&mut reader),
+            "RKFP" => Self::parse_rkfp(&mut reader),
             _ => Err(AppError::ValidationError(format!(
                 "Unknown Rockchip image magic: {}",
                 magic
@@ -522,15 +595,20 @@ impl RkImageHeader {
         }
     }
 
-    fn parse_rkaf(buf: &[u8]) -> Result<Self, AppError> {
-        let fsize = get32le(buf, 4) as usize + 4;
-        let manufacturer = String::from_utf8_lossy(&buf[0x48..0x88])
+    fn parse_rkaf<R: Read + Seek>(reader: &mut R) -> Result<Self, AppError> {
+        let mut header = [0u8; 0x8c];
+        reader
+            .read_exact(&mut header)
+            .map_err(|e| AppError::IoError(format!("Read RKAF header: {}", e)))?;
+
+        let fsize = get32le(&header, 4) as usize + 4;
+        let manufacturer = String::from_utf8_lossy(&header[0x48..0x88])
             .trim_matches('\0')
             .to_string();
-        let model = String::from_utf8_lossy(&buf[0x08..0x48])
+        let model = String::from_utf8_lossy(&header[0x08..0x48])
             .trim_matches('\0')
             .to_string();
-        let count = get32le(buf, 0x88) as usize;
+        let count = get32le(&header, 0x88) as usize;
 
         info!(
             "RKAF: manufacturer={} model={} files={} total={}",
@@ -539,20 +617,20 @@ impl RkImageHeader {
 
         let mut entries = Vec::new();
         for i in 0..count {
-            let p = 0x8c + i * 0x70;
-            if p + 0x70 > buf.len() {
-                break;
-            }
-            let name = String::from_utf8_lossy(&buf[p..p + 0x20])
+            let mut entry_buf = [0u8; 0x70];
+            reader
+                .read_exact(&mut entry_buf)
+                .map_err(|e| AppError::IoError(format!("Read RKAF entry {}: {}", i, e)))?;
+
+            let name = String::from_utf8_lossy(&entry_buf[0..0x20])
                 .trim_matches('\0')
                 .to_string();
-            let path = String::from_utf8_lossy(&buf[p + 0x20..p + 0x60])
+            let path = String::from_utf8_lossy(&entry_buf[0x20..0x60])
                 .trim_matches('\0')
                 .to_string();
-            let ioff = get32le(buf, p + 0x60) as u64;
-            let _noff = get32le(buf, p + 0x64) as u64;
-            let isize = get32le(buf, p + 0x68) as u64;
-            let file_size = get32le(buf, p + 0x6c) as u64;
+            let ioff = get32le(&entry_buf, 0x60) as u64;
+            let isize = get32le(&entry_buf, 0x68) as u64;
+            let file_size = get32le(&entry_buf, 0x6c) as u64;
 
             entries.push(RkImageEntry {
                 name,
@@ -573,14 +651,19 @@ impl RkImageHeader {
         })
     }
 
-    fn parse_rkfw(buf: &[u8]) -> Result<Self, AppError> {
+    fn parse_rkfw<R: Read + Seek>(reader: &mut R) -> Result<Self, AppError> {
+        let mut header = [0u8; 0x29];
+        reader
+            .read_exact(&mut header)
+            .map_err(|e| AppError::IoError(format!("Read RKFW header: {}", e)))?;
+
         let version = format!(
             "{}.{}.{}",
-            buf[9],
-            buf[8],
-            (buf[7] as u16) << 8 | buf[6] as u16
+            header[9],
+            header[8],
+            (header[7] as u16) << 8 | header[6] as u16
         );
-        let chip_family = match buf[0x15] {
+        let chip_family = match header[0x15] {
             0x50 => "rk29xx",
             0x60 => "rk30xx",
             0x70 => "rk31xx",
@@ -591,12 +674,20 @@ impl RkImageHeader {
         }
         .to_string();
 
-        let boot_off = get32le(buf, 0x19) as u64;
-        let boot_size = get32le(buf, 0x1d) as u64;
-        let update_off = get32le(buf, 0x21) as u64;
-        let update_size = get32le(buf, 0x25) as u64;
+        let boot_off = get32le(buf, RKFW_BOOT_OFF_OFF) as u64;
+        let boot_size = get32le(buf, RKFW_BOOT_SIZE_OFF) as u64;
+        let update_off = get32le(buf, RKFW_UPDATE_OFF_OFF) as u64;
+        let update_size = get32le(buf, RKFW_UPDATE_SIZE_OFF) as u64;
 
-        let boot_name = if &buf[boot_off as usize..boot_off as usize + 4] == b"BOOT" {
+        let mut boot_magic = [0u8; 4];
+        reader
+            .seek(SeekFrom::Start(boot_off))
+            .map_err(|e| AppError::IoError(format!("Seek to boot: {}", e)))?;
+        reader
+            .read_exact(&mut boot_magic)
+            .map_err(|e| AppError::IoError(format!("Read boot magic: {}", e)))?;
+
+        let boot_name = if &boot_magic == b"BOOT" {
             "BOOT"
         } else {
             "LDR"
@@ -629,24 +720,35 @@ impl RkImageHeader {
         })
     }
 
-    fn parse_rkfp(buf: &[u8]) -> Result<Self, AppError> {
-        let pss = get32le(buf, 0x10) as usize;
-        let peo = get32le(buf, 0x14) as usize;
-        let pes = get32le(buf, 0x1c) as usize;
-        let pec = get32le(buf, 0x20) as usize;
+    fn parse_rkfp<R: Read + Seek>(reader: &mut R) -> Result<Self, AppError> {
+        let mut header = [0u8; 0x24];
+        reader
+            .read_exact(&mut header)
+            .map_err(|e| AppError::IoError(format!("Read RKFP header: {}", e)))?;
+
+        let pss = get32le(buf, RKFP_PSS_OFF) as usize;
+        let peo = get32le(buf, RKFP_PEO_OFF) as usize;
+        let pes = get32le(buf, RKFP_PES_OFF) as usize;
+        let pec = get32le(buf, RKFP_PEC_OFF) as usize;
 
         let mut entries = Vec::new();
         for i in 0..pec {
             let p = pss * peo + i * pes;
-            if p + pes > buf.len() {
-                break;
-            }
-            let path = String::from_utf8_lossy(&buf[p..p + 32])
+            reader
+                .seek(SeekFrom::Start(p as u64))
+                .map_err(|e| AppError::IoError(format!("Seek to RKFP entry {}: {}", i, e)))?;
+
+            let mut entry_buf = [0u8; 48];
+            reader
+                .read_exact(&mut entry_buf)
+                .map_err(|e| AppError::IoError(format!("Read RKFP entry {}: {}", i, e)))?;
+
+            let path = String::from_utf8_lossy(&entry_buf[0..32])
                 .trim_matches('\0')
                 .to_string();
-            let ioff = get32le(buf, p + 36) as u64;
-            let isize = get32le(buf, p + 40) as u64;
-            let fsize = get32le(buf, p + 44) as u64;
+            let ioff = get32le(&entry_buf, 36) as u64;
+            let isize = get32le(&entry_buf, 40) as u64;
+            let fsize = get32le(&entry_buf, 44) as u64;
             entries.push(RkImageEntry {
                 name: path.clone(),
                 path,
@@ -676,23 +778,27 @@ impl RkImageHeader {
         std::fs::create_dir_all(output_dir)
             .map_err(|e| AppError::IoError(format!("mkdir: {}", e)))?;
 
-        let data =
-            std::fs::read(image_path).map_err(|e| AppError::IoError(format!("read: {}", e)))?;
+        let mut file = std::fs::File::open(image_path)
+            .map_err(|e| AppError::IoError(format!("Open image for extraction: {}", e)))?;
+        let total_len = file
+            .metadata()
+            .map(|m| m.len())
+            .map_err(|e| AppError::IoError(format!("stat image: {}", e)))?;
 
         for entry in &self.entries {
             if entry.path == "SELF" {
                 continue;
             }
-            let mut off = entry.offset as usize;
-            let mut sz = entry.file_size as usize;
+            let mut off = entry.offset;
+            let mut sz = entry.file_size;
 
             // Strip parameter header/footer
             if entry.name.starts_with("parameter") {
-                off += 8;
-                sz = sz.saturating_sub(12);
+                off += RK_PARAM_HEAD_SIZE;
+                sz = sz.saturating_sub(RK_PARAM_HEAD_SIZE + RK_PARAM_FOOT_SIZE);
             }
 
-            if off + sz > data.len() {
+            if off + sz > total_len {
                 warn!("Entry {} exceeds image bounds, skipping", entry.name);
                 continue;
             }
@@ -704,10 +810,15 @@ impl RkImageHeader {
                     .map_err(|e| AppError::IoError(format!("mkdir: {}", e)))?;
             }
 
-            let mut f = std::fs::File::create(&out_path)
+            let mut f_out = std::fs::File::create(&out_path)
                 .map_err(|e| AppError::IoError(format!("create {}: {}", out_path.display(), e)))?;
-            f.write_all(&data[off..off + sz])
-                .map_err(|e| AppError::IoError(format!("write: {}", e)))?;
+
+            file.seek(SeekFrom::Start(off))
+                .map_err(|e| AppError::IoError(format!("Seek to entry {}: {}", entry.name, e)))?;
+
+            let mut take = file.by_ref().take(sz);
+            std::io::copy(&mut take, &mut f)
+                .map_err(|e| AppError::IoError(format!("Extract {}: {}", entry.path, e)))?;
 
             info!(
                 "  {:08x}-{:08x} {} ({} bytes)",
@@ -906,7 +1017,7 @@ impl RockchipDevice {
         std::thread::sleep(Duration::from_millis(20));
 
         self.send_cmd(RockusbCmd::ReadChipInfo, 0, 0)?;
-        let buf = self.recv_buf(16)?;
+        let buf = self.recv_buf(RK_CHIP_INFO_LEN)?;
         self.recv_res()?;
 
         let chip_id = format!(
@@ -954,14 +1065,14 @@ impl RockchipDevice {
         let buf = self.recv_buf(RKFT_BLOCKSIZE)?;
         self.recv_res()?;
 
-        let size = get32le(&buf, 4) as usize;
+        let size = get32le(&buf, RK_PARAM_SIZE_OFF) as usize;
         if size > MAX_PARAM_LENGTH {
             return Err(AppError::ValidationError("Bad parameter length".into()));
         }
 
         // Verify CRC
-        let stored_crc = get32le(&buf, 8 + size);
-        let calc_crc = rkcrc32(&buf[8..8 + size]);
+        let stored_crc = get32le(&buf, RK_PARAM_HEAD_SIZE + size);
+        let calc_crc = rkcrc32(&buf[RK_PARAM_HEAD_SIZE..RK_PARAM_HEAD_SIZE + size]);
         if stored_crc != calc_crc {
             warn!(
                 "Parameter CRC mismatch: stored=0x{:08X} calc=0x{:08X}",
@@ -969,7 +1080,7 @@ impl RockchipDevice {
             );
         }
 
-        let content = String::from_utf8_lossy(&buf[8..8 + size]);
+        let content = String::from_utf8_lossy(&buf[RK_PARAM_HEAD_SIZE..RK_PARAM_HEAD_SIZE + size]);
         RkParameter::parse(&content)
     }
 
@@ -996,7 +1107,7 @@ impl RockchipDevice {
         let mut pos = 0;
         while pos < data.len() {
             let chunk_end = std::cmp::min(pos + RKFT_BLOCKSIZE, data.len());
-            let n = ((chunk_end - pos + 511) / 512) as u16;
+            let n = (chunk_end - pos).div_ceil(512) as u16;
             self.send_cmd(RockusbCmd::WriteLBA, off, n)?;
             self.send_buf(&data[pos..chunk_end])?;
             self.recv_res()?;
@@ -1108,13 +1219,13 @@ impl RkBoot {
     }
 
     pub fn parse_buf(buf: &[u8]) -> Result<Self, AppError> {
-        if buf.len() < 106 {
+        if buf.len() < RK_BOOT_HEADER_SIZE {
             return Err(AppError::ParseError(
                 "File too small for RKBoot header".to_string(),
             ));
         }
 
-        let tag = get32le(buf, 0);
+        let tag = get32le(buf, RK_BOOT_TAG_OFF);
         if tag != 0x4C4E524B && tag != 0x544F4F42 {
             // "KRNL" or "BOOT"
             return Err(AppError::ParseError(format!(
@@ -1125,36 +1236,36 @@ impl RkBoot {
 
         let header = RkBootHeader {
             tag,
-            size: (buf[4] as u16) | ((buf[5] as u16) << 8),
-            version: get32le(buf, 6),
-            merge_version: get32le(buf, 10),
+            size: (buf[RK_BOOT_SIZE_OFF] as u16) | ((buf[RK_BOOT_SIZE_OFF + 1] as u16) << 8),
+            version: get32le(buf, RK_BOOT_VERSION_OFF),
+            merge_version: get32le(buf, RK_BOOT_MERGE_VERSION_OFF),
             release_time: format!(
                 "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-                (buf[14] as u16) | ((buf[15] as u16) << 8),
-                buf[16],
-                buf[17],
-                buf[18],
-                buf[19],
-                buf[20]
+                (buf[RK_BOOT_TIME_OFF] as u16) | ((buf[RK_BOOT_TIME_OFF + 1] as u16) << 8),
+                buf[RK_BOOT_TIME_OFF + 2],
+                buf[RK_BOOT_TIME_OFF + 3],
+                buf[RK_BOOT_TIME_OFF + 4],
+                buf[RK_BOOT_TIME_OFF + 5],
+                buf[RK_BOOT_TIME_OFF + 6]
             ),
-            support_chip: get32le(buf, 21), // Enum value
-            entry_471_count: buf[25],
-            entry_471_offset: get32le(buf, 26),
-            entry_471_size: buf[30],
-            entry_472_count: buf[31],
-            entry_472_offset: get32le(buf, 32),
-            entry_472_size: buf[36],
-            entry_loader_count: buf[37],
-            entry_loader_offset: get32le(buf, 38),
-            entry_loader_size: buf[42],
-            sign_flag: buf[43],
-            rc4_flag: buf[44],
+            support_chip: get32le(buf, RK_BOOT_CHIP_OFF), // Enum value
+            entry_471_count: buf[RK_BOOT_471_COUNT_OFF],
+            entry_471_offset: get32le(buf, RK_BOOT_471_OFFSET_OFF),
+            entry_471_size: buf[RK_BOOT_471_SIZE_OFF],
+            entry_472_count: buf[RK_BOOT_472_COUNT_OFF],
+            entry_472_offset: get32le(buf, RK_BOOT_472_OFFSET_OFF),
+            entry_472_size: buf[RK_BOOT_472_SIZE_OFF],
+            entry_loader_count: buf[RK_BOOT_LDR_COUNT_OFF],
+            entry_loader_offset: get32le(buf, RK_BOOT_LDR_OFFSET_OFF),
+            entry_loader_size: buf[RK_BOOT_LDR_SIZE_OFF],
+            sign_flag: buf[RK_BOOT_SIGN_FLAG_OFF],
+            rc4_flag: buf[RK_BOOT_RC4_FLAG_OFF],
         };
 
         let mut entries = Vec::new();
 
         // Helper to parse entries
-        let parse_entries = |count: u8, offset: u32, size: u8, type_id: u32| -> Vec<RkBootEntry> {
+        let parse_entries = |count: u8, offset: u32, size: u8, type_id: u32| -> Result<Vec<RkBootEntry>, AppError> {
             let mut result = Vec::new();
             for i in 0..count {
                 let off = offset as usize + (i as usize * size as usize);
@@ -1164,7 +1275,8 @@ impl RkBoot {
 
                 // Name is WCHAR (2 bytes per char), 20 chars max = 40 bytes
                 // We'll just read bytes and convert strictly to ASCII for now
-                let name_bytes = &buf[off + 2..off + 42];
+                let name_bytes = &buf[off + RK_BOOT_ENTRY_NAME_OFF
+                    ..off + RK_BOOT_ENTRY_NAME_OFF + RK_BOOT_ENTRY_NAME_LEN];
                 let name = String::from_utf8_lossy(name_bytes)
                     .chars()
                     .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '_' || *c == '-')
@@ -1174,12 +1286,12 @@ impl RkBoot {
                     size: buf[off],
                     entry_type: type_id,
                     name,
-                    data_offset: get32le(buf, off + 42),
-                    data_size: get32le(buf, off + 46),
-                    data_delay: get32le(buf, off + 50),
+                    data_offset: get32le(buf, off + RK_BOOT_ENTRY_DATA_OFFSET_OFF),
+                    data_size: get32le(buf, off + RK_BOOT_ENTRY_DATA_SIZE_OFF),
+                    data_delay: get32le(buf, off + RK_BOOT_ENTRY_DATA_DELAY_OFF),
                 });
             }
-            result
+            Ok(result)
         };
 
         entries.extend(parse_entries(
@@ -1187,19 +1299,19 @@ impl RkBoot {
             header.entry_471_offset,
             header.entry_471_size,
             1,
-        ));
+        )?);
         entries.extend(parse_entries(
             header.entry_472_count,
             header.entry_472_offset,
             header.entry_472_size,
             2,
-        ));
+        )?);
         entries.extend(parse_entries(
             header.entry_loader_count,
             header.entry_loader_offset,
             header.entry_loader_size,
             4,
-        ));
+        )?);
 
         Ok(RkBoot { header, entries })
     }
@@ -1274,6 +1386,22 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
     }
 
     #[test]
+    fn test_rkaf_short_buffer() {
+        // Construct a buffer with RKAF magic but too short for count
+        let mut buf = Vec::new();
+        buf.extend_from_slice(b"RKAF");
+        buf.resize(20, 0); // Short buffer
+        // parse_rkaf is private, but we can test via public interface if we mock file read,
+        // or just call it directly since we are in the same module (cfg(test) mod tests)
+        // However, RkImageHeader::parse calls read_file.
+        // We can call RkImageHeader::parse_rkaf directly as we are in the module.
+        // Wait, RkImageHeader::parse_rkaf is private associated function.
+        // Test module is submodule, so it can access private items of parent.
+        let res = RkImageHeader::parse_rkaf(&buf);
+        assert!(res.is_err());
+    }
+
+    #[test]
     fn test_rkboot_parse_basic() {
         let mut buf = vec![0u8; 106];
         // Magic "BOOT" (0x544F4F42)
@@ -1289,11 +1417,11 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         buf[27] = 0;
         buf[28] = 0;
         buf[29] = 0;
-        // entry_471_size = 54 at offset 30 (typical)
-        buf[30] = 54;
+        // entry_471_size at offset 30
+        buf[30] = RK_BOOT_ENTRY_SIZE as u8;
 
-        // Need at least 100 + 54 bytes
-        buf.resize(200, 0);
+        // Need at least 100 + RK_BOOT_ENTRY_SIZE bytes
+        buf.resize(100 + RK_BOOT_ENTRY_SIZE, 0);
 
         let res = RkBoot::parse_buf(&buf);
         assert!(res.is_ok());
@@ -1301,5 +1429,87 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         assert_eq!(boot.header.tag, 0x544F4F42);
         // It might be 1 if it successfully parses the entry at offset 100
         assert_eq!(boot.entries.len(), 1);
+    }
+
+    #[test]
+    fn test_extract_to_streaming() {
+        use std::io::Write;
+        let temp_dir = std::env::temp_dir().join("phoenix_test_extract");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).unwrap();
+
+        let image_path = temp_dir.join("test.img");
+        let output_dir = temp_dir.join("out");
+
+        // Create dummy RKAF image
+        {
+            let mut f = std::fs::File::create(&image_path).unwrap();
+            f.write_all(b"RKAF").unwrap();
+            f.write_all(&0u32.to_le_bytes()).unwrap(); // Size
+
+            // Model (64 bytes)
+            f.write_all(&[0u8; 64]).unwrap();
+            // Manufacturer (64 bytes)
+            f.write_all(&[0u8; 64]).unwrap();
+
+            // Count = 1
+            f.write_all(&1u32.to_le_bytes()).unwrap();
+
+            // Entry 1 (0x8C)
+            // Name (32 bytes)
+            let mut name = [0u8; 32];
+            b"test_part"
+                .iter()
+                .enumerate()
+                .for_each(|(i, b)| name[i] = *b);
+            f.write_all(&name).unwrap();
+
+            // Path (64 bytes)
+            let mut path = [0u8; 64];
+            b"test_part.bin"
+                .iter()
+                .enumerate()
+                .for_each(|(i, b)| path[i] = *b);
+            f.write_all(&path).unwrap();
+
+            // Offset (u32) at 0x60 -> 256
+            f.write_all(&256u32.to_le_bytes()).unwrap();
+
+            // ? (u32)
+            f.write_all(&0u32.to_le_bytes()).unwrap();
+
+            // Size (u32) -> 1024
+            f.write_all(&1024u32.to_le_bytes()).unwrap();
+
+            // File Size (u32) -> 1024
+            f.write_all(&1024u32.to_le_bytes()).unwrap();
+
+            // Padding to 256
+            let current_pos = 4 + 4 + 64 + 64 + 4 + 32 + 64 + 4 + 4 + 4 + 4; // 252
+            for _ in current_pos..256 {
+                f.write_all(&[0]).unwrap();
+            }
+
+            // Content (1024 bytes of 0xAA)
+            f.write_all(&vec![0xAAu8; 1024]).unwrap();
+        }
+
+        // Parse
+        let header = RkImageHeader::parse(&image_path).unwrap();
+        assert_eq!(header.entries.len(), 1);
+        assert_eq!(header.entries[0].name.trim_matches('\0'), "test_part");
+
+        // Extract
+        header.extract_to(&image_path, &output_dir).unwrap();
+
+        // Verify extraction
+        let extracted_path = output_dir.join("test_part.bin");
+        assert!(extracted_path.exists());
+        let content = std::fs::read(extracted_path).unwrap();
+        assert_eq!(content.len(), 1024);
+        assert!(content.iter().all(|&b| b == 0xAA));
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(temp_dir);
     }
 }

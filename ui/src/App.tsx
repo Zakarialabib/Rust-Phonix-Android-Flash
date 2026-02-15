@@ -1,4 +1,4 @@
-import { createSignal, Switch, Match, ErrorBoundary, Show, createEffect } from 'solid-js';
+import { createSignal, Switch, Match, ErrorBoundary, Show, createEffect, For, JSX } from 'solid-js';
 import { cn } from './lib/utils';
 import { NavButton } from './components/NavButton';
 import { globalStore, setGlobalStore } from './store';
@@ -24,6 +24,71 @@ import { TopNav } from './components/layout/TopNav';
 import { useApp } from './context/AppContext';
 import { useGlobalShortcuts } from './components/effects/KeyboardShortcuts';
 import { FadeInUp } from './components/effects/AnimatedPresence';
+
+type NavItemConfig = {
+  id: string;
+  labelKey?: any;
+  defaultLabel: string;
+  icon: JSX.Element;
+};
+
+const WORKFLOW_NAV_ITEMS: NavItemConfig[] = [
+  {
+    id: 'wizard',
+    labelKey: 'nav.wizard',
+    defaultLabel: 'Auto Wizard',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+  },
+  {
+    id: 'detect',
+    labelKey: 'nav.discovery',
+    defaultLabel: 'Discovery',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
+  },
+  {
+    id: 'diagnostics',
+    labelKey: 'nav.forensics',
+    defaultLabel: 'Forensics',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>,
+  },
+  {
+    id: 'config',
+    labelKey: 'nav.architect',
+    defaultLabel: 'Architect',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>,
+  },
+  {
+    id: 'check',
+    labelKey: 'nav.compatibility',
+    defaultLabel: 'Compatibility',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+  },
+  {
+    id: 'build',
+    labelKey: 'nav.foundry',
+    defaultLabel: 'Foundry',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
+  },
+  {
+    id: 'flash',
+    labelKey: 'nav.burner',
+    defaultLabel: 'Burner',
+    icon: <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
+  },
+];
+
+const HOOK_NAV_ITEMS: NavItemConfig[] = [
+  {
+    id: 'amlogic-burn',
+    defaultLabel: 'Amlogic Burn',
+    icon: <div class="h-4 w-4 flex items-center justify-center font-black text-[8px] border border-border-subtle rounded-none">AM</div>,
+  },
+  {
+    id: 'rockchip-flash',
+    defaultLabel: 'Rockchip Flash',
+    icon: <div class="h-4 w-4 flex items-center justify-center font-black text-[8px] border border-border-subtle rounded-none">RK</div>,
+  },
+];
 
 function App() {
   const setActiveTab = (tab: string) => setGlobalStore('activeTab', tab);
@@ -71,55 +136,17 @@ function App() {
                   <p class="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 opacity-40">{t('sidebar.workflow_protocol')}</p>
                 )}
                 <div class="flex flex-col gap-1">
-                  <NavButton
-                    active={activeTab() === 'wizard'}
-                    onClick={() => setActiveTab('wizard')}
-                    collapsed={globalStore.sidebarCollapsed}
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
-                    label={t('nav.wizard') || 'Auto Wizard'}
-                  />
-                  <NavButton
-                    active={activeTab() === 'detect'}
-                    onClick={() => setActiveTab('detect')}
-                    collapsed={globalStore.sidebarCollapsed}
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>}
-                    label={t('nav.discovery') || 'Discovery'}
-                  />
-                  <NavButton
-                    active={activeTab() === 'diagnostics'}
-                    onClick={() => setActiveTab('diagnostics')}
-                    collapsed={globalStore.sidebarCollapsed}
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>}
-                    label={t('nav.forensics') || 'Forensics'}
-                  />
-                  <NavButton
-                    active={activeTab() === 'config'}
-                    onClick={() => setActiveTab('config')}
-                    collapsed={globalStore.sidebarCollapsed}
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>}
-                    label={t('nav.architect') || 'Architect'}
-                  />
-                  <NavButton
-                    active={activeTab() === 'check'}
-                    onClick={() => setActiveTab('check')}
-                    collapsed={globalStore.sidebarCollapsed}
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-                    label={t('nav.compatibility') || 'Compatibility'}
-                  />
-                  <NavButton
-                    active={activeTab() === 'build'}
-                    onClick={() => setActiveTab('build')}
-                    collapsed={globalStore.sidebarCollapsed}
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
-                    label={t('nav.foundry') || 'Foundry'}
-                  />
-                  <NavButton
-                    active={activeTab() === 'flash'}
-                    onClick={() => setActiveTab('flash')}
-                    collapsed={globalStore.sidebarCollapsed}
-                    icon={<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>}
-                    label={t('nav.burner') || 'Burner'}
-                  />
+                  <For each={WORKFLOW_NAV_ITEMS}>
+                    {(item) => (
+                      <NavButton
+                        active={activeTab() === item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        collapsed={globalStore.sidebarCollapsed}
+                        icon={item.icon}
+                        label={item.labelKey ? (t(item.labelKey) || item.defaultLabel) : item.defaultLabel}
+                      />
+                    )}
+                  </For>
                 </div>
               </div>
 
@@ -128,20 +155,17 @@ function App() {
                   <p class="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 opacity-40">{t('sidebar.low_level_hooks')}</p>
                 )}
                 <div class="flex flex-col gap-1">
-                  <NavButton
-                    active={activeTab() === 'amlogic-burn'}
-                    onClick={() => setActiveTab('amlogic-burn')}
-                    collapsed={globalStore.sidebarCollapsed}
-                    icon={<div class="h-4 w-4 flex items-center justify-center font-black text-[8px] border border-border-subtle rounded-none">AM</div>}
-                    label={t('nav.amlogic_burn') || 'Amlogic Burn'}
-                  />
-                  <NavButton
-                    active={activeTab() === 'rockchip-flash'}
-                    onClick={() => setActiveTab('rockchip-flash')}
-                    collapsed={globalStore.sidebarCollapsed}
-                    icon={<div class="h-4 w-4 flex items-center justify-center font-black text-[8px] border border-border-subtle rounded-none">RK</div>}
-                    label={t('nav.rockchip_flash') || 'Rockchip Flash'}
-                  />
+                  <For each={HOOK_NAV_ITEMS}>
+                    {(item) => (
+                      <NavButton
+                        active={activeTab() === item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        collapsed={globalStore.sidebarCollapsed}
+                        icon={item.icon}
+                        label={item.defaultLabel}
+                      />
+                    )}
+                  </For>
                 </div>
               </div>
             </nav>

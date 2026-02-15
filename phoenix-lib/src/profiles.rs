@@ -163,4 +163,59 @@ mod tests {
         assert_eq!(profile.name, "Amlogic S905W (Generic)");
         assert_eq!(profile.soc, "s905w");
     }
+
+    #[test]
+    fn test_from_file_valid() {
+        use std::io::Write;
+        let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
+        let toml_content = r#"
+[[profiles]]
+vendorId = 4660
+productId = 22136
+name = "Test Device"
+soc = "test-soc"
+ramMb = 1024
+storageType = "emmc"
+bootloaderOffset = 0
+supportedModes = ["test"]
+"#;
+        write!(tmpfile, "{}", toml_content).unwrap();
+
+        let db = ProfileDatabase::from_file(tmpfile.path()).expect("Should load valid TOML");
+        assert_eq!(db.profiles.len(), 1);
+        assert_eq!(db.profiles[0].name, "Test Device");
+        assert_eq!(db.profiles[0].vendor_id, 0x1234);
+        assert_eq!(db.profiles[0].product_id, 0x5678);
+    }
+
+    #[test]
+    fn test_from_file_invalid_toml() {
+        use std::io::Write;
+        let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "invalid = [toml").unwrap();
+
+        let result = ProfileDatabase::from_file(tmpfile.path());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_from_file_missing_file() {
+        let result = ProfileDatabase::from_file("non_existent_file.toml");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_from_file_malformed_structure() {
+        use std::io::Write;
+        let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
+        // Missing required fields like 'soc' or 'vendorId'
+        let toml_content = r#"
+[[profiles]]
+name = "Incomplete Device"
+"#;
+        write!(tmpfile, "{}", toml_content).unwrap();
+
+        let result = ProfileDatabase::from_file(tmpfile.path());
+        assert!(result.is_err());
+    }
 }

@@ -1,9 +1,9 @@
 //! Device detection command
 
+use crate::commands::phase;
 use anyhow::Result;
 use phoenix_lib::hardware::{detect_devices, list_serial_ports, probe_uart, DeviceMode};
 use phoenix_lib::workflow::{Phase, PhaseStatus};
-use crate::commands::phase;
 use tracing::info;
 
 pub async fn run(method: &str, port: Option<&str>, format: &str) -> Result<()> {
