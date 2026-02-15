@@ -810,7 +810,7 @@ impl RkImageHeader {
                     .map_err(|e| AppError::IoError(format!("mkdir: {}", e)))?;
             }
 
-            let mut f = std::fs::File::create(&out_path)
+            let mut f_out = std::fs::File::create(&out_path)
                 .map_err(|e| AppError::IoError(format!("create {}: {}", out_path.display(), e)))?;
 
             file.seek(SeekFrom::Start(off))
@@ -1107,7 +1107,7 @@ impl RockchipDevice {
         let mut pos = 0;
         while pos < data.len() {
             let chunk_end = std::cmp::min(pos + RKFT_BLOCKSIZE, data.len());
-            let n = ((chunk_end - pos + 511) / 512) as u16;
+            let n = (chunk_end - pos).div_ceil(512) as u16;
             self.send_cmd(RockusbCmd::WriteLBA, off, n)?;
             self.send_buf(&data[pos..chunk_end])?;
             self.recv_res()?;
@@ -1429,5 +1429,87 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         assert_eq!(boot.header.tag, 0x544F4F42);
         // It might be 1 if it successfully parses the entry at offset 100
         assert_eq!(boot.entries.len(), 1);
+    }
+
+    #[test]
+    fn test_extract_to_streaming() {
+        use std::io::Write;
+        let temp_dir = std::env::temp_dir().join("phoenix_test_extract");
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        std::fs::create_dir_all(&temp_dir).unwrap();
+
+        let image_path = temp_dir.join("test.img");
+        let output_dir = temp_dir.join("out");
+
+        // Create dummy RKAF image
+        {
+            let mut f = std::fs::File::create(&image_path).unwrap();
+            f.write_all(b"RKAF").unwrap();
+            f.write_all(&0u32.to_le_bytes()).unwrap(); // Size
+
+            // Model (64 bytes)
+            f.write_all(&[0u8; 64]).unwrap();
+            // Manufacturer (64 bytes)
+            f.write_all(&[0u8; 64]).unwrap();
+
+            // Count = 1
+            f.write_all(&1u32.to_le_bytes()).unwrap();
+
+            // Entry 1 (0x8C)
+            // Name (32 bytes)
+            let mut name = [0u8; 32];
+            b"test_part"
+                .iter()
+                .enumerate()
+                .for_each(|(i, b)| name[i] = *b);
+            f.write_all(&name).unwrap();
+
+            // Path (64 bytes)
+            let mut path = [0u8; 64];
+            b"test_part.bin"
+                .iter()
+                .enumerate()
+                .for_each(|(i, b)| path[i] = *b);
+            f.write_all(&path).unwrap();
+
+            // Offset (u32) at 0x60 -> 256
+            f.write_all(&256u32.to_le_bytes()).unwrap();
+
+            // ? (u32)
+            f.write_all(&0u32.to_le_bytes()).unwrap();
+
+            // Size (u32) -> 1024
+            f.write_all(&1024u32.to_le_bytes()).unwrap();
+
+            // File Size (u32) -> 1024
+            f.write_all(&1024u32.to_le_bytes()).unwrap();
+
+            // Padding to 256
+            let current_pos = 4 + 4 + 64 + 64 + 4 + 32 + 64 + 4 + 4 + 4 + 4; // 252
+            for _ in current_pos..256 {
+                f.write_all(&[0]).unwrap();
+            }
+
+            // Content (1024 bytes of 0xAA)
+            f.write_all(&vec![0xAAu8; 1024]).unwrap();
+        }
+
+        // Parse
+        let header = RkImageHeader::parse(&image_path).unwrap();
+        assert_eq!(header.entries.len(), 1);
+        assert_eq!(header.entries[0].name.trim_matches('\0'), "test_part");
+
+        // Extract
+        header.extract_to(&image_path, &output_dir).unwrap();
+
+        // Verify extraction
+        let extracted_path = output_dir.join("test_part.bin");
+        assert!(extracted_path.exists());
+        let content = std::fs::read(extracted_path).unwrap();
+        assert_eq!(content.len(), 1024);
+        assert!(content.iter().all(|&b| b == 0xAA));
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(temp_dir);
     }
 }
