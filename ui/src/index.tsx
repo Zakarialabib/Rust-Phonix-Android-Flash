@@ -1,6 +1,7 @@
 import { render } from 'solid-js/web';
 import App from './App';
 import './styles.css';
+import { AppProvider } from './context/AppContext';
 
 const root = document.getElementById('root');
 
@@ -15,7 +16,14 @@ if (!import.meta.env.DEV) {
   document.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
-import { AppProvider } from './context/AppContext';
+// Global error handling
+window.addEventListener('error', (e) => {
+  console.error('Global error:', e.error);
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('Unhandled rejection:', e.reason);
+});
 
 render(
   () => (

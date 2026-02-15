@@ -12,19 +12,19 @@ type WorkflowStep = 'detect' | 'scan' | 'vault' | 'configure' | 'build' | 'flash
 
 interface StepConfig {
     id: WorkflowStep;
-    title: string;
-    description: string;
+    titleKey: string;
+    descKey: string;
     icon: string;
 }
 
 const WORKFLOW_STEPS: StepConfig[] = [
-    { id: 'detect', title: 'Hardware Discovery', description: 'Silicon ID & Handshake', icon: '🔌' },
-    { id: 'scan', title: 'Threat Analysis', description: 'Malware Forensics', icon: '🔒' },
-    { id: 'vault', title: 'NVRAM Vault', description: 'Unique ID Preservation', icon: '🛡️' },
-    { id: 'configure', title: 'Intent Resolution', description: 'Blueprint Selection', icon: '⚙️' },
-    { id: 'build', title: 'Synthesis', description: 'Image Construction', icon: '🔧' },
-    { id: 'flash', title: 'Deployment', description: 'Sector Ignition', icon: '⚡' },
-    { id: 'verify', title: 'Confirmation', description: 'Integrity Check', icon: '✅' },
+    { id: 'detect', titleKey: 'wizard.step_detect_title', descKey: 'wizard.step_detect_desc', icon: '🔌' },
+    { id: 'scan', titleKey: 'wizard.step_scan_title', descKey: 'wizard.step_scan_desc', icon: '🔒' },
+    { id: 'vault', titleKey: 'wizard.step_vault_title', descKey: 'wizard.step_vault_desc', icon: '🛡️' },
+    { id: 'configure', titleKey: 'wizard.step_configure_title', descKey: 'wizard.step_configure_desc', icon: '⚙️' },
+    { id: 'build', titleKey: 'wizard.step_build_title', descKey: 'wizard.step_build_desc', icon: '🔧' },
+    { id: 'flash', titleKey: 'wizard.step_flash_title', descKey: 'wizard.step_flash_desc', icon: '⚡' },
+    { id: 'verify', titleKey: 'wizard.step_verify_title', descKey: 'wizard.step_verify_desc', icon: '✅' },
 ];
 
 interface StepStatus { completed: boolean; inProgress: boolean; error?: string; result?: any; }
@@ -122,8 +122,8 @@ export default function WizardView() {
                                 <span class={cn(
                                     "text-[10px] font-black uppercase mt-1",
                                     isActive ? "text-text-primary" : "text-text-secondary"
-                                )}>{step.title}</span>
-                                <span class="text-[8px] text-text-muted mt-1 uppercase tracking-widest opacity-60">{step.description}</span>
+                                )}>{t(step.titleKey)}</span>
+                                <span class="text-[8px] text-text-muted mt-1 uppercase tracking-widest opacity-60">{t(step.descKey)}</span>
                             </button>
                         );
                     }}</For>
@@ -131,20 +131,20 @@ export default function WizardView() {
 
                 {/* Main Interaction Node */}
                 <div class="lg:col-span-9 flex flex-col gap-6 overflow-hidden">
-                    <Card glow="accent" title={currentStepConfig().title} subtitle={currentStepConfig().description} class="flex-1 flex flex-col overflow-hidden border-border-subtle">
+                    <Card glow="accent" title={t(currentStepConfig().titleKey)} subtitle={t(currentStepConfig().descKey)} class="flex-1 flex flex-col overflow-hidden border-border-subtle">
                         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 py-2">
                             <Switch>
                                 <Match when={currentStepConfig().id === 'detect'}>
                                     <div class="space-y-8">
                                         <div class="grid sm:grid-cols-2 gap-4 leading-loose">
                                             <div class="p-5 bg-sidebar/40 border border-border-subtle space-y-3 rounded-sm">
-                                                <h4 class="text-[10px] font-black text-accent uppercase tracking-widest">Amlogic WorldCup</h4>
-                                                <p class="text-[9px] text-text-muted uppercase font-bold opacity-60">Hold recovery pin or short eMMC CLK while cold booting OTG.</p>
+                                                <h4 class="text-[10px] font-black text-accent uppercase tracking-widest">{t('wizard.detect_amlogic_title')}</h4>
+                                                <p class="text-[9px] text-text-muted uppercase font-bold opacity-60">{t('wizard.detect_amlogic_desc')}</p>
                                                 <Badge variant="secondary" class="rounded-none border-none text-[8px] opacity-60">VID 1B8E</Badge>
                                             </div>
                                             <div class="p-5 bg-sidebar/40 border border-border-subtle space-y-3 rounded-sm">
-                                                <h4 class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Rockchip RockUSB</h4>
-                                                <p class="text-[9px] text-text-muted uppercase font-bold opacity-60">Hold ADKey/Recovery during power-up sequence.</p>
+                                                <h4 class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{t('wizard.detect_rockchip_title')}</h4>
+                                                <p class="text-[9px] text-text-muted uppercase font-bold opacity-60">{t('wizard.detect_rockchip_desc')}</p>
                                                 <Badge variant="secondary" class="rounded-none border-none text-[8px] opacity-60">VID 2207</Badge>
                                             </div>
                                         </div>
@@ -153,27 +153,27 @@ export default function WizardView() {
                                             isLoading={stepStatuses().detect.inProgress}
                                             class="w-full h-14 font-black text-xs tracking-[0.2em] bg-accent hover:opacity-90 shadow-lg shadow-accent/20"
                                         >
-                                            {stepStatuses().detect.completed ? 'RE-SCAN HUB' : 'INITIATE HARDWARE HANDSHAKE'}
+                                            {stepStatuses().detect.completed ? t('wizard.action_rescan') : t('wizard.action_detect')}
                                         </Button>
                                     </div>
                                 </Match>
                                 <Match when={currentStepConfig().id === 'vault'}>
                                     <div class="space-y-8">
                                         <div class="p-5 bg-accent/5 border border-accent/10 space-y-4 rounded-sm">
-                                            <h3 class="text-[10px] font-black text-accent uppercase tracking-[0.2em]">Preservation Ethics</h3>
+                                            <h3 class="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{t('wizard.vault_ethics_title')}</h3>
                                             <p class="text-[9px] text-text-secondary leading-relaxed uppercase font-bold opacity-80">
-                                                The vault creates a bit-perfect clone of the original NAND/eMMC calibration blocks. This includes HDCP L1 keys, Widevine BLOBS, and MAC addresses. <b class="text-accent underline decoration-accent/30 underline-offset-4">REQUIRED FOR IRREVERSIBLE LIBERATION.</b>
+                                                {t('wizard.vault_ethics_desc')}
                                             </p>
                                         </div>
                                         <Button onClick={handleVault} isLoading={stepStatuses().vault.inProgress} class="w-full h-14 bg-accent hover:opacity-90 border-none font-black text-xs tracking-[0.2em] rounded-none shadow-lg shadow-accent/20">
-                                            CREATE ENCRYPTED VAULT
+                                            {t('wizard.action_vault')}
                                         </Button>
                                     </div>
                                 </Match>
                                 <Match when={true}>
                                     <div class="py-20 flex flex-col items-center opacity-30 grayscale">
                                         <div class="text-4xl mb-4 text-accent">⚙️</div>
-                                        <span class="text-[10px] font-black text-text-muted uppercase tracking-[0.5em]">Module Interface Standby</span>
+                                        <span class="text-[10px] font-black text-text-muted uppercase tracking-[0.5em]">{t('wizard.standby')}</span>
                                     </div>
                                 </Match>
                             </Switch>
@@ -187,7 +187,7 @@ export default function WizardView() {
                                 disabled={currentStep() === 0}
                                 class="h-11 px-8 font-black text-[9px] uppercase border-border-subtle rounded-none tracking-widest"
                             >
-                                « STAGE PREV
+                                « {t('wizard.nav_prev')}
                             </Button>
                             <span class="text-[8px] font-black text-text-muted uppercase tracking-widest opacity-40">Node 0x{currentStep() + 1} // 0x07</span>
                             <Button
@@ -196,7 +196,7 @@ export default function WizardView() {
                                 disabled={!stepStatuses()[currentStepConfig().id].completed}
                                 class="h-11 px-8 font-black text-[9px] uppercase border-border-subtle rounded-none text-accent tracking-widest"
                             >
-                                NEXT STAGE »
+                                {t('wizard.nav_next')} »
                             </Button>
                         </div>
                     </Card>

@@ -1,16 +1,18 @@
 import { Component, createSignal, onMount, onCleanup } from 'solid-js';
 import { setGlobalStore } from '../../store';
+import { useApp } from '../../context/AppContext';
 
 export const SplashScreen: Component = () => {
-    const [loadingText, setLoadingText] = createSignal('INITIALIZING HYPERVISOR');
+    const { t } = useApp();
+    const [loadingText, setLoadingText] = createSignal(t('splash.initializing'));
     const [progress, setProgress] = createSignal(0);
 
     const sequence = [
-        { delay: 400, text: 'LOADING COMPATIBILITY MATRIX' },
-        { delay: 800, text: 'MOUNTING PHOENIX ENGINE' },
-        { delay: 1200, text: 'SCANNING USB TOPOLOGY' },
-        { delay: 1600, text: 'READING PROFILE DATABASE' },
-        { delay: 2000, text: 'SYSTEM READY' },
+        { delay: 400, text: t('splash.loading_matrix') },
+        { delay: 800, text: t('splash.mounting_engine') },
+        { delay: 1200, text: t('splash.scanning_usb') },
+        { delay: 1600, text: t('splash.reading_db') },
+        { delay: 2000, text: t('splash.system_ready') },
     ];
 
     onMount(() => {
@@ -55,7 +57,7 @@ export const SplashScreen: Component = () => {
                 {/* Brand */}
                 <div class="text-center mb-8">
                     <h1 class="text-3xl font-bold tracking-[0.2em] mb-1 glitch-hover">PHOENIX</h1>
-                    <p class="text-[10px] text-amber-500/60 tracking-[0.5em] uppercase">Advanced Liberation Suite</p>
+                    <p class="text-[10px] text-amber-500/60 tracking-[0.5em] uppercase">{t('splash.tagline')}</p>
                 </div>
 
                 {/* Loading Bar Container */}
@@ -74,9 +76,9 @@ export const SplashScreen: Component = () => {
 
                 {/* Technical Deco */}
                 <div class="mt-12 opacity-30 text-[8px] flex gap-4 uppercase tracking-[0.2em]">
-                    <span>VER: 2.1.0-STABLE</span>
-                    <span>KERNEL: RUST_X64</span>
-                    <span>UI: SOLID_VITE</span>
+                    <span>{t('splash.ver')}</span>
+                    <span>{t('splash.kernel')}</span>
+                    <span>{t('splash.ui')}</span>
                 </div>
             </div>
         </div>

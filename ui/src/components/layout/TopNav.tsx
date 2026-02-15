@@ -14,12 +14,12 @@ export const TopNav: Component = () => {
         { label: 'Français', value: 'fr', flag: '🇫🇷' },
     ];
 
-    const colors: { label: string; value: ThemeColor; bg: string }[] = [
-        { label: 'Amber', value: 'amber', bg: 'bg-amber-500' },
-        { label: 'Indigo', value: 'indigo', bg: 'bg-indigo-500' },
-        { label: 'Rose', value: 'rose', bg: 'bg-rose-500' },
-        { label: 'Teal', value: 'teal', bg: 'bg-teal-500' },
-        { label: 'Slate', value: 'slate', bg: 'bg-slate-500' },
+    const colors = () => [
+        { label: t('common.amber'), value: 'amber' as ThemeColor, bg: 'bg-amber-500' },
+        { label: t('common.indigo'), value: 'indigo' as ThemeColor, bg: 'bg-indigo-500' },
+        { label: t('common.rose'), value: 'rose' as ThemeColor, bg: 'bg-rose-500' },
+        { label: t('common.teal'), value: 'teal' as ThemeColor, bg: 'bg-teal-500' },
+        { label: t('common.slate'), value: 'slate' as ThemeColor, bg: 'bg-slate-500' },
     ];
 
     return (
@@ -43,7 +43,7 @@ export const TopNav: Component = () => {
             <div class="flex items-center gap-6">
                 {/* Color Style Picker */}
                 <div class="flex items-center gap-2.5 px-3.5 py-1.5 bg-sidebar/30 border border-border-subtle rounded-none">
-                    <For each={colors}>
+                    <For each={colors()}>
                         {(c) => (
                             <button
                                 onClick={() => setThemeColor(c.value)}

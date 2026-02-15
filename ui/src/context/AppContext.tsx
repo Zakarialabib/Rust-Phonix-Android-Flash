@@ -30,9 +30,12 @@ const translations = {
     fr: i18n.flatten(fr),
 };
 
+// Type-safe translator that always returns string
+type TranslatorFunction = (key: string, params?: Record<string, string>) => string;
+
 interface AppContextType {
     state: AppState;
-    t: i18n.NullableTranslator<ReturnType<typeof i18n.flatten<typeof en>>>;
+    t: TranslatorFunction;
     setLanguage: (lang: Language) => void;
     setThemeMode: (mode: ThemeMode) => void;
     setThemeColor: (color: ThemeColor) => void;
@@ -55,7 +58,14 @@ export function AppProvider(props: { children: JSX.Element }) {
         outputPath: '',
     });
 
-    const t = i18n.translator(() => translations[state.language], i18n.resolveTemplate);
+    const rawT = i18n.translator(() => translations[state.language], i18n.resolveTemplate);
+    // Wrapper that always returns string (fallback to key if undefined)
+    const t: TranslatorFunction = (key, params) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = rawT(key as any, params);
+        if (typeof result === 'string') return result;
+        return String(key);
+    };
 
     // Load settings from Rust on mount
     onMount(async () => {

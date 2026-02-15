@@ -8,10 +8,12 @@ import { Badge } from '../components/ui/Badge';
 import { Collapsible } from '../components/ui/Collapsible';
 import { globalStore, setGlobalStore } from '../store';
 import { cn } from '../lib/utils';
+import { useApp } from '../context/AppContext';
 
 interface LogEntry { time: string; msg: string; level: 'info' | 'warn' | 'error' | 'success'; }
 
 const RockchipFlashView: Component = () => {
+    const { t } = useApp();
     const [imagePath, setImagePath] = createSignal('');
     const [imageInfo, setImageInfo] = createSignal<any>(null);
     const [paramInfo, setParamInfo] = createSignal<any>(null);
@@ -105,12 +107,12 @@ const RockchipFlashView: Component = () => {
             <header class="flex flex-col gap-1 text-left">
                 <div class="flex items-center gap-3">
                     <div class="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(var(--accent-rgb),0.4)]" />
-                    <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">RockUSB Flash Suite</h2>
+                    <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">{t('rockchip.title')}</h2>
                     <Badge variant={isRkDevice() ? 'success' : 'warning'} class="rounded-none px-4 font-black ml-2">
-                        {isRkDevice() ? globalStore.lastDetected?.mode.toUpperCase() : 'IDLE'}
+                        {isRkDevice() ? globalStore.lastDetected?.mode.toUpperCase() : t('rockchip.idle')}
                     </Badge>
                 </div>
-                <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Protocol: RockUSB v3.0 (VID 2207) | Bulk Transfer Interface</p>
+                <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">{t('rockchip.subtitle')}</p>
             </header>
 
             <div class="grid lg:grid-cols-12 gap-6 flex-1 min-h-0">
@@ -127,7 +129,7 @@ const RockchipFlashView: Component = () => {
                                         : "text-text-muted hover:text-text-primary hover:bg-white/[0.02]"
                                 )}
                             >
-                                {tab}
+                                {t(`rockchip.tab_${tab}`)}
                             </button>
                         )}</For>
                     </nav>
@@ -135,14 +137,14 @@ const RockchipFlashView: Component = () => {
                     <main class="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-1">
                         <Switch>
                             <Match when={activeTab() === 'flash'}>
-                                <Card glow="teal" title="Deployment Engine" subtitle="Burn firmware images or extract partitions" class="border-border-subtle">
+                                <Card glow="teal" title={t('rockchip.deployment_title')} subtitle={t('rockchip.deployment_desc')} class="border-border-subtle">
                                     <div class="space-y-6">
                                         <div class="space-y-4">
                                             <div class="space-y-3">
-                                                <label class="text-[10px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">Target Image Cluster</label>
+                                                <label class="text-[10px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">{t('rockchip.target_image')}</label>
                                                 <div class="flex gap-3">
                                                     <Input
-                                                        placeholder="C:\RESOURCES\UPDATE.IMG"
+                                                        placeholder={t('rockchip.placeholder_image')}
                                                         value={imagePath()}
                                                         onInput={e => setImagePath(e.currentTarget.value)}
                                                         class="flex-1 bg-sidebar/40 border-border-subtle rounded-none h-11 text-xs font-bold tracking-tight text-text-secondary"
@@ -152,7 +154,7 @@ const RockchipFlashView: Component = () => {
                                                         isLoading={isParsing()}
                                                         class="h-11 px-8 rounded-none font-black text-[10px] border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 text-text-muted hover:text-text-primary tracking-widest shadow-none"
                                                     >
-                                                        ANALYZE BINARY
+                                                        {t('rockchip.analyze_btn')}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -163,13 +165,13 @@ const RockchipFlashView: Component = () => {
                                                     isLoading={isExtracting()}
                                                     class="h-11 rounded-none font-black text-[10px] border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 text-text-muted hover:text-text-primary tracking-widest shadow-none"
                                                 >
-                                                    CREATE WORKSPACE (UNPACK)
+                                                    {t('rockchip.extract')}
                                                 </Button>
                                                 <Button
                                                     class="h-11 rounded-none font-black text-[10px] bg-rose-600 hover:bg-rose-500 border-none tracking-widest text-white shadow-[0_5px_15px_rgba(244,63,94,0.2)]"
                                                     disabled={!isRkDevice() || !imageInfo()}
                                                 >
-                                                    EXECUTE FLASH SEQUENCE
+                                                    {t('rockchip.flash_btn')}
                                                 </Button>
                                             </div>
                                         </div>
@@ -177,7 +179,7 @@ const RockchipFlashView: Component = () => {
                                         <Show when={imageInfo()}>
                                             <div class="mt-4 border border-border-subtle bg-black/20 p-6 space-y-5 rounded-sm">
                                                 <div class="flex justify-between items-center pb-3 border-b border-border-subtle">
-                                                    <span class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-60">Image Structure</span>
+                                                    <span class="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] opacity-60">{t('rockchip.lbl_image_structure')}</span>
                                                     <Badge variant="secondary" class="rounded-none px-4 font-black">{imageInfo().magic}</Badge>
                                                 </div>
                                                 <div class="max-h-72 overflow-y-auto custom-scrollbar space-y-2 pr-2">
@@ -195,13 +197,13 @@ const RockchipFlashView: Component = () => {
                             </Match>
 
                             <Match when={activeTab() === 'analyze'}>
-                                <Card glow="indigo" title="Forensic Analysis" subtitle="Parameter mapping & MTD geometry" class="border-border-subtle">
+                                <Card glow="indigo" title={t('rockchip.forensic_title')} subtitle={t('rockchip.forensic_desc')} class="border-border-subtle">
                                     <div class="space-y-6">
                                         <p class="text-[10px] text-text-muted uppercase tracking-[0.2em] leading-relaxed font-bold opacity-60">
-                                            Analyzing <code class="text-accent bg-accent/5 px-2 py-0.5 rounded-sm">parameter.txt</code> logic. Resolving GPT offsets for mtdparts orchestration.
+                                            {t('rockchip.analyzing_label')} <code class="text-accent bg-accent/5 px-2 py-0.5 rounded-sm">parameter.txt</code> {t('rockchip.analyzing_desc')}
                                         </p>
                                         <div class="space-y-3">
-                                            <label class="text-[10px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">Parameter File Path</label>
+                                            <label class="text-[10px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">{t('rockchip.param_path')}</label>
                                             <Input placeholder="C:\FIRMWARE\PARAMETER.TXT" value={imagePath()} onInput={e => setImagePath(e.currentTarget.value)} class="bg-sidebar/40 border-border-subtle rounded-none h-11 text-xs font-bold tracking-tight text-text-secondary" />
                                         </div>
                                         <Button onClick={handleParseImage} isLoading={isParsing()} class="w-full h-11 border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none font-black text-[10px] tracking-widest text-text-muted hover:text-text-primary transition-all shadow-none">
@@ -233,32 +235,32 @@ const RockchipFlashView: Component = () => {
                                     <Card glow="teal" title="Protocol Reference" subtitle="RockUSB Transaction Layer" class="border-border-subtle bg-sidebar/20">
                                         <div class="space-y-5 py-1 text-[10px] font-black text-text-muted uppercase tracking-widest">
                                             <div class="flex justify-between border-b border-border-subtle pb-3">
-                                                <span class="opacity-60">Interface</span>
+                                                <span class="opacity-60">{t('rockchip.bulk_transfer')}</span>
                                                 <span class="text-text-primary">BULK (CBW/CSW)</span>
                                             </div>
                                             <div class="flex justify-between border-b border-border-subtle pb-3">
-                                                <span class="opacity-60">Endpoints</span>
+                                                <span class="opacity-60">{t('rockchip.endpoints')}</span>
                                                 <span class="text-accent">OUT 0x02 | IN 0x81</span>
                                             </div>
                                             <div class="flex justify-between border-b border-border-subtle pb-3">
-                                                <span class="opacity-60">Endianness</span>
-                                                <span class="text-text-secondary">LITTLE ENDIAN</span>
+                                                <span class="opacity-60">{t('rockchip.endianness')}</span>
+                                                <span class="text-text-secondary">{t('rockchip.little_endian')}</span>
                                             </div>
                                             <div class="flex justify-between pt-1">
-                                                <span class="opacity-60">Packet CRC</span>
-                                                <span class="text-accent underline decoration-accent/20 underline-offset-4">CRC-16 CCITT</span>
+                                                <span class="opacity-60">{t('rockchip.packet_crc')}</span>
+                                                <span class="text-accent underline decoration-accent/20 underline-offset-4">{t('rockchip.crc_type')}</span>
                                             </div>
                                         </div>
                                     </Card>
-                                    <Card glow="amber" title="Loader Chain" subtitle="Boot Stages Management" class="border-border-subtle bg-sidebar/20">
+                                    <Card glow="amber" title={t('rockchip.loader_chain')} subtitle={t('rockchip.boot_stages')} class="border-border-subtle bg-sidebar/20">
                                         <div class="space-y-5 text-[10px] text-text-muted leading-relaxed font-bold py-1">
                                             <div class="p-4 border-l-2 border-accent bg-accent/5 rounded-sm rounded-l-none">
-                                                <span class="text-accent font-black block mb-2 uppercase tracking-[0.2em]">STAGE 471 (miniloader)</span>
-                                                <p class="opacity-70 leading-relaxed uppercase">SRAM stage handshake. Performs DRAM training and maps the flash controller.</p>
+                                                <span class="text-accent font-black block mb-2 uppercase tracking-[0.2em]">{t('rockchip.stage_471')}</span>
+                                                <p class="opacity-70 leading-relaxed uppercase">{t('rockchip.stage_471_desc')}</p>
                                             </div>
                                             <div class="p-4 border-l-2 border-border-subtle bg-sidebar/5 rounded-sm rounded-l-none opacity-60 hover:opacity-100 transition-opacity">
-                                                <span class="text-text-primary font-black block mb-2 uppercase tracking-[0.2em]">STAGE 472 (loader)</span>
-                                                <p class="leading-relaxed uppercase">Main execution stage. Enables bulk flashing and interactive commands via RockUSB.</p>
+                                                <span class="text-text-primary font-black block mb-2 uppercase tracking-[0.2em]">{t('rockchip.stage_472')}</span>
+                                                <p class="leading-relaxed uppercase">{t('rockchip.stage_472_desc')}</p>
                                             </div>
                                         </div>
                                     </Card>

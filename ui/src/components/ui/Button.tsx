@@ -30,6 +30,13 @@ export const Button: ParentComponent<ButtonProps> = (props) => {
   return (
     <button
       {...others}
+      onClick={(e) => {
+        console.log('[Button] Clicked:', local.children || local.icon);
+        if (typeof others.onClick === 'function') {
+          // @ts-ignore
+          others.onClick(e);
+        }
+      }}
       disabled={local.disabled || local.isLoading}
       class={cn(
         "inline-flex items-center justify-center font-mono font-black uppercase tracking-widest transition-ui disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-accent/40 active:translate-y-px border",

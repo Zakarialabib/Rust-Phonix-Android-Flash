@@ -99,18 +99,18 @@ export default function DetectView() {
       <header class="flex flex-col gap-1">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-accent animate-pulse shadow-glow" />
-          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">Hardware Archaeology</h2>
+          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">{t('detect.title')}</h2>
         </div>
-        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Identify target hardware and resolve SoC profiles</p>
+        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">{t('detect.subtitle')}</p>
       </header>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-auto">
         {/* Left Column: List & Logs */}
         <div class="lg:col-span-8 flex flex-col gap-6 overflow-hidden">
           <Card
             glow="amber"
-            title="Scanner Control"
-            subtitle="Poll USB & UART buses for liberation-ready hardware"
+            title={t('detect.scanner_title')}
+            subtitle={t('detect.scanner_subtitle')}
             class="flex-1 flex flex-col overflow-hidden"
             actions={
               <div class="flex gap-2">
@@ -122,7 +122,7 @@ export default function DetectView() {
                   size="sm"
                   class="px-5"
                 >
-                  USB SCAN
+                  {t('detect.action_usb_scan')}
                 </Button>
                 <Button
                   onClick={scanUart}
@@ -132,7 +132,7 @@ export default function DetectView() {
                   size="sm"
                   class="px-5"
                 >
-                  UART SCAN
+                  {t('detect.action_uart_scan')}
                 </Button>
               </div>
             }
@@ -144,7 +144,7 @@ export default function DetectView() {
                   fallback={
                     <div class="h-full min-h-[188px] flex flex-col items-center justify-center text-text-muted space-y-3 border border-dashed border-border-subtle rounded-sm opacity-60">
                       <div class="terminal-pulse text-2xl opacity-20 group-hover:opacity-40 transition-opacity">📡</div>
-                      <span class="text-[9px] uppercase tracking-[0.4em] font-black">Awaiting hardware connection...</span>
+                      <span class="text-[9px] uppercase tracking-[0.4em] font-black">{t('detect.waiting_connection')}</span>
                     </div>
                   }
                 >
@@ -160,7 +160,7 @@ export default function DetectView() {
                         )}
                       >
                         <div class="flex items-center justify-between mb-3">
-                          <span class="text-xs font-black text-text-primary uppercase truncate">{d.vendorName || "Unknown Vendor"}</span>
+                          <span class="text-xs font-black text-text-primary uppercase truncate">{d.vendorName || t('detect.unknown_vendor')}</span>
                           <Badge
                             variant={d.mode === 'Maskrom' ? 'error' : 'secondary'}
                             size="sm"
@@ -172,11 +172,11 @@ export default function DetectView() {
 
                         <div class="space-y-2">
                           <div class="flex justify-between items-center text-[9px] font-bold uppercase tracking-wider">
-                            <span class="text-text-muted opacity-40">Bus Topology</span>
+                            <span class="text-text-muted opacity-40">{t('detect.bus_topology')}</span>
                             <span class="text-text-secondary">{d.busNumber}:{d.deviceAddress}</span>
                           </div>
                           <div class="flex justify-between items-center text-[9px] font-bold uppercase tracking-wider">
-                            <span class="text-text-muted opacity-40">Hardware ID</span>
+                            <span class="text-text-muted opacity-40">{t('detect.hardware_id')}</span>
                             <span class="text-accent underline decoration-accent/20 underline-offset-4">{d.vendorId.toString(16).padStart(4, '0')}:{d.productId.toString(16).padStart(4, '0')}</span>
                           </div>
                         </div>
@@ -192,9 +192,9 @@ export default function DetectView() {
             </div>
           </Card>
 
-          <Collapsible title="Archaeology Log" subtitle="Real-time hardware discovery events" defaultOpen={true}>
+          <Collapsible title={t('detect.log_title')} subtitle={t('detect.log_subtitle')} defaultOpen={true}>
             <div class="h-[180px] overflow-y-auto font-mono text-[9px] text-text-muted custom-scrollbar p-1 space-y-1 bg-black/[0.05]">
-              <For each={globalStore.buildStatus.log} fallback={<span class="italic opacity-30 px-4 py-3 block uppercase tracking-widest font-black text-[8px]">No events logged in current session.</span>}>
+              <For each={globalStore.buildStatus.log} fallback={<span class="italic opacity-30 px-4 py-3 block uppercase tracking-widest font-black text-[8px]">{t('detect.no_events')}</span>}>
                 {(line) => (
                   <div class="flex gap-4 px-4 py-1.5 border-b border-white/[0.02] hover:bg-white/[0.01] transition-ui group">
                     <span class="text-text-muted opacity-30 shrink-0 font-bold group-hover:opacity-50 transition-opacity">[{line.split(']')[0].replace('[', '').trim()}]</span>

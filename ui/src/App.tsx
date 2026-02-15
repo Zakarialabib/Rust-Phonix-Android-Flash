@@ -22,11 +22,16 @@ import SplashScreen from './components/layout/SplashScreen';
 import OnboardingView from './views/OnboardingView';
 import { TopNav } from './components/layout/TopNav';
 import { useApp } from './context/AppContext';
+import { useGlobalShortcuts } from './components/effects/KeyboardShortcuts';
+import { FadeInUp } from './components/effects/AnimatedPresence';
 
 function App() {
   const setActiveTab = (tab: string) => setGlobalStore('activeTab', tab);
   const activeTab = () => globalStore.activeTab;
   const { state, t } = useApp();
+  
+  // Enable global keyboard shortcuts
+  useGlobalShortcuts();
 
   return (
     <Switch>
@@ -55,7 +60,7 @@ function App() {
               {!globalStore.sidebarCollapsed && (
                 <div class="flex flex-col overflow-hidden">
                   <h1 class="text-sm font-black tracking-widest text-text-primary uppercase whitespace-nowrap">Phoenix</h1>
-                  <span class="text-[9px] text-text-muted whitespace-nowrap uppercase tracking-widest opacity-60 font-bold">System v0.1.0-alpha</span>
+                  <span class="text-[9px] text-text-muted whitespace-nowrap uppercase tracking-widest opacity-60 font-bold">{t('sidebar.system')} v0.1.0-alpha</span>
                 </div>
               )}
             </div>
@@ -63,7 +68,7 @@ function App() {
             <nav class="flex-1 overflow-y-auto py-6 custom-scrollbar">
               <div class="px-4 mb-2">
                 {!globalStore.sidebarCollapsed && (
-                  <p class="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 opacity-40">Workflow Protocol</p>
+                  <p class="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 opacity-40">{t('sidebar.workflow_protocol')}</p>
                 )}
                 <div class="flex flex-col gap-1">
                   <NavButton
@@ -120,7 +125,7 @@ function App() {
 
               <div class="px-4 mb-2 mt-6">
                 {!globalStore.sidebarCollapsed && (
-                  <p class="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 opacity-40">Low-Level Hooks</p>
+                  <p class="px-3 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mb-4 opacity-40">{t('sidebar.low_level_hooks')}</p>
                 )}
                 <div class="flex flex-col gap-1">
                   <NavButton
@@ -128,14 +133,14 @@ function App() {
                     onClick={() => setActiveTab('amlogic-burn')}
                     collapsed={globalStore.sidebarCollapsed}
                     icon={<div class="h-4 w-4 flex items-center justify-center font-black text-[8px] border border-border-subtle rounded-none">AM</div>}
-                    label="Amlogic Burn"
+                    label={t('nav.amlogic_burn') || 'Amlogic Burn'}
                   />
                   <NavButton
                     active={activeTab() === 'rockchip-flash'}
                     onClick={() => setActiveTab('rockchip-flash')}
                     collapsed={globalStore.sidebarCollapsed}
                     icon={<div class="h-4 w-4 flex items-center justify-center font-black text-[8px] border border-border-subtle rounded-none">RK</div>}
-                    label="Rockchip Flash"
+                    label={t('nav.rockchip_flash') || 'Rockchip Flash'}
                   />
                 </div>
               </div>
@@ -172,14 +177,14 @@ function App() {
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <h3 class="text-xl font-black text-rose-500 mb-2 uppercase tracking-tighter">Kernel Panic</h3>
+                      <h3 class="text-xl font-black text-rose-500 mb-2 uppercase tracking-tighter">{t('error_page.kernel_panic')}</h3>
                       <p class="text-text-muted mb-8 text-[11px] max-w-md mx-auto font-mono bg-sidebar/50 p-6 border border-border-subtle uppercase font-bold leading-relaxed">{getAppErrorMessage(err)}</p>
                       <Button
                         onClick={() => window.location.reload()}
                         variant="primary"
                         class="bg-rose-600 hover:bg-rose-500 border-none shadow-glow shadow-rose-500/30 px-10 font-black"
                       >
-                        REBOOT SYSTEM ⚡
+                        {t('error_page.reboot_system')}
                       </Button>
                     </div>
                   </Card>

@@ -47,8 +47,8 @@ export const OnboardingView: Component = () => {
                 {/* Progress Header */}
                 <div class="w-full flex justify-between items-end mb-10 border-b border-border-subtle pb-6 transition-ui">
                     <div class="space-y-1">
-                        <h2 class="text-[10px] text-accent font-black uppercase tracking-[0.5em] leading-none animate-pulse">Ignition Sequence</h2>
-                        <div class="text-3xl font-black tracking-tight text-text-primary uppercase">STAGE 0{currentStep()} <span class="text-text-muted opacity-20">/ 0{totalSteps}</span></div>
+                        <h2 class="text-[10px] text-accent font-black uppercase tracking-[0.5em] leading-none animate-pulse">{t('onboarding.ignition_sequence') || 'Ignition Sequence'}</h2>
+                        <div class="text-3xl font-black tracking-tight text-text-primary uppercase">{t('onboarding.stage') || 'STAGE'} 0{currentStep()} <span class="text-text-muted opacity-20">/ 0{totalSteps}</span></div>
                     </div>
                     <div class="flex gap-2 mb-1.5">
                         <For each={Array.from({ length: totalSteps })}>
@@ -71,9 +71,9 @@ export const OnboardingView: Component = () => {
                         {/* STEP 1 — LANGUAGE */}
                         <Match when={currentStep() === 1}>
                             <div class="flex flex-col items-center text-center">
-                                <h1 class="text-5xl font-black leading-tight mb-4 text-text-primary uppercase tracking-tighter">Choose your <span class="text-accent underline decoration-accent/20 underline-offset-8 shadow-glow shadow-accent/5">Linguistic Framework</span>.</h1>
+                                <h1 class="text-5xl font-black leading-tight mb-4 text-text-primary uppercase tracking-tighter">{t('onboarding.choose_language') || 'Choose your'} <span class="text-accent underline decoration-accent/20 underline-offset-8 shadow-glow shadow-accent/5">{t('onboarding.linguistic_framework') || 'Linguistic Framework'}</span>.</h1>
                                 <p class="text-text-muted text-base mb-12 max-w-2xl uppercase tracking-widest opacity-60 font-bold">
-                                    Phoenix supports multiple locales. Select your preferred environment interface.
+                                    {t('onboarding.language_desc') || 'Phoenix supports multiple locales. Select your preferred environment interface.'}
                                 </p>
 
                                 <div class="grid grid-cols-3 gap-8 w-full max-w-4xl">
@@ -106,7 +106,7 @@ export const OnboardingView: Component = () => {
                                 </div>
 
                                 <div class="mt-14">
-                                    <Button onClick={nextStep} size="lg" glow class="px-16 font-black uppercase tracking-widest">COMMIT SELECTION →</Button>
+                                    <Button onClick={nextStep} size="lg" glow class="px-16 font-black uppercase tracking-widest">{t('onboarding.commit_selection') || 'COMMIT SELECTION'} →</Button>
                                 </div>
                             </div>
                         </Match>
@@ -116,17 +116,17 @@ export const OnboardingView: Component = () => {
                             <div class="grid grid-cols-2 gap-16 items-center">
                                 <div>
                                     <h1 class="text-6xl font-black leading-[1.05] mb-8 text-text-primary uppercase tracking-tighter">
-                                        Greetings from <span class="text-accent underline decoration-accent/20 underline-offset-8 shadow-glow shadow-accent/5">Phoenix</span>.
+                                        {t('onboarding.greetings') || 'Greetings from'} <span class="text-accent underline decoration-accent/20 underline-offset-8 shadow-glow shadow-accent/5">{t('onboarding.phoenix') || 'Phoenix'}</span>.
                                     </h1>
                                     <p class="text-text-secondary text-lg mb-8 leading-relaxed uppercase tracking-widest font-black opacity-80">
-                                        An open-source <strong class="text-accent">hardware liberation platform</strong> that transforms legacy Android TV boxes into sovereign compute infrastructure.
+                                        {t('onboarding.intro_text') || 'An open-source hardware liberation platform that transforms legacy Android TV boxes into sovereign compute infrastructure.'}
                                     </p>
                                     <div class="p-8 bg-sidebar/50 border-l-4 border-accent mb-10 shadow-inner group">
                                         <p class="text-text-muted text-[11px] leading-relaxed uppercase font-black opacity-60 group-hover:opacity-80 transition-opacity">
-                                            "Every Android box liberated is $35 not spent on a Raspberry Pi, 200g of e-waste diverted, and a new node in a sovereign compute mesh."
+                                            {t('onboarding.mission_statement') || '"Every Android box liberated is $35 not spent on a Raspberry Pi, 200g of e-waste diverted, and a new node in a sovereign compute mesh."'}
                                         </p>
                                     </div>
-                                    <Button onClick={nextStep} size="lg" glow class="px-12 font-black">{t('common.initialize')?.toUpperCase() || 'INITIALIZE SYSTEM'} →</Button>
+                                    <Button onClick={nextStep} size="lg" glow class="px-12 font-black">{t('onboarding.initialize_system') || 'INITIALIZE SYSTEM →'}</Button>
                                 </div>
                                 <div class="space-y-6">
                                     <Card glow="amber">
@@ -163,39 +163,39 @@ export const OnboardingView: Component = () => {
                         {/* STEP 3 — ENVIRONMENT */}
                         <Match when={currentStep() === 3}>
                             <div class="flex flex-col">
-                                <h2 class="text-4xl font-black mb-3 text-text-primary uppercase tracking-tighter">Foundational Verification</h2>
-                                <p class="text-text-muted mb-10 text-[11px] uppercase font-black tracking-[0.3em] opacity-50">Phoenix requires these technical bridges for USB communication and declarative synthesis.</p>
+                                <h2 class="text-4xl font-black mb-3 text-text-primary uppercase tracking-tighter">{t('onboarding.foundational_verification') || 'Foundational Verification'}</h2>
+                                <p class="text-text-muted mb-10 text-[11px] uppercase font-black tracking-[0.3em] opacity-50">{t('onboarding.bridges_desc') || 'Phoenix requires these technical bridges for USB communication and declarative synthesis.'}</p>
 
                                 <div class="grid grid-cols-3 gap-8 mb-10">
                                     <Card glow="amber">
                                         <div class="flex flex-col items-center text-center py-6 h-full">
                                             <div class="text-4xl mb-6 shadow-glow shadow-accent/10">🦀</div>
-                                            <div class="font-black text-[12px] mb-2 uppercase tracking-widest text-text-primary">Rust Runtime</div>
-                                            <div class="text-[10px] text-text-muted mb-8 leading-relaxed font-bold uppercase opacity-50 px-4 line-clamp-2">phoenix-lib core, rusb bindings, archive extraction engine</div>
-                                            <Badge variant="accent" size="sm" class="px-6 font-black shadow-glow">OPERATIONAL</Badge>
+                                            <div class="font-black text-[12px] mb-2 uppercase tracking-widest text-text-primary">{t('onboarding.rust_runtime') || 'Rust Runtime'}</div>
+                                            <div class="text-[10px] text-text-muted mb-8 leading-relaxed font-bold uppercase opacity-50 px-4 line-clamp-2">{t('onboarding.rust_desc') || 'phoenix-lib core, rusb bindings, archive extraction engine'}</div>
+                                            <Badge variant="accent" size="sm" class="px-6 font-black shadow-glow">{t('onboarding.operational') || 'OPERATIONAL'}</Badge>
                                         </div>
                                     </Card>
                                     <Card glow="indigo">
                                         <div class="flex flex-col items-center text-center py-6 h-full">
                                             <div class="text-4xl mb-6 shadow-glow shadow-indigo-500/10">⬢</div>
-                                            <div class="font-black text-[12px] mb-2 uppercase tracking-widest text-text-primary">Node.js 18+</div>
-                                            <div class="text-[10px] text-text-muted mb-8 leading-relaxed font-bold uppercase opacity-50 px-4 line-clamp-2">Vite + SolidJS interface layer, Tauri v2 bridge engine</div>
-                                            <Badge variant="accent" size="sm" class="px-6 font-black shadow-glow">OPERATIONAL</Badge>
+                                            <div class="font-black text-[12px] mb-2 uppercase tracking-widest text-text-primary">{t('onboarding.nodejs') || 'Node.js 18+'}</div>
+                                            <div class="text-[10px] text-text-muted mb-8 leading-relaxed font-bold uppercase opacity-50 px-4 line-clamp-2">{t('onboarding.nodejs_desc') || 'Vite + SolidJS interface layer, Tauri v2 bridge engine'}</div>
+                                            <Badge variant="accent" size="sm" class="px-6 font-black shadow-glow">{t('onboarding.operational') || 'OPERATIONAL'}</Badge>
                                         </div>
                                     </Card>
                                     <Card glow="teal">
                                         <div class="flex flex-col items-center text-center py-6 h-full">
                                             <div class="text-4xl mb-6 font-black text-text-secondary drop-shadow-md">C++</div>
-                                            <div class="font-black text-[12px] mb-2 uppercase tracking-widest text-text-primary">VS Toolchain</div>
-                                            <div class="text-[10px] text-text-muted mb-8 leading-relaxed font-bold uppercase opacity-50 px-4 line-clamp-2">MSVC linker for Tauri native compilation on Windows hosts</div>
-                                            <Badge variant="accent" size="sm" class="px-6 font-black shadow-glow">OPERATIONAL</Badge>
+                                            <div class="font-black text-[12px] mb-2 uppercase tracking-widest text-text-primary">{t('onboarding.vs_toolchain') || 'VS Toolchain'}</div>
+                                            <div class="text-[10px] text-text-muted mb-8 leading-relaxed font-bold uppercase opacity-50 px-4 line-clamp-2">{t('onboarding.vs_desc') || 'MSVC linker for Tauri native compilation on Windows hosts'}</div>
+                                            <Badge variant="accent" size="sm" class="px-6 font-black shadow-glow">{t('onboarding.operational') || 'OPERATIONAL'}</Badge>
                                         </div>
                                     </Card>
                                 </div>
 
                                 <div class="mt-10 flex justify-between gap-6">
                                     <Button variant="secondary" onClick={prevStep} class="h-16 px-10 font-black text-[11px] tracking-[0.2em]">← {t('common.back')?.toUpperCase() || 'BACK'}</Button>
-                                    <Button onClick={nextStep} size="lg" glow class="px-16 font-black text-[11px] tracking-[0.2em] bg-accent">ALL BRIDGES OPERATIONAL →</Button>
+                                    <Button onClick={nextStep} size="lg" glow class="px-16 font-black text-[11px] tracking-[0.2em] bg-accent">{t('onboarding.all_bridges_operational') || 'ALL BRIDGES OPERATIONAL'} →</Button>
                                 </div>
                             </div>
                         </Match>
@@ -203,25 +203,25 @@ export const OnboardingView: Component = () => {
                         {/* STEP 4 — ARCHITECTURE */}
                         <Match when={currentStep() === 4}>
                             <div class="flex flex-col">
-                                <h2 class="text-4xl font-black mb-3 text-text-primary uppercase tracking-tighter">The Triple Hook Architecture</h2>
-                                <p class="text-text-muted mb-10 text-[11px] uppercase font-black tracking-[0.3em] opacity-50">Phoenix is organized into three composable primitives forming the liberation loop.</p>
+                                <h2 class="text-4xl font-black mb-3 text-text-primary uppercase tracking-tighter">{t('onboarding.triple_hook') || 'The Triple Hook Architecture'}</h2>
+                                <p class="text-text-muted mb-10 text-[11px] uppercase font-black tracking-[0.3em] opacity-50">{t('onboarding.triple_hook_desc') || 'Phoenix is organized into three composable primitives forming the liberation loop.'}</p>
                                 <div class="grid grid-cols-3 gap-6">
                                     <Card glow="amber">
-                                        <div class="font-black text-[12px] mb-3 uppercase tracking-widest text-accent underline decoration-accent/20 underline-offset-4">Primitive 01: Ignition</div>
-                                        <div class="text-[10px] font-bold text-text-muted leading-relaxed uppercase opacity-60">Hardware discovery, SoC fingerprinting, and low-level USB protocol handshakes.</div>
+                                        <div class="font-black text-[12px] mb-3 uppercase tracking-widest text-accent underline decoration-accent/20 underline-offset-4">{t('onboarding.primitive_ignition') || 'Primitive 01: Ignition'}</div>
+                                        <div class="text-[10px] font-bold text-text-muted leading-relaxed uppercase opacity-60">{t('onboarding.primitive_ignition_desc') || 'Hardware discovery, SoC fingerprinting, and low-level USB protocol handshakes.'}</div>
                                     </Card>
                                     <Card glow="indigo">
-                                        <div class="font-black text-[12px] mb-3 uppercase tracking-widest text-indigo-400 underline decoration-indigo-400/20 underline-offset-4">Primitive 02: Synthesis</div>
-                                        <div class="text-[10px] font-bold text-text-muted leading-relaxed uppercase opacity-60">Firmware building, DTB surgery, and declarative image orchestration from source.</div>
+                                        <div class="font-black text-[12px] mb-3 uppercase tracking-widest text-indigo-400 underline decoration-indigo-400/20 underline-offset-4">{t('onboarding.primitive_synthesis') || 'Primitive 02: Synthesis'}</div>
+                                        <div class="text-[10px] font-bold text-text-muted leading-relaxed uppercase opacity-60">{t('onboarding.primitive_synthesis_desc') || 'Firmware building, DTB surgery, and declarative image orchestration from source.'}</div>
                                     </Card>
                                     <Card glow="teal">
-                                        <div class="font-black text-[12px] mb-3 uppercase tracking-widest text-emerald-400 underline decoration-emerald-400/20 underline-offset-4">Primitive 03: Deployment</div>
-                                        <div class="text-[10px] font-bold text-text-muted leading-relaxed uppercase opacity-60">Flashing via WorldCup, RockUSB, and FEL protocols directly to eMMC partitions.</div>
+                                        <div class="font-black text-[12px] mb-3 uppercase tracking-widest text-emerald-400 underline decoration-emerald-400/20 underline-offset-4">{t('onboarding.primitive_deployment') || 'Primitive 03: Deployment'}</div>
+                                        <div class="text-[10px] font-bold text-text-muted leading-relaxed uppercase opacity-60">{t('onboarding.primitive_deployment_desc') || 'Flashing via WorldCup, RockUSB, and FEL protocols directly to eMMC partitions.'}</div>
                                     </Card>
                                 </div>
                                 <div class="mt-14 flex justify-between gap-6">
                                     <Button variant="secondary" onClick={prevStep} class="h-16 px-10 font-black text-[11px] tracking-[0.2em]">← {t('common.back')?.toUpperCase() || 'BACK'}</Button>
-                                    <Button onClick={nextStep} size="lg" glow class="px-12 font-black text-[11px] tracking-[0.2em]">{t('common.next')?.toUpperCase() || 'NEXT MODULE'} →</Button>
+                                    <Button onClick={nextStep} size="lg" glow class="px-12 font-black text-[11px] tracking-[0.2em]">{t('onboarding.next_module') || 'NEXT MODULE'} →</Button>
                                 </div>
                             </div>
                         </Match>
@@ -229,15 +229,15 @@ export const OnboardingView: Component = () => {
                         {/* STEP 5 — HARDWARE MATRIX */}
                         <Match when={currentStep() === 5}>
                             <div class="flex flex-col">
-                                <h2 class="text-4xl font-black mb-3 text-text-primary uppercase tracking-tighter">Silicon Fingerprint Matrix</h2>
-                                <p class="text-text-muted mb-10 text-[11px] uppercase font-black tracking-[0.3em] opacity-50">Verified protocol hooks for the most pervasive ARM SoCs found in legacy Android TV infrastructure.</p>
+                                <h2 class="text-4xl font-black mb-3 text-text-primary uppercase tracking-tighter">{t('onboarding.silicon_matrix') || 'Silicon Fingerprint Matrix'}</h2>
+                                <p class="text-text-muted mb-10 text-[11px] uppercase font-black tracking-[0.3em] opacity-50">{t('onboarding.silicon_matrix_desc') || 'Verified protocol hooks for the most pervasive ARM SoCs found in legacy Android TV infrastructure.'}</p>
                                 <div class="grid grid-cols-5 gap-4">
                                     <For each={['S905W', 'S905X', 'RK3229', 'RK3328', 'H3']}>
                                         {(soc) => (
                                             <Card glow="amber" class="hover:bg-accent/5 transition-ui">
                                                 <div class="text-center py-6">
                                                     <div class="font-black text-sm text-text-primary tracking-[0.2em] mb-1.5">{soc}</div>
-                                                    <Badge variant="accent" size="sm" class="opacity-50 group-hover:opacity-100 transition-opacity font-black">STABLE</Badge>
+                                                    <Badge variant="accent" size="sm" class="opacity-50 group-hover:opacity-100 transition-opacity font-black">{t('onboarding.stable') || 'STABLE'}</Badge>
                                                 </div>
                                             </Card>
                                         )}

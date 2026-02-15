@@ -8,10 +8,12 @@ import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { AmlogicChipInfo, FlashProgress, FirmwareRecommendation, HardwareProfile } from '../types';
 import { cn } from '../lib/utils';
+import { useApp } from '../context/AppContext';
 
 type Step = 'connect' | 'identify' | 'flash' | 'provision' | 'done';
 
 export default function AmlogicBurnView() {
+  const { t } = useApp();
   const [imagePath, setImagePath] = createSignal('');
   const [chipInfo, setChipInfo] = createSignal<AmlogicChipInfo | null>(null);
   const [isFlashing, setIsFlashing] = createSignal(false);
@@ -126,12 +128,12 @@ export default function AmlogicBurnView() {
       <header class="flex flex-col gap-1 text-left">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(var(--accent-rgb),0.4)]" />
-          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">Amlogic Flash Suite</h2>
+          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">{t('amlogic.title')}</h2>
           <Badge variant={chipInfo() ? 'success' : 'warning'} class="rounded-none px-4 font-black ml-2">
             {chipInfo() ? 'Device Online' : 'Awaiting Connection'}
           </Badge>
         </div>
-        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Protocol: WorldCup (VID 1B8E) | ROM Boot Handshake</p>
+        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">{t('amlogic.subtitle')}</p>
       </header>
 
       {/* Stepper */}
@@ -166,25 +168,25 @@ export default function AmlogicBurnView() {
       <div class="grid lg:grid-cols-12 gap-6 flex-1 min-h-0">
         {/* Main Controls */}
         <div class="lg:col-span-8 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2 pb-4">
-          <Card glow="amber" title="Operations" subtitle="Main burning and extraction pipeline" class="border-border-subtle">
+          <Card glow="amber" title={t('amlogic.card_ops_title')} subtitle={t('amlogic.card_ops_subtitle')} class="border-border-subtle">
             <div class="space-y-6">
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-2">
-                  <label class="text-[9px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">1. Device Handshake</label>
+                  <label class="text-[9px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">{t('amlogic.op_handshake_label')}</label>
                   <Button onClick={handleDetect} class="w-full h-11 border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none font-black text-xs tracking-widest text-text-muted hover:text-text-primary transition-all shadow-none">
-                    POLL WORLDCUP BUS
+                    {t('amlogic.btn_poll')}
                   </Button>
                 </div>
                 <div class="space-y-2">
-                  <label class="text-[9px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">2. Image Resolution</label>
+                  <label class="text-[9px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">{t('amlogic.op_image_label')}</label>
                   <Button onClick={handleUnpack} disabled={!imagePath() || isExtracting()} isLoading={isExtracting()} class="w-full h-11 border-border-subtle bg-sidebar/20 hover:bg-sidebar/40 rounded-none font-black text-xs tracking-widest text-text-muted hover:text-text-primary transition-all shadow-none">
-                    PARTITION EXPLORER
+                    {t('amlogic.btn_partition')}
                   </Button>
                 </div>
               </div>
 
               <div class="space-y-3">
-                <label class="text-[9px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">3. Firmware Path</label>
+                <label class="text-[9px] text-text-muted uppercase tracking-[0.3em] font-black opacity-60">{t('amlogic.op_firmware_label')}</label>
                 <div class="flex gap-3">
                   <Input
                     value={imagePath()}
@@ -198,7 +200,7 @@ export default function AmlogicBurnView() {
                     isLoading={isFlashing()}
                     class="h-11 px-10 rounded-none font-black text-xs border-none tracking-widest shadow-[0_5px_15px_rgba(var(--accent-rgb),0.2)]"
                   >
-                    EXECUTE FLASH
+                    {t('amlogic.btn_flash')}
                   </Button>
                 </div>
               </div>
@@ -221,12 +223,12 @@ export default function AmlogicBurnView() {
 
           {/* Progress & Logs */}
           <div class="flex-1 flex flex-col gap-6 min-h-[300px]">
-            <Card glow="indigo" title="System Execution Log" subtitle="Real-time protocol signals and progress" class="flex-1 flex flex-col overflow-hidden border-border-subtle">
+            <Card glow="indigo" title={t('amlogic.card_log_title')} subtitle={t('amlogic.card_log_subtitle')} class="flex-1 flex flex-col overflow-hidden border-border-subtle">
               <div class="flex flex-col h-full gap-6">
                 <Show when={progress()} fallback={
                   <div class="flex-1 border border-dashed border-border-subtle rounded-sm flex flex-col items-center justify-center text-[10px] text-text-muted uppercase tracking-[0.4em] font-black opacity-20 bg-sidebar/10">
                     <span class="text-4xl mb-4 grayscale opacity-40">⚒️</span>
-                    Awaiting session start...
+                    {t('amlogic.log_placeholder')}
                   </div>
                 }>
                   <div class="space-y-5 shrink-0 px-1 pt-1">
@@ -264,27 +266,27 @@ export default function AmlogicBurnView() {
 
         {/* Info Column */}
         <div class="lg:col-span-4 flex flex-col gap-6 overflow-hidden pb-4">
-          <Card glow="amber" title="Device Inspector" subtitle="Resolved SoC registers" class="border-border-subtle">
+          <Card glow="amber" title={t('amlogic.card_inspector_title')} subtitle={t('amlogic.card_inspector_subtitle')} class="border-border-subtle">
             <Show when={chipInfo()} fallback={
               <div class="py-14 border border-dashed border-border-subtle rounded-sm flex flex-col items-center justify-center text-[10px] text-text-muted uppercase text-center tracking-widest font-black opacity-20 bg-sidebar/5">
-                Connect device <br />to probe chip
+                {t('amlogic.inspector_placeholder')}
               </div>
             }>
               <div class="space-y-4 font-mono text-[10px] py-1 font-bold uppercase tracking-wider">
                 <div class="flex justify-between border-b border-border-subtle pb-3">
-                  <span class="text-text-muted opacity-60">Chip Silicon</span>
+                  <span class="text-text-muted opacity-60">{t('amlogic.label_chip')}</span>
                   <span class="text-accent underline decoration-accent/20 underline-offset-4">{chipInfo()?.chipId}</span>
                 </div>
                 <div class="flex justify-between border-b border-border-subtle pb-3">
-                  <span class="text-text-muted opacity-60">ROM Revision</span>
+                  <span class="text-text-muted opacity-60">{t('amlogic.label_rom')}</span>
                   <span class="text-text-secondary">{chipInfo()?.romVersion}</span>
                 </div>
                 <div class="flex justify-between border-b border-border-subtle pb-3">
-                  <span class="text-text-muted opacity-60">Memory Address</span>
+                  <span class="text-text-muted opacity-60">{t('amlogic.label_ram')}</span>
                   <span class="text-text-secondary">{(chipInfo()!.ramSize / 1024 / 1024).toFixed(0)} MB SDRAM</span>
                 </div>
                 <div class="flex justify-between items-center pt-1">
-                  <span class="text-text-muted opacity-60 font-black">Secure State</span>
+                  <span class="text-text-muted opacity-60 font-black">{t('amlogic.label_secure')}</span>
                   <Badge variant={chipInfo()?.secureBoot ? 'error' : 'default'} class="rounded-none font-black px-3 py-1 text-[9px]">
                     {chipInfo()?.secureBoot ? 'LOCKED (SIGNED)' : 'OPEN (DEFAULT)'}
                   </Badge>
@@ -293,33 +295,33 @@ export default function AmlogicBurnView() {
             </Show>
           </Card>
 
-          <Card glow="teal" title="Protocol Stages" subtitle="Handshake Sequence" class="border-border-subtle bg-sidebar/20">
+          <Card glow="teal" title={t('amlogic.card_stages_title')} subtitle={t('amlogic.card_stages_subtitle')} class="border-border-subtle bg-sidebar/20">
             <div class="space-y-5">
               <div class="space-y-2 opacity-60 hover:opacity-100 transition-opacity cursor-default group">
                 <div class="flex items-center gap-3">
                   <div class="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)] group-hover:animate-pulse" />
-                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">0x01: ROMBOOT</span>
+                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">{t('amlogic.stage_1_title')}</span>
                 </div>
                 <p class="text-[9px] text-text-muted pl-5 leading-relaxed font-bold">
-                  Initial hardware handshake. Downloads DDR timing parameters into internal SRAM. Checks SoC security keys.
+                  {t('amlogic.stage_1_desc')}
                 </p>
               </div>
               <div class="space-y-2 opacity-60 hover:opacity-100 transition-opacity cursor-default group">
                 <div class="flex items-center gap-3">
                   <div class="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)] group-hover:animate-pulse" />
-                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">0x02: UBOOT</span>
+                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">{t('amlogic.stage_2_title')}</span>
                 </div>
                 <p class="text-[9px] text-text-muted pl-5 leading-relaxed font-bold">
-                  System bootstrap stage. The device initializes the full SDRAM and mounts EMMC partitions (system, boot, recovery).
+                  {t('amlogic.stage_2_desc')}
                 </p>
               </div>
               <div class="space-y-2 opacity-60 hover:opacity-100 transition-opacity cursor-default group">
                 <div class="flex items-center gap-3">
                   <div class="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)] group-hover:animate-pulse" />
-                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">0x03: PROVISION</span>
+                  <span class="text-[10px] font-black text-text-primary uppercase tracking-widest leading-none">{t('amlogic.stage_3_title')}</span>
                 </div>
                 <p class="text-[9px] text-text-muted pl-5 leading-relaxed font-bold">
-                  Keys provisioning stage. Injects unique hardware IDs, Ethernet MACs, and security blobs (HDCP/Widevine).
+                  {t('amlogic.stage_3_desc')}
                 </p>
               </div>
               <div class="pt-3 border-t border-border-subtle opacity-30 mt-2">
@@ -329,7 +331,7 @@ export default function AmlogicBurnView() {
           </Card>
 
           <Show when={recommendations().length > 0}>
-            <Card glow="indigo" title="Artifact Matching" subtitle="Optimized for detected silicon" class="border-border-subtle bg-accent/5">
+            <Card glow="indigo" title={t('amlogic.card_artifacts_title')} subtitle={t('amlogic.card_artifacts_subtitle')} class="border-border-subtle bg-accent/5">
               <div class="space-y-4 py-1">
                 <For each={recommendations().slice(0, 2)}>
                   {(rec) => (
