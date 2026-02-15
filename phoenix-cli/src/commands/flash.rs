@@ -1,12 +1,12 @@
 //! Flash command
 
+use crate::commands::phase;
 use anyhow::Result;
 use indicatif::{ProgressBar, ProgressStyle};
+use phoenix_lib::flash::{flash_image_async, preflight, FlashProgress};
+use phoenix_lib::workflow::{Phase, PhaseStatus};
 use std::path::Path;
 use std::time::Duration;
-use phoenix_lib::flash::{preflight, flash_image_async, FlashProgress};
-use phoenix_lib::workflow::{Phase, PhaseStatus};
-use crate::commands::phase;
 
 pub async fn run(target: &str, device: &str, image: &str) -> Result<()> {
     phase::emit(Phase::Flash, PhaseStatus::Started, None);
@@ -17,7 +17,11 @@ pub async fn run(target: &str, device: &str, image: &str) -> Result<()> {
     preflight(Path::new(image), device).map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
     let image_size = std::fs::metadata(image)?.len();
-    println!("Image:  {} ({:.1} MB)", image, image_size as f64 / 1024.0 / 1024.0);
+    println!(
+        "Image:  {} ({:.1} MB)",
+        image,
+        image_size as f64 / 1024.0 / 1024.0
+    );
     println!("Target: {} ({})", device, target);
     println!();
 
@@ -25,7 +29,7 @@ pub async fn run(target: &str, device: &str, image: &str) -> Result<()> {
     println!("⚠️  WARNING: This will ERASE ALL DATA on {}", device);
     println!("   Make sure you have selected the correct device!");
     println!();
-    
+
     // In a real implementation, we'd prompt for confirmation
     // For now, just show what would happen
 
@@ -43,9 +47,11 @@ async fn flash_sd(device: &str, image: &str, size: u64) -> Result<()> {
     println!("📝 Writing to SD card...");
 
     let pb = ProgressBar::new(size);
-    pb.set_style(ProgressStyle::default_bar()
-        .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")?
-        .progress_chars("█▓░"));
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")?
+            .progress_chars("█▓░"),
+    );
 
     let pb_clone = pb.clone();
     let progress_cb = Box::new(move |p: FlashProgress| {
@@ -77,9 +83,11 @@ async fn flash_emmc(device: &str, image: &str, size: u64) -> Result<()> {
     println!("Ensure device is in Maskrom mode (run 'phoenix detect' to verify)");
 
     let pb = ProgressBar::new(size);
-    pb.set_style(ProgressStyle::default_bar()
-        .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")?
-        .progress_chars("█▓░"));
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")?
+            .progress_chars("█▓░"),
+    );
 
     // Simulate write progress
     let chunk_size = size / 100;

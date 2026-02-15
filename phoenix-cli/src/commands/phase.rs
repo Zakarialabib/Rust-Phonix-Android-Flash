@@ -5,11 +5,7 @@ pub fn emit(phase: Phase, status: PhaseStatus, detail: Option<&str>) {
         return;
     }
 
-    let event = WorkflowPhaseEvent::new(
-        phase,
-        status,
-        detail.map(|value| value.to_string()),
-    );
+    let event = WorkflowPhaseEvent::new(phase, status, detail.map(|value| value.to_string()));
 
     if let Ok(payload) = serde_json::to_string(&event) {
         println!("{}", payload);
