@@ -601,18 +601,15 @@ impl RkImageHeader {
             .read_exact(&mut header)
             .map_err(|e| AppError::IoError(format!("Read RKAF header: {}", e)))?;
 
-        let fsize = get32le(&header, RKAF_FSIZE_OFF)? as usize + 4;
-        let manufacturer = String::from_utf8_lossy(
-            &header[RKAF_MANUFACTURER_OFF..RKAF_MANUFACTURER_OFF + RKAF_MANUFACTURER_LEN],
-        )
+        let fsize = get32le(&header, 4)? as usize + 4;
+        let manufacturer = String::from_utf8_lossy(&header[0x48..0x88])
             .trim_matches('\0')
             .to_string();
-        let model = String::from_utf8_lossy(
-            &header[RKAF_MODEL_OFF..RKAF_MODEL_OFF + RKAF_MODEL_LEN],
-        )
-            .trim_matches('\0')
-            .to_string();
-        let count = get32le(&header, RKAF_COUNT_OFF)? as usize;
+        let model =
+            String::from_utf8_lossy(&header[RKAF_MODEL_OFF..RKAF_MODEL_OFF + RKAF_MODEL_LEN])
+                .trim_matches('\0')
+                .to_string();
+        let count = get32le(&header, 0x88)? as usize;
 
         info!(
             "RKAF: manufacturer={} model={} files={} total={}",
@@ -636,12 +633,11 @@ impl RkImageHeader {
             let path = String::from_utf8_lossy(
                 &entry_buf[RKAF_ENTRY_PATH_OFF..RKAF_ENTRY_PATH_OFF + RKAF_ENTRY_PATH_LEN],
             )
-                .trim_matches('\0')
-                .to_string();
-            let _next_off = get32le(&entry_buf, RKAF_ENTRY_NOFF_OFF)? as u64;
-            let ioff = get32le(&entry_buf, RKAF_ENTRY_IOFF_OFF)? as u64;
-            let isize = get32le(&entry_buf, RKAF_ENTRY_ISIZE_OFF)? as u64;
-            let file_size = get32le(&entry_buf, RKAF_ENTRY_FILE_SIZE_OFF)? as u64;
+            .trim_matches('\0')
+            .to_string();
+            let ioff = get32le(&entry_buf, 0x60)? as u64;
+            let isize = get32le(&entry_buf, 0x68)? as u64;
+            let file_size = get32le(&entry_buf, 0x6c)? as u64;
 
             entries.push(RkImageEntry {
                 name,
@@ -670,8 +666,7 @@ impl RkImageHeader {
 
         let major = header[RKFW_VERSION_OFF + 3];
         let minor = header[RKFW_VERSION_OFF + 2];
-        let build =
-            ((header[RKFW_VERSION_OFF + 1] as u16) << 8) | header[RKFW_VERSION_OFF] as u16;
+        let build = ((header[RKFW_VERSION_OFF + 1] as u16) << 8) | header[RKFW_VERSION_OFF] as u16;
         let version = format!("{}.{}.{}", major, minor, build);
 
         let chip_family = match header[RKFW_CHIP_FAMILY_OFF] {
@@ -757,9 +752,9 @@ impl RkImageHeader {
             let path = String::from_utf8_lossy(&entry_buf[0..RKFP_ENTRY_PATH_LEN])
                 .trim_matches('\0')
                 .to_string();
-            let ioff = get32le(&entry_buf, RKFP_ENTRY_IOFF_OFF)? as u64;
-            let isize = get32le(&entry_buf, RKFP_ENTRY_ISIZE_OFF)? as u64;
-            let fsize = get32le(&entry_buf, RKFP_ENTRY_FILE_SIZE_OFF)? as u64;
+            let ioff = get32le(&entry_buf, 36)? as u64;
+            let isize = get32le(&entry_buf, 40)? as u64;
+            let fsize = get32le(&entry_buf, 44)? as u64;
             entries.push(RkImageEntry {
                 name: path.clone(),
                 path,
@@ -1196,10 +1191,7 @@ impl RockchipDevice {
                 let to_read = std::cmp::min(remaining_file_bytes, buffer.len() as u64) as usize;
                 let data_slice = &mut buffer[..to_read];
                 file.read_exact(data_slice).map_err(|e| {
-                    AppError::IoError(format!(
-                        "Read image data for entry {}: {}",
-                        entry.name, e
-                    ))
+                    AppError::IoError(format!("Read image data for entry {}: {}", entry.name, e))
                 })?;
 
                 let padded_len = ((to_read + 511) / 512) * 512;
@@ -1354,7 +1346,11 @@ impl RkBoot {
         let mut entries = Vec::new();
 
         // Helper to parse entries
-        let parse_entries = |count: u8, offset: u32, size: u8, type_id: u32| -> Result<Vec<RkBootEntry>, AppError> {
+        let parse_entries = |count: u8,
+                             offset: u32,
+                             size: u8,
+                             type_id: u32|
+         -> Result<Vec<RkBootEntry>, AppError> {
             let mut result = Vec::new();
             for i in 0..count {
                 let entry_size = size as usize;
@@ -1487,11 +1483,13 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         let mut buf = Vec::new();
         buf.extend_from_slice(b"RKAF");
         buf.resize(20, 0); // Short buffer
-        // parse_rkaf is private, but we can test via public interface if we mock file read,
-        // or just call it directly since we are in the same module (cfg(test) mod tests)
-        // However, RkImageHeader::parse calls read_file.
-        // We can call RkImageHeader::parse_rkaf directly as we are in the module.
-        let mut cursor = std::io::Cursor::new(buf);
+                           // parse_rkaf is private, but we can test via public interface if we mock file read,
+                           // or just call it directly since we are in the same module (cfg(test) mod tests)
+                           // However, RkImageHeader::parse calls read_file.
+                           // We can call RkImageHeader::parse_rkaf directly as we are in the module.
+                           // Wait, RkImageHeader::parse_rkaf is private associated function.
+                           // Test module is submodule, so it can access private items of parent.
+        let mut cursor = std::io::Cursor::new(&buf);
         let res = RkImageHeader::parse_rkaf(&mut cursor);
         assert!(res.is_err());
     }
