@@ -226,23 +226,31 @@ impl SecurityScanner {
             return Err(AppError::CommandFailed("ADB tool not found in PATH".to_string()));
         }
 
+        // Verify device is online
+        let state = std::process::Command::new("adb")
+            .args(["-s", device_serial, "get-state"])
+            .output()
+            .map_err(|e| AppError::CommandFailed(format!("Failed to check device state: {}", e)))?;
+
+        if !state.status.success() {
+             return Err(AppError::DeviceNotFound(format!("Device {} not found or offline", device_serial)));
+        }
+
         let mut threats = Vec::new();
         let mut recommendations = Vec::new();
 
         // Helper to run ADB command
-        let run_adb = |args: &[&str]| -> Result<String, AppError> {
+        let run_adb = |args: &[&str]| -> Result<(String, bool), AppError> {
             let output = std::process::Command::new("adb")
                 .args(["-s", device_serial, "shell"])
                 .args(args)
                 .output()
                 .map_err(|e| AppError::CommandFailed(format!("Failed to run adb: {}", e)))?;
             
-            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+            Ok((String::from_utf8_lossy(&output.stdout).to_string(), output.status.success()))
         };
 
-        // 1. Check for known malware paths
-        // We use 'ls' to check for existence. Exit code might be non-zero if not found, 
-        // but sometimes we get "No such file" in stdout/stderr.
+        // 1. Check for known malware paths using `test -e`
         let known_malware_paths = [
             "/data/system/Corejava",
             "/system/xbin/fp_check", 
@@ -251,29 +259,26 @@ impl SecurityScanner {
         ];
 
         for path in known_malware_paths {
-            // Run ls <path>
-            // We ignore errors here because "file not found" is a common error state we expect
-            if let Ok(output) = run_adb(&["ls", path]) {
-                 let output = output.trim();
-                 if !output.is_empty() && !output.contains("No such file") && !output.contains("not found") {
-                    threats.push(ThreatDetection {
-                        name: "Known Malware Artifact".to_string(),
-                        severity: ThreatLevel::Critical,
-                        path: path.to_string(),
-                        description: "Found file associated with known Android TV box malware".to_string(),
-                        remediation: "Flash clean firmware immediately".to_string(),
-                    });
-                 }
+            // Check existence using `test -e <path>`
+            // If file exists, exit code is 0 (success=true). If not, exit code is 1.
+            if let Ok((_, true)) = run_adb(&["test", "-e", path]) {
+                threats.push(ThreatDetection {
+                    name: "Known Malware Artifact".to_string(),
+                    severity: ThreatLevel::Critical,
+                    path: path.to_string(),
+                    description: "Found file associated with known Android TV box malware".to_string(),
+                    remediation: "Flash clean firmware immediately".to_string(),
+                });
             }
         }
 
         // 2. Check build.prop
-        if let Ok(build_prop) = run_adb(&["cat", "/system/build.prop"]) {
+        if let Ok((build_prop, true)) = run_adb(&["cat", "/system/build.prop"]) {
              Self::check_build_prop(&build_prop, &mut threats, &mut recommendations);
         }
 
         // 3. Check for suspicious packages
-        if let Ok(packages) = run_adb(&["pm", "list", "packages"]) {
+        if let Ok((packages, true)) = run_adb(&["pm", "list", "packages"]) {
             let suspicious_pkgs = ["com.android.system.corejava", "com.fota.update", "com.adups.fota"];
             for pkg in suspicious_pkgs {
                 if packages.contains(pkg) {
@@ -413,5 +418,15 @@ mod tests {
         let corejava_path = dir.path().join("data/system/Corejava");
         fs::create_dir_all(&corejava_path).unwrap();
         assert!(SecurityScanner::quick_check_corejava(dir.path()));
+    }
+
+    #[test]
+    fn test_scan_live_device_offline() {
+        // This test assumes ADB is installed but the device is not connected.
+        if which::which("adb").is_ok() {
+            let result = SecurityScanner::scan_live_device("non_existent_device_12345");
+            // Expect DeviceNotFound because the device is surely not there
+            assert!(matches!(result, Err(AppError::DeviceNotFound(_))), "Expected DeviceNotFound, got {:?}", result);
+        }
     }
 }
