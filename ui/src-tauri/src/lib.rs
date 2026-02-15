@@ -639,10 +639,15 @@ pub struct SystemInfo {
 #[tauri::command]
 #[instrument]
 async fn cmd_get_system_info() -> Result<SystemInfo, AppError> {
+    // Check for rustc in a blocking thread to avoid stalling the async runtime
+    let rust_available = tauri::async_runtime::spawn_blocking(|| which::which("rustc").is_ok())
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?;
+
     Ok(SystemInfo {
         os: std::env::consts::OS.to_string(),
         arch: std::env::consts::ARCH.to_string(),
-        rust_available: which::which("rustc").is_ok(),
+        rust_available,
         has_usb_access: true,
     })
 }
@@ -907,5 +912,15 @@ mod performance_test {
             "Event loop blocked for too long! Max latency: {:?}. Expected < 100ms",
             max_latency
         );
+    }
+
+    #[tokio::test]
+    async fn test_cmd_get_system_info_performance() {
+        let start = Instant::now();
+        let info = cmd_get_system_info().await.expect("cmd_get_system_info failed");
+        let duration = start.elapsed();
+        println!("cmd_get_system_info took {:?}", duration);
+        assert!(!info.os.is_empty());
+        // rust_available might be true or false depending on env, but we check execution doesn't panic
     }
 }
