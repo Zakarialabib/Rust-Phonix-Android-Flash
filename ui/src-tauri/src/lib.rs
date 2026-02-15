@@ -402,7 +402,7 @@ async fn cmd_check_compatibility(
 
     let yaml = fs::read_to_string(&profile).await.map_err(AppError::from)?;
 
-    let report = tauri::async_runtime::spawn_blocking(move || {
+    let report = tauri::async_runtime::spawn_blocking(move || -> Result<CompatibilityReport, AppError> {
         DeviceConfig::validate_schema_yaml(&yaml)?;
         let config = DeviceConfig::from_str(&yaml).map_err(AppError::from)?;
         config.validate()?;
@@ -458,7 +458,8 @@ async fn cmd_plan_patches(
 
     let yaml = fs::read_to_string(&profile).await.map_err(AppError::from)?;
 
-    let (report, plan) = tauri::async_runtime::spawn_blocking(move || {
+    let (report, plan) = tauri::async_runtime::spawn_blocking(
+        move || -> Result<(CompatibilityReport, PatchPlan), AppError> {
         DeviceConfig::validate_schema_yaml(&yaml)?;
         let config = DeviceConfig::from_str(&yaml).map_err(AppError::from)?;
         config.validate()?;

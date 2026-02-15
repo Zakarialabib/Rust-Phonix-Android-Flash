@@ -506,17 +506,22 @@ impl AmlogicImageHeader {
             file.seek(SeekFrom::Start(part.offset))
                 .map_err(|e| AppError::IoError(format!("Seek failed: {}", e)))?;
 
-            let mut buffer = vec![0u8; part.size as usize];
-            file.read_exact(&mut buffer)
-                .map_err(|e| AppError::IoError(format!("Read failed: {}", e)))?;
-
             let out_file_path = output_dir.join(format!("{}.img", part.name.replace("/", "_")));
             let mut out_file = File::create(&out_file_path)
                 .map_err(|e| AppError::IoError(format!("Create failed: {}", e)))?;
 
-            out_file
-                .write_all(&buffer)
-                .map_err(|e| AppError::IoError(format!("Write failed: {}", e)))?;
+            let mut remaining = part.size;
+            let mut buffer = vec![0u8; 1024 * 1024];
+            while remaining > 0 {
+                let to_read = std::cmp::min(remaining, buffer.len() as u64) as usize;
+                let slice = &mut buffer[..to_read];
+                file.read_exact(slice)
+                    .map_err(|e| AppError::IoError(format!("Read failed: {}", e)))?;
+                out_file
+                    .write_all(slice)
+                    .map_err(|e| AppError::IoError(format!("Write failed: {}", e)))?;
+                remaining -= to_read as u64;
+            }
         }
 
         Ok(())

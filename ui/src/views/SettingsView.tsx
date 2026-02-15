@@ -34,11 +34,11 @@ export default function SettingsView() {
   ];
 
   const colors: { label: string; value: ThemeColor; bg: string }[] = [
-    { label: t('common.amber') || 'Amber', value: 'amber', bg: 'bg-amber-500' },
-    { label: t('common.indigo') || 'Indigo', value: 'indigo', bg: 'bg-indigo-500' },
-    { label: t('common.rose') || 'Rose', value: 'rose', bg: 'bg-rose-500' },
-    { label: t('common.teal') || 'Teal', value: 'teal', bg: 'bg-teal-500' },
-    { label: t('common.slate') || 'Slate', value: 'slate', bg: 'bg-slate-500' },
+    { label: t('common.amber'), value: 'amber', bg: 'bg-amber-500' },
+    { label: t('common.indigo'), value: 'indigo', bg: 'bg-indigo-500' },
+    { label: t('common.rose'), value: 'rose', bg: 'bg-rose-500' },
+    { label: t('common.teal'), value: 'teal', bg: 'bg-teal-500' },
+    { label: t('common.slate'), value: 'slate', bg: 'bg-slate-500' },
   ];
 
   return (
@@ -46,19 +46,19 @@ export default function SettingsView() {
       <header class="flex flex-col gap-1 text-left">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">{t('nav.infrastructure') || 'Infrastructure Config'}</h2>
+          <h2 class="text-2xl font-black tracking-tighter text-text-primary uppercase">{t('settings.title')}</h2>
         </div>
-        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">Environment Variables | Interface Protocol</p>
+        <p class="text-[10px] text-text-muted uppercase tracking-[0.3em] pl-5">{t('settings.subtitle')}</p>
       </header>
 
       <div class="max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Appearance Section */}
-        <Card title={t('common.theme') || 'Interface Aesthetics'} subtitle="UI aesthetics and linguistic framework" class="h-full">
+        <Card title={t('settings.sec_appearance_title')} subtitle={t('settings.sec_appearance_desc')} class="h-full">
           <div class="space-y-8">
             <div class="grid grid-cols-1 gap-8">
               {/* Language Selection */}
               <div class="space-y-4">
-                <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('common.language') || 'Language Hook'}</label>
+                <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('settings.lbl_language')}</label>
                 <div class="flex flex-wrap gap-1">
                   <For each={languages}>
                     {(l) => (
@@ -80,7 +80,7 @@ export default function SettingsView() {
 
               {/* Theme Mode & Color */}
               <div class="space-y-4">
-                <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('common.theme') || 'Color Primitive'}</label>
+                <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('settings.lbl_color')}</label>
                 <div class="flex gap-2">
                   <button
                     onClick={() => setThemeMode('dark')}
@@ -89,7 +89,7 @@ export default function SettingsView() {
                       state.themeMode === 'dark' ? "bg-accent/5 border-accent text-accent shadow-glow shadow-accent/10" : "bg-sidebar/30 border-border-subtle text-text-muted"
                     )}
                   >
-                    {t('common.dark') || 'Dark Mode'}
+                    {t('settings.lbl_theme_dark')}
                   </button>
                   <button
                     onClick={() => setThemeMode('light')}
@@ -98,7 +98,7 @@ export default function SettingsView() {
                       state.themeMode === 'light' ? "bg-accent/5 border-accent text-accent shadow-glow shadow-accent/10" : "bg-sidebar/30 border-border-subtle text-text-muted"
                     )}
                   >
-                    {t('common.light') || 'Light Mode'}
+                    {t('settings.lbl_theme_light')}
                   </button>
                 </div>
 
@@ -127,11 +127,11 @@ export default function SettingsView() {
         </Card>
 
         {/* HUD Scaling & Typography */}
-        <Card title="Interface Logic" subtitle="Viewport scaling and typography architecture" class="h-full">
+        <Card title={t('settings.sec_logic_title')} subtitle={t('settings.sec_logic_desc')} class="h-full">
           <div class="space-y-8">
             {/* UI Scaling */}
             <div class="space-y-4">
-              <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">Interface Scaling (HUD)</label>
+              <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('settings.lbl_scaling')}</label>
               <div class="grid grid-cols-3 gap-1">
                 <For each={['compact', 'normal', 'large'] as const}>
                   {(scale) => (
@@ -149,12 +149,12 @@ export default function SettingsView() {
                   )}
                 </For>
               </div>
-              <p class="text-[8px] text-text-muted uppercase opacity-40 leading-relaxed">Adjusts font size and spatial density for high-DPI displays.</p>
+              <p class="text-[8px] text-text-muted uppercase opacity-40 leading-relaxed">{t('settings.scaling_desc')}</p>
             </div>
 
             {/* Typography Selection */}
             <div class="space-y-4">
-              <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">Typography Architecture</label>
+              <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('settings.lbl_typography')}</label>
               <div class="flex flex-col gap-1">
                 <For each={['technical', 'modern', 'classic'] as const}>
                   {(style) => (
@@ -167,7 +167,7 @@ export default function SettingsView() {
                           : "bg-sidebar/50 border-border-subtle text-text-muted hover:bg-sidebar"
                       )}
                     >
-                      <span>{style === 'technical' ? 'Blueprint (Mono)' : style === 'modern' ? 'Synthetic (Sans)' : 'Archeology (Serif)'}</span>
+                      <span>{style === 'technical' ? t('settings.typo_technical') : style === 'modern' ? t('settings.typo_modern') : t('settings.typo_classic')}</span>
                       <span class={cn(
                         "text-[9px] opacity-30 group-hover:opacity-60",
                         style === 'technical' ? 'font-mono' : style === 'modern' ? 'font-sans' : 'font-serif'
@@ -182,18 +182,18 @@ export default function SettingsView() {
 
         {/* Path configuration and system reset */}
         <div class="lg:col-span-2 space-y-6 pt-2">
-          <Card title="Workspace Paths" subtitle="FileSystem mappings for synthesis and toolchains">
+          <Card title={t('settings.sec_paths_title')} subtitle={t('settings.sec_paths_desc')}>
             <Show when={settings.error}>
               <div class="py-6 px-4 mb-6 border-l-2 border-accent bg-accent/5 text-[10px] text-accent font-black uppercase">
-                SIGNAL_LOSS: {errorMessage()}
+                {t('settings.signal_loss')}: {errorMessage()}
               </div>
             </Show>
 
-            <Show when={!settings.error && settings()} fallback={<div class="py-20 text-center text-[10px] text-text-muted uppercase tracking-widest animate-pulse">Polling local configuration...</div>}>
+            <Show when={!settings.error && settings()} fallback={<div class="py-20 text-center text-[10px] text-text-muted uppercase tracking-widest animate-pulse">{t('settings.polling_config')}</div>}>
               <div class="space-y-8">
                 <div class="grid gap-6">
                   <div class="space-y-2">
-                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">Toolchain Binary Root</label>
+                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('settings.lbl_tools')}</label>
                     <Input
                       placeholder="C:\PHOENIX\BIN"
                       value={settings()!.toolsPath}
@@ -202,7 +202,7 @@ export default function SettingsView() {
                     />
                   </div>
                   <div class="space-y-2">
-                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">Synthesis Cache Buffer</label>
+                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('settings.lbl_cache')}</label>
                     <Input
                       placeholder="C:\PHOENIX\CACHE"
                       value={settings()!.cachePath}
@@ -211,7 +211,7 @@ export default function SettingsView() {
                     />
                   </div>
                   <div class="space-y-2">
-                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">Deployment Output Dir</label>
+                    <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('settings.lbl_output')}</label>
                     <Input
                       placeholder="C:\PHOENIX\OUT"
                       value={settings()!.outputPath}
@@ -222,24 +222,24 @@ export default function SettingsView() {
                 </div>
 
                 <div class="pt-6 border-t border-border-subtle flex flex-col gap-6">
-                  <Button onClick={save} class="h-12 w-full font-black text-xs uppercase rounded-none tracking-widest">COMMIT CHANGES</Button>
+                  <Button onClick={save} class="h-12 w-full font-black text-xs uppercase rounded-none tracking-widest">{t('settings.btn_save')}</Button>
 
                   <div class="p-5 border border-red-900/20 bg-red-900/5 space-y-4">
                     <div>
-                      <h4 class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Erasure Protocol</h4>
-                      <p class="text-[9px] text-text-muted leading-relaxed uppercase opacity-60">Wipe all local node identity and restart discovery handshake.</p>
+                      <h4 class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">{t('settings.reset_title')}</h4>
+                      <p class="text-[9px] text-text-muted leading-relaxed uppercase opacity-60">{t('settings.reset_desc')}</p>
                     </div>
                     <Button
                       variant="ghost"
                       class="w-full h-11 border-red-900/30 text-red-500 font-black text-[10px] hover:bg-red-500/10 rounded-none uppercase"
                       onClick={() => {
-                        if (confirm('PROCEED WITH FULL NODE ERASURE?')) {
+                        if (confirm(t('settings.reset_confirm'))) {
                           localStorage.removeItem('phoenix_onboarding_complete');
                           window.location.reload();
                         }
                       }}
                     >
-                      INITIATE FACTORY RESET
+                      {t('settings.btn_reset')}
                     </Button>
                   </div>
                 </div>
