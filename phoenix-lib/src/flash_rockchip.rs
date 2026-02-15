@@ -532,11 +532,14 @@ impl RkParameter {
 
 // ─── Image unpacker (ported from rkunpack.c) ────────────────────────────────
 
-fn get32le(buf: &[u8], off: usize) -> u32 {
-    buf[off] as u32
+fn get32le(buf: &[u8], off: usize) -> Result<u32, AppError> {
+    if off + 4 > buf.len() {
+        return Err(AppError::ParseError("Buffer too short".to_string()));
+    }
+    Ok(buf[off] as u32
         | (buf[off + 1] as u32) << 8
         | (buf[off + 2] as u32) << 16
-        | (buf[off + 3] as u32) << 24
+        | (buf[off + 3] as u32) << 24)
 }
 
 /// Entry extracted from an RKAF image
@@ -1262,7 +1265,7 @@ impl RkBoot {
         let mut entries = Vec::new();
 
         // Helper to parse entries
-        let parse_entries = |count: u8, offset: u32, size: u8, type_id: u32| -> Vec<RkBootEntry> {
+        let parse_entries = |count: u8, offset: u32, size: u8, type_id: u32| -> Result<Vec<RkBootEntry>, AppError> {
             let mut result = Vec::new();
             for i in 0..count {
                 let off = offset as usize + (i as usize * size as usize);
@@ -1288,7 +1291,7 @@ impl RkBoot {
                     data_delay: get32le(buf, off + RK_BOOT_ENTRY_DATA_DELAY_OFF),
                 });
             }
-            result
+            Ok(result)
         };
 
         entries.extend(parse_entries(
@@ -1296,19 +1299,19 @@ impl RkBoot {
             header.entry_471_offset,
             header.entry_471_size,
             1,
-        ));
+        )?);
         entries.extend(parse_entries(
             header.entry_472_count,
             header.entry_472_offset,
             header.entry_472_size,
             2,
-        ));
+        )?);
         entries.extend(parse_entries(
             header.entry_loader_count,
             header.entry_loader_offset,
             header.entry_loader_size,
             4,
-        ));
+        )?);
 
         Ok(RkBoot { header, entries })
     }
@@ -1380,6 +1383,22 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         assert_eq!(cmd[13], 0x00);
         assert_eq!(cmd[14], 0x06);
         assert_eq!(cmd[15], 0x00);
+    }
+
+    #[test]
+    fn test_rkaf_short_buffer() {
+        // Construct a buffer with RKAF magic but too short for count
+        let mut buf = Vec::new();
+        buf.extend_from_slice(b"RKAF");
+        buf.resize(20, 0); // Short buffer
+        // parse_rkaf is private, but we can test via public interface if we mock file read,
+        // or just call it directly since we are in the same module (cfg(test) mod tests)
+        // However, RkImageHeader::parse calls read_file.
+        // We can call RkImageHeader::parse_rkaf directly as we are in the module.
+        // Wait, RkImageHeader::parse_rkaf is private associated function.
+        // Test module is submodule, so it can access private items of parent.
+        let res = RkImageHeader::parse_rkaf(&buf);
+        assert!(res.is_err());
     }
 
     #[test]
