@@ -13,3 +13,7 @@
 ## 2026-02-12 - Streaming Large File Operations
 **Learning:** `RkImageHeader::extract_to` and `parse` were reading entire firmware images (often 2GB+) into memory, causing massive memory pressure and potential OOM.
 **Action:** Refactored to use `std::fs::File`, `Seek`, `Read::take`, and `std::io::copy` to stream data. Always verify if file operations on potentially large files are buffered or streaming.
+
+## 2026-02-12 - [Buffered Writing in Asset Downloads]
+**Learning:** `download_file` in `phoenix-lib/src/assets.rs` was using unbuffered `tokio::fs::File::write_all` inside a loop receiving network chunks. This resulted in excessive syscalls for small chunks. Benchmark showed ~2x speedup by wrapping `File` in `tokio::io::BufWriter`.
+**Action:** Always wrap file writers in `BufWriter` when writing data in small or variable chunks, especially in async contexts where syscall overhead adds up.
