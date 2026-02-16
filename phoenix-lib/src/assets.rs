@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncWriteExt, BufWriter};
 
 use crate::error::AppError;
 
@@ -76,15 +76,17 @@ pub async fn download_file(
         ));
     }
 
-    let mut file = File::create(destination)
+    let file = File::create(destination)
         .await
         .context("Failed to create file")?;
+    let mut writer = BufWriter::new(file);
     let mut stream = response.bytes_stream();
     let mut hasher = Sha256::new();
 
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.context("Error while reading chunk")?;
-        file.write_all(&chunk)
+        writer
+            .write_all(&chunk)
             .await
             .context("Failed to write chunk")?;
         if expected_sha256.is_some() {
@@ -92,13 +94,13 @@ pub async fn download_file(
         }
     }
 
-    file.flush().await.context("Failed to flush file")?;
+    writer.flush().await.context("Failed to flush file")?;
 
     if let Some(expected) = expected_sha256 {
         let actual = format!("{:x}", hasher.finalize());
         if actual != expected {
-            // Close file before removal
-            drop(file);
+            // Close file before removal (via writer)
+            drop(writer);
             let _ = tokio::fs::remove_file(destination).await;
             return Err(anyhow::anyhow!(
                 "Checksum mismatch for {}: expected {}, got {}",
