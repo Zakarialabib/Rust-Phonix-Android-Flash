@@ -1,6 +1,5 @@
 use crate::error::AppError;
 use std::path::Path;
-use tokio::fs;
 use walkdir::WalkDir;
 
 pub struct Extractor;
@@ -49,64 +48,112 @@ impl Extractor {
     }
 }
 
-async fn copy_matching_files<F>(mount_point: &Path, output_dir: &Path, matcher: F) -> Result<u32, AppError>
+async fn copy_matching_files<F>(
+    mount_point: &Path,
+    output_dir: &Path,
+    matcher: F,
+) -> Result<u32, AppError>
 where
-    F: Fn(&Path) -> bool,
+    F: Fn(&Path) -> bool + Send + 'static,
 {
-    let mut copied = 0u32;
-    for entry in WalkDir::new(mount_point).into_iter() {
-        let entry = entry.map_err(|e| AppError::IoError(e.to_string()))?;
-        if !entry.file_type().is_file() {
-            continue;
-        }
-        let path = entry.path();
-        if !matcher(path) {
-            continue;
-        }
-        let relative = path
-            .strip_prefix(mount_point)
-            .map_err(|e| AppError::IoError(e.to_string()))?;
-        let destination = output_dir.join(relative);
-        if let Some(parent) = destination.parent() {
-            fs::create_dir_all(parent)
-                .await
+    let mount_point = mount_point.to_path_buf();
+    let output_dir = output_dir.to_path_buf();
+
+    tokio::task::spawn_blocking(move || {
+        let mut copied = 0u32;
+        for entry in WalkDir::new(&mount_point).into_iter() {
+            let entry = entry.map_err(|e| AppError::IoError(e.to_string()))?;
+            if !entry.file_type().is_file() {
+                continue;
+            }
+            let path = entry.path();
+            if !matcher(path) {
+                continue;
+            }
+            let relative = path
+                .strip_prefix(&mount_point)
                 .map_err(|e| AppError::IoError(e.to_string()))?;
-        }
-        fs::copy(path, &destination)
-            .await
-            .map_err(|e| AppError::IoError(e.to_string()))?;
-        copied += 1;
-    }
-
-    Ok(copied)
-}
-
-async fn copy_dir_recursive(source: &Path, destination: &Path) -> Result<u32, AppError> {
-    let mut copied = 0u32;
-    for entry in WalkDir::new(source).into_iter() {
-        let entry = entry.map_err(|e| AppError::IoError(e.to_string()))?;
-        let path = entry.path();
-        let relative = path
-            .strip_prefix(source)
-            .map_err(|e| AppError::IoError(e.to_string()))?;
-        let target = destination.join(relative);
-
-        if entry.file_type().is_dir() {
-            fs::create_dir_all(&target)
-                .await
-                .map_err(|e| AppError::IoError(e.to_string()))?;
-        } else if entry.file_type().is_file() {
-            if let Some(parent) = target.parent() {
-                fs::create_dir_all(parent)
-                    .await
+            let destination = output_dir.join(relative);
+            if let Some(parent) = destination.parent() {
+                std::fs::create_dir_all(parent)
                     .map_err(|e| AppError::IoError(e.to_string()))?;
             }
-            fs::copy(path, &target)
-                .await
+            std::fs::copy(path, &destination)
                 .map_err(|e| AppError::IoError(e.to_string()))?;
             copied += 1;
         }
-    }
+        Ok(copied)
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Task join error: {}", e)))?
+}
 
-    Ok(copied)
+async fn copy_dir_recursive(source: &Path, destination: &Path) -> Result<u32, AppError> {
+    let source = source.to_path_buf();
+    let destination = destination.to_path_buf();
+
+    tokio::task::spawn_blocking(move || {
+        let mut copied = 0u32;
+        for entry in WalkDir::new(&source).into_iter() {
+            let entry = entry.map_err(|e| AppError::IoError(e.to_string()))?;
+            let path = entry.path();
+            let relative = path
+                .strip_prefix(&source)
+                .map_err(|e| AppError::IoError(e.to_string()))?;
+            let target = destination.join(relative);
+
+            if entry.file_type().is_dir() {
+                std::fs::create_dir_all(&target).map_err(|e| AppError::IoError(e.to_string()))?;
+            } else if entry.file_type().is_file() {
+                if let Some(parent) = target.parent() {
+                    std::fs::create_dir_all(parent)
+                        .map_err(|e| AppError::IoError(e.to_string()))?;
+                }
+                std::fs::copy(path, &target).map_err(|e| AppError::IoError(e.to_string()))?;
+                copied += 1;
+            }
+        }
+        Ok(copied)
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Task join error: {}", e)))?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+    use std::time::Instant;
+
+    #[tokio::test]
+    async fn test_copy_matching_files_perf() {
+        let dir = tempdir().unwrap();
+        let src = dir.path().join("src");
+        let dest = dir.path().join("dest");
+        std::fs::create_dir(&src).unwrap();
+
+        // Create 1000 files in nested directories
+        for i in 0..10 {
+            let subdir = src.join(format!("dir_{}", i));
+            std::fs::create_dir(&subdir).unwrap();
+            for j in 0..100 {
+                let p = subdir.join(format!("file_{}.txt", j));
+                let mut f = File::create(p).unwrap();
+                f.write_all(b"content").unwrap();
+            }
+        }
+
+        let start = Instant::now();
+        let count = copy_matching_files(&src, &dest, |_| true).await.unwrap();
+        let duration = start.elapsed();
+
+        println!("Copied {} files in {:?}", count, duration);
+        assert_eq!(count, 1000);
+
+        // Verify destination exists and has files
+        assert!(dest.exists());
+        assert!(dest.join("dir_0/file_0.txt").exists());
+    }
 }

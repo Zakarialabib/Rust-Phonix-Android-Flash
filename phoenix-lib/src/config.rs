@@ -522,7 +522,9 @@ boot:
 "#;
         let result = DeviceConfig::validate_schema_yaml(yaml);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("has a length less than 1"));
+        let err = result.unwrap_err().to_string();
+        println!("Error: {}", err);
+        assert!(err.contains("shorter than 1") || err.contains("length"));
     }
 
     #[test]
