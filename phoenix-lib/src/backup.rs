@@ -16,7 +16,8 @@ pub struct BackupManager;
 
 impl BackupManager {
     async fn validate_device_file(file: &File, path: &str) -> Result<(), AppError> {
-        let metadata = file.metadata()
+        let metadata = file
+            .metadata()
             .await
             .map_err(|e| AppError::IoError(e.to_string()))?;
 
@@ -57,29 +58,38 @@ impl BackupManager {
         };
 
         // Open file first to get handle
-        let mut input_file = File::open(input_path).await
+        let mut input_file = File::open(input_path)
+            .await
             .map_err(|_| AppError::DeviceNotFound(input_path.to_string()))?;
 
         // Validate on the open file handle (prevents TOCTOU)
         Self::validate_device_file(&input_file, input_path).await?;
 
-        let mut output_file = File::create(output_path).await
+        let mut output_file = File::create(output_path)
+            .await
             .map_err(|e| AppError::IoError(e.to_string()))?;
 
         let mut buffer = vec![0u8; 4 * 1024 * 1024]; // 4MB buffer
         loop {
-            let n = input_file.read(&mut buffer).await
+            let n = input_file
+                .read(&mut buffer)
+                .await
                 .map_err(|e| AppError::IoError(format!("Read failed: {}", e)))?;
 
             if n == 0 {
                 break;
             }
 
-            output_file.write_all(&buffer[..n]).await
+            output_file
+                .write_all(&buffer[..n])
+                .await
                 .map_err(|e| AppError::IoError(format!("Write failed: {}", e)))?;
         }
 
-        output_file.flush().await.map_err(|e| AppError::IoError(e.to_string()))?;
+        output_file
+            .flush()
+            .await
+            .map_err(|e| AppError::IoError(e.to_string()))?;
 
         Ok(())
     }
@@ -87,7 +97,8 @@ impl BackupManager {
     pub async fn verify_backup(image_path: &Path) -> Result<String, AppError> {
         let image_path = image_path.to_path_buf();
         tokio::task::spawn_blocking(move || {
-            let mut file = std::fs::File::open(&image_path).map_err(|e| AppError::IoError(e.to_string()))?;
+            let mut file =
+                std::fs::File::open(&image_path).map_err(|e| AppError::IoError(e.to_string()))?;
             let mut hasher = Sha256::new();
             let mut buffer = vec![0u8; 1024 * 1024];
 
@@ -162,6 +173,48 @@ mod tests {
     use tempfile::tempdir;
 
     #[tokio::test]
+    async fn test_extract_from_image() {
+        let dir = tempdir().unwrap();
+        let image_path = dir.path().join("source.img");
+        let output_path = dir.path().join("extracted.img");
+
+        // Create a dummy file with 16 bytes: 0, 1, 2, ..., 15
+        let data: Vec<u8> = (0..16).collect();
+        tokio::fs::write(&image_path, &data)
+            .await
+            .expect("Failed to create test image");
+
+        // Test extraction from middle: offset 4, size 8 (should be 4, 5, 6, 7, 8, 9, 10, 11)
+        BackupManager::extract_from_image(&image_path, &output_path, 4, 8)
+            .await
+            .expect("Extraction failed");
+
+        let extracted = tokio::fs::read(&output_path)
+            .await
+            .expect("Failed to read extracted file");
+        assert_eq!(extracted, vec![4, 5, 6, 7, 8, 9, 10, 11]);
+
+        // Test extraction from start: offset 0, size 4 (should be 0, 1, 2, 3)
+        BackupManager::extract_from_image(&image_path, &output_path, 0, 4)
+            .await
+            .expect("Extraction failed");
+        let extracted = tokio::fs::read(&output_path)
+            .await
+            .expect("Failed to read extracted file");
+        assert_eq!(extracted, vec![0, 1, 2, 3]);
+
+        // Test extraction exceeding file size
+        let result = BackupManager::extract_from_image(&image_path, &output_path, 10, 10).await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            AppError::ValidationError(msg) => {
+                assert!(msg.contains("smaller than requested extraction size"));
+            }
+            err => panic!("Expected ValidationError, got {:?}", err),
+        }
+    }
+
+    #[tokio::test]
     async fn test_create_backup_rejects_regular_file() {
         let dir = tempdir().unwrap();
         let regular_file = dir.path().join("regular_file");
@@ -215,11 +268,11 @@ mod performance_tests {
     use super::*;
     use std::fs::File;
     use std::io::Write;
-    use tempfile::tempdir;
-    use tokio::time::{sleep, Duration};
-    use std::time::Instant;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
+    use std::time::Instant;
+    use tempfile::tempdir;
+    use tokio::time::{sleep, Duration};
 
     #[tokio::test]
     async fn test_verify_backup_performance() {
