@@ -11,25 +11,34 @@ fn validate_target_device(device: &str) -> Result<(), AppError> {
         return Err(AppError::ValidationError("Target device cannot be empty".to_string()));
     }
 
-    if cfg!(target_os = "windows") {
+    #[cfg(windows)]
+    {
         if !device.starts_with(r"\\.\PhysicalDrive") {
             return Err(AppError::ValidationError(
                 "Target device must be a physical drive (e.g., \\\\.\\PhysicalDrive1)".to_string(),
             ));
         }
-    } else if cfg!(target_os = "linux") {
+    }
+
+    #[cfg(unix)]
+    {
         if !device.starts_with("/dev/") {
             return Err(AppError::ValidationError(
                 "Target device must be a block device path (e.g., /dev/sdX)".to_string(),
             ));
         }
-        // Basic protection for system drives
-        if device == "/dev/sda" || device == "/dev/nvme0n1" {
-             return Err(AppError::ValidationError(
-                "Operation on primary system drive /dev/sda or /dev/nvme0n1 is restricted.".to_string(),
-            ));
+
+        // Linux-specific system drive protection
+        #[cfg(target_os = "linux")]
+        {
+            if device == "/dev/sda" || device == "/dev/nvme0n1" {
+                return Err(AppError::ValidationError(
+                    "Operation on primary system drive /dev/sda or /dev/nvme0n1 is restricted.".to_string(),
+                ));
+            }
         }
     }
+
     Ok(())
 }
 
@@ -90,8 +99,6 @@ mod tests {
         // On Linux, non-/dev path should fail
         if cfg!(target_os = "linux") {
             let result = preflight(image_path, "/tmp/not_a_device");
-            // This assertion currently FAILS because preflight doesn't check
-            // After fix, it should PASS
             assert!(matches!(result, Err(AppError::ValidationError(_))), "Expected ValidationError for non-/dev path on Linux");
         }
     }
