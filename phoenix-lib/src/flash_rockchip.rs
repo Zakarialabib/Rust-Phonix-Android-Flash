@@ -1294,17 +1294,28 @@ pub struct RkBoot {
 
 impl RkBoot {
     pub fn parse(path: &Path) -> Result<Self, AppError> {
-        let buf = std::fs::read(path)
-            .map_err(|e| AppError::IoError(format!("Read RKBoot file: {}", e)))?;
-        Self::parse_buf(&buf)
+        let file = std::fs::File::open(path)
+            .map_err(|e| AppError::IoError(format!("Open RKBoot file: {}", e)))?;
+        let mut reader = std::io::BufReader::new(file);
+        Self::parse_reader(&mut reader)
     }
 
     pub fn parse_buf(buf: &[u8]) -> Result<Self, AppError> {
-        if buf.len() < RK_BOOT_HEADER_SIZE {
-            return Err(AppError::ParseError(
-                "File too small for RKBoot header".to_string(),
-            ));
-        }
+        let mut cursor = std::io::Cursor::new(buf);
+        Self::parse_reader(&mut cursor)
+    }
+
+    pub fn parse_reader<R: Read + Seek>(reader: &mut R) -> Result<Self, AppError> {
+        let mut header_buf = [0u8; RK_BOOT_HEADER_SIZE];
+        reader.read_exact(&mut header_buf).map_err(|e| {
+            if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                AppError::ParseError("File too small for RKBoot header".to_string())
+            } else {
+                AppError::IoError(format!("Read RKBoot header: {}", e))
+            }
+        })?;
+
+        let buf = &header_buf; // Use existing get32le on this buffer
 
         let tag = get32le(buf, RK_BOOT_TAG_OFF)?;
         if tag != 0x4C4E524B && tag != 0x544F4F42 {
@@ -1346,41 +1357,56 @@ impl RkBoot {
         let mut entries = Vec::new();
 
         // Helper to parse entries
-        let parse_entries = |count: u8,
-                             offset: u32,
-                             size: u8,
-                             type_id: u32|
+        let mut parse_entries = |count: u8,
+                                 offset: u32,
+                                 size: u8,
+                                 type_id: u32|
          -> Result<Vec<RkBootEntry>, AppError> {
             let mut result = Vec::new();
-            for i in 0..count {
-                let entry_size = size as usize;
-                if entry_size < RK_BOOT_ENTRY_SIZE {
-                    return Err(AppError::ParseError(
-                        "RKBoot entry size smaller than expected".to_string(),
-                    ));
-                }
+            if count == 0 {
+                return Ok(result);
+            }
 
-                let off = offset as usize + (i as usize * entry_size);
-                if off + entry_size > buf.len() {
-                    break;
+            let entry_size = size as usize;
+            if entry_size < RK_BOOT_ENTRY_SIZE {
+                return Err(AppError::ParseError(
+                    "RKBoot entry size smaller than expected".to_string(),
+                ));
+            }
+
+            reader
+                .seek(SeekFrom::Start(offset as u64))
+                .map_err(|e| AppError::IoError(format!("Seek to entries: {}", e)))?;
+
+            let mut entry_buf = vec![0u8; entry_size];
+
+            for i in 0..count {
+                if let Err(e) = reader.read_exact(&mut entry_buf) {
+                    if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                        break;
+                    }
+                    return Err(AppError::IoError(format!(
+                        "Read RKBoot entry {}: {}",
+                        i, e
+                    )));
                 }
 
                 // Name is WCHAR (2 bytes per char), 20 chars max = 40 bytes
                 // We'll just read bytes and convert strictly to ASCII for now
-                let name_bytes = &buf[off + RK_BOOT_ENTRY_NAME_OFF
-                    ..off + RK_BOOT_ENTRY_NAME_OFF + RK_BOOT_ENTRY_NAME_LEN];
+                let name_bytes = &entry_buf[RK_BOOT_ENTRY_NAME_OFF
+                    ..RK_BOOT_ENTRY_NAME_OFF + RK_BOOT_ENTRY_NAME_LEN];
                 let name = String::from_utf8_lossy(name_bytes)
                     .chars()
                     .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '_' || *c == '-')
                     .collect::<String>();
 
                 result.push(RkBootEntry {
-                    size: buf[off],
+                    size: entry_buf[0],
                     entry_type: type_id,
                     name,
-                    data_offset: get32le(buf, off + RK_BOOT_ENTRY_DATA_OFFSET_OFF)?,
-                    data_size: get32le(buf, off + RK_BOOT_ENTRY_DATA_SIZE_OFF)?,
-                    data_delay: get32le(buf, off + RK_BOOT_ENTRY_DATA_DELAY_OFF)?,
+                    data_offset: get32le(&entry_buf, RK_BOOT_ENTRY_DATA_OFFSET_OFF)?,
+                    data_size: get32le(&entry_buf, RK_BOOT_ENTRY_DATA_SIZE_OFF)?,
+                    data_delay: get32le(&entry_buf, RK_BOOT_ENTRY_DATA_DELAY_OFF)?,
                 });
             }
             Ok(result)
@@ -1702,4 +1728,5 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         assert_eq!(e.size, 0x1000);
         assert_eq!(e.file_size, 0x1000);
     }
+
 }
