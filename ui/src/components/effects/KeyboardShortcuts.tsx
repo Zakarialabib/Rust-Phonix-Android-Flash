@@ -38,9 +38,7 @@ export function useGlobalShortcuts() {
   );
   
   // Command palette (placeholder)
-  createShortcut(['Control', 'k'], () => {
-    console.log('Command palette triggered');
-  });
+  createShortcut(['Control', 'k'], () => {});
   
   // Reload
   createShortcut(['Control', 'Shift', 'r'], () => window.location.reload());
