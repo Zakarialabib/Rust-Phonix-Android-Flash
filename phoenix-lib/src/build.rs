@@ -98,7 +98,11 @@ pub fn execute_recipe(recipe_path: &Path, env: &RecipeEnv) -> Result<RecipeResul
     })
 }
 
-pub fn execute_recipe_streaming<F>(recipe_path: &Path, env: &RecipeEnv, mut on_line: F) -> Result<RecipeResult>
+pub fn execute_recipe_streaming<F>(
+    recipe_path: &Path,
+    env: &RecipeEnv,
+    mut on_line: F,
+) -> Result<RecipeResult>
 where
     F: FnMut(OutputStream, &str),
 {
@@ -175,7 +179,10 @@ where
     let artifact = parse_artifact_path(&stdout_buffer);
 
     if !status.success() {
-        warn!("Recipe failed with exit code {}: {}", exit_code, stderr_buffer);
+        warn!(
+            "Recipe failed with exit code {}: {}",
+            exit_code, stderr_buffer
+        );
     }
 
     Ok(RecipeResult {
@@ -188,22 +195,31 @@ where
 }
 
 fn determine_shell_command(recipe_path: &Path) -> (&'static str, Vec<String>) {
+    let recipe_str = recipe_path.to_string_lossy().to_string();
+
     if cfg!(target_os = "windows") {
         if recipe_path.extension().map_or(false, |ext| ext == "sh") {
             // Use WSL for shell scripts on Windows
-            ("wsl", vec![recipe_path.to_string_lossy().to_string()])
+            // Use -- to prevent argument injection
+            ("wsl", vec!["--".to_string(), recipe_str])
         } else {
             // Use PowerShell for everything else
-            (
-                "powershell",
-                vec![
-                    "-File".to_string(),
-                    recipe_path.to_string_lossy().to_string(),
-                ],
-            )
+            // For PowerShell -File, prefixing relative paths with .\ prevents them
+            // from being interpreted as parameters if they start with a dash.
+            let safe_path = if recipe_path.is_absolute()
+                || recipe_str.starts_with(".\\")
+                || recipe_str.starts_with("./")
+            {
+                recipe_str
+            } else {
+                format!(".\\{}", recipe_str)
+            };
+
+            ("powershell", vec!["-File".to_string(), safe_path])
         }
     } else {
-        ("bash", vec![recipe_path.to_string_lossy().to_string()])
+        // Use -- to prevent argument injection
+        ("bash", vec!["--".to_string(), recipe_str])
     }
 }
 
@@ -264,9 +280,9 @@ impl BuildPipeline {
 
         for step in &self.steps {
             info!("Running build step: {}", step.name);
-            
+
             let result = execute_recipe(&step.recipe, env)?;
-            
+
             if !result.success && step.required {
                 anyhow::bail!(
                     "Required build step '{}' failed with exit code {}",
@@ -287,7 +303,7 @@ pub fn check_prerequisites() -> Result<Vec<String>> {
     let mut missing = Vec::new();
     // Core tools required for all builds
     let tools = ["make", "git", "dtc", "mkimage"];
-    
+
     // On Windows, we check for WSL presence instead of direct tools
     if cfg!(target_os = "windows") {
         if which::which("wsl").is_err() {
@@ -299,9 +315,9 @@ pub fn check_prerequisites() -> Result<Vec<String>> {
                 .arg("which")
                 .arg("make")
                 .output();
-                
+
             if output.map_or(true, |o| !o.status.success()) {
-                 missing.push("Build tools in WSL (run scripts/setup_wsl.sh)".to_string());
+                missing.push("Build tools in WSL (run scripts/setup_wsl.sh)".to_string());
             }
         }
     } else {
@@ -325,13 +341,14 @@ mod tests {
     fn test_determine_shell_command_sh() {
         let recipe_path = PathBuf::from("test/recipe.sh");
         let (shell, args) = determine_shell_command(&recipe_path);
+        let recipe_str = recipe_path.to_string_lossy().to_string();
 
         if cfg!(target_os = "windows") {
             assert_eq!(shell, "wsl");
-            assert_eq!(args, vec![recipe_path.to_string_lossy().to_string()]);
+            assert_eq!(args, vec!["--".to_string(), recipe_str]);
         } else {
             assert_eq!(shell, "bash");
-            assert_eq!(args, vec![recipe_path.to_string_lossy().to_string()]);
+            assert_eq!(args, vec!["--".to_string(), recipe_str]);
         }
     }
 
@@ -339,16 +356,33 @@ mod tests {
     fn test_determine_shell_command_other() {
         let recipe_path = PathBuf::from("test/recipe.ps1");
         let (shell, args) = determine_shell_command(&recipe_path);
+        let recipe_str = recipe_path.to_string_lossy().to_string();
 
         if cfg!(target_os = "windows") {
             assert_eq!(shell, "powershell");
-            assert_eq!(args, vec![
-                "-File".to_string(),
-                recipe_path.to_string_lossy().to_string()
-            ]);
+            let expected_path = format!(".\\{}", recipe_str);
+            assert_eq!(args, vec!["-File".to_string(), expected_path]);
         } else {
             assert_eq!(shell, "bash");
-            assert_eq!(args, vec![recipe_path.to_string_lossy().to_string()]);
+            assert_eq!(args, vec!["--".to_string(), recipe_str]);
+        }
+    }
+
+    #[test]
+    fn test_determine_shell_command_injection() {
+        // Test with a path that looks like an argument
+        let recipe_path = PathBuf::from("-v");
+        let (shell, args) = determine_shell_command(&recipe_path);
+        let recipe_str = recipe_path.to_string_lossy().to_string();
+
+        if cfg!(target_os = "windows") {
+            // PowerShell should prefix with .\
+            assert_eq!(shell, "powershell");
+            assert_eq!(args, vec!["-File".to_string(), ".\\-v".to_string()]);
+        } else {
+            // Bash should use --
+            assert_eq!(shell, "bash");
+            assert_eq!(args, vec!["--".to_string(), recipe_str]);
         }
     }
 }
