@@ -22,24 +22,44 @@ fn validate_target_device(device: &str) -> Result<(), AppError> {
 
     #[cfg(unix)]
     {
-        if !device.starts_with("/dev/") {
+        // Resolve path to handle symlinks and relative paths (e.g., /dev/../tmp/foo)
+        let path = std::fs::canonicalize(device)
+            .map_err(|e| AppError::DeviceNotFound(format!("Device not found: {}", e)))?;
+        let path_str = path.to_string_lossy();
+
+        if !path_str.starts_with("/dev/") {
             return Err(AppError::ValidationError(
-                "Target device must be a block device path (e.g., /dev/sdX)".to_string(),
+                "Target device must be a block device path in /dev/".to_string(),
             ));
         }
 
         // Linux-specific system drive protection
         #[cfg(target_os = "linux")]
         {
-            if device == "/dev/sda" || device == "/dev/nvme0n1" {
+            if is_system_device(&path_str) {
                 return Err(AppError::ValidationError(
-                    "Operation on primary system drive /dev/sda or /dev/nvme0n1 is restricted.".to_string(),
+                    "Operation on primary system drive and its partitions is restricted.".to_string(),
                 ));
             }
         }
     }
 
     Ok(())
+}
+
+fn is_system_device(path: &str) -> bool {
+    // /dev/sda and partitions (sda1, sda2...)
+    // Avoid blocking sdaa, sdab...
+    if path == "/dev/sda" || (path.starts_with("/dev/sda") && path.chars().nth(8).map_or(false, |c| c.is_ascii_digit())) {
+        return true;
+    }
+
+    // /dev/nvme0n1 and partitions (nvme0n1p1, nvme0n1p2...)
+    if path == "/dev/nvme0n1" || (path.starts_with("/dev/nvme0n1p") && path.chars().nth(13).map_or(false, |c| c.is_ascii_digit())) {
+        return true;
+    }
+
+    false
 }
 
 /// Flash progress information
@@ -98,9 +118,43 @@ mod tests {
 
         // On Linux, non-/dev path should fail
         if cfg!(target_os = "linux") {
-            let result = preflight(image_path, "/tmp/not_a_device");
-            assert!(matches!(result, Err(AppError::ValidationError(_))), "Expected ValidationError for non-/dev path on Linux");
+            // Create a dummy file to act as the "device" so canonicalize succeeds
+            let device_file = NamedTempFile::new().unwrap();
+            let device_path = device_file.path().to_str().unwrap();
+
+            // This path is in /tmp (usually), so it should fail validation because it's not in /dev/
+            let result = preflight(image_path, device_path);
+            assert!(matches!(result, Err(AppError::ValidationError(ref msg)) if msg.contains("block device path")),
+                "Expected ValidationError for non-/dev path on Linux, got {:?}", result);
+
+            // Test non-existent device
+            let result = preflight(image_path, "/tmp/non_existent_device_12345");
+            assert!(matches!(result, Err(AppError::DeviceNotFound(_))),
+                "Expected DeviceNotFound for non-existent device");
         }
+    }
+
+    #[test]
+    fn test_is_system_device() {
+        // System drives and partitions should be detected
+        assert!(is_system_device("/dev/sda"));
+        assert!(is_system_device("/dev/sda1"));
+        assert!(is_system_device("/dev/sda15"));
+
+        assert!(is_system_device("/dev/nvme0n1"));
+        // NVMe partitions usually follow p<digits> pattern
+        assert!(is_system_device("/dev/nvme0n1p1"));
+        assert!(is_system_device("/dev/nvme0n1p12"));
+
+        // Other devices should be safe
+        assert!(!is_system_device("/dev/sdb"));
+        assert!(!is_system_device("/dev/sdb1"));
+
+        // Similar prefixes but different devices
+        assert!(!is_system_device("/dev/sdaa")); // 27th disk
+        assert!(!is_system_device("/dev/sdaa1"));
+
+        assert!(!is_system_device("/dev/nvme1n1"));
     }
 }
 
