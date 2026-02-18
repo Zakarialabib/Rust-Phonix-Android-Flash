@@ -1178,8 +1178,69 @@ impl RockchipDevice {
             file.seek(SeekFrom::Start(entry.offset))
                 .map_err(|e| AppError::IoError(format!("Seek image to {}: {}", entry.offset, e)))?;
 
-            let mut remaining_file_bytes = entry.file_size;
-            let mut buffer = vec![0u8; RKFT_BLOCKSIZE];
+            // Pipeline constants
+            const PIPELINE_BUFFER_SIZE: usize = 1024 * 1024; // 1MB
+            const PIPELINE_DEPTH: usize = 2;
+
+            // Setup channels for pipelined reading/writing
+            let (tx, rx) = std::sync::mpsc::sync_channel::<Result<(Vec<u8>, usize), AppError>>(PIPELINE_DEPTH);
+            let (recycle_tx, recycle_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(PIPELINE_DEPTH);
+
+            // Pre-fill recycle channel with buffers
+            for _ in 0..PIPELINE_DEPTH {
+                let _ = recycle_tx.send(vec![0u8; PIPELINE_BUFFER_SIZE]);
+            }
+
+            // Clone file handle for reader thread
+            let mut f_in = file.try_clone()
+                .map_err(|e| AppError::IoError(format!("Clone file handle: {}", e)))?;
+            let entry_name = entry.name.clone();
+            let entry_file_size = entry.file_size;
+
+            // Spawn reader thread
+            let reader_handle = std::thread::spawn(move || {
+                let mut remaining = entry_file_size;
+                while remaining > 0 {
+                    // Get buffer from recycle channel
+                    let mut buffer = match recycle_rx.recv() {
+                        Ok(b) => b,
+                        Err(_) => break, // Writer closed
+                    };
+
+                    let to_read = std::cmp::min(remaining, buffer.len() as u64) as usize;
+
+                    // Resize if buffer is smaller than needed (should only happen if file < buffer size)
+                    if buffer.len() < to_read {
+                        buffer.resize(to_read, 0);
+                    }
+
+                    if let Err(e) = f_in.read_exact(&mut buffer[..to_read]) {
+                        let _ = tx.send(Err(AppError::IoError(format!("Read image data for entry {}: {}", entry_name, e))));
+                        break;
+                    }
+
+                    // Pad to 512-byte boundary
+                    let padded_len = to_read.div_ceil(512) * 512;
+                    if padded_len > buffer.len() {
+                        buffer.resize(padded_len, 0);
+                    } else {
+                        // Zero padding
+                        for b in &mut buffer[to_read..padded_len] {
+                            *b = 0;
+                        }
+                    }
+
+                    // Truncate to padded length so writer knows exactly how much to write
+                    buffer.truncate(padded_len);
+
+                    if tx.send(Ok((buffer, to_read))).is_err() {
+                        break;
+                    }
+                    remaining -= to_read as u64;
+                }
+            });
+
+            // Writer loop (main thread)
             let mut sectors_written: u64 = 0;
             let max_sectors = if part.size_sectors == 0 {
                 None
@@ -1187,25 +1248,17 @@ impl RockchipDevice {
                 Some(part.size_sectors)
             };
 
-            while remaining_file_bytes > 0 {
-                let to_read = std::cmp::min(remaining_file_bytes, buffer.len() as u64) as usize;
-                let data_slice = &mut buffer[..to_read];
-                file.read_exact(data_slice).map_err(|e| {
-                    AppError::IoError(format!("Read image data for entry {}: {}", entry.name, e))
-                })?;
+            let mut total_bytes_transferred = 0u64;
+            let start_time = std::time::Instant::now();
 
-                let padded_len = ((to_read + 511) / 512) * 512;
-                if padded_len > buffer.len() {
-                    buffer.resize(padded_len, 0);
-                } else {
-                    for b in &mut buffer[to_read..padded_len] {
-                        *b = 0;
-                    }
-                }
+            while let Ok(result) = rx.recv() {
+                let (mut chunk, bytes_read) = result?;
 
-                let sectors = (padded_len / 512) as u64;
+                let sectors = (chunk.len() / 512) as u64;
                 if let Some(max) = max_sectors {
                     if sectors_written + sectors > max {
+                        // Join reader thread before returning error to clean up
+                        let _ = reader_handle.join();
                         return Err(AppError::ValidationError(format!(
                             "Entry '{}' exceeds partition '{}' size",
                             entry.name, part.name
@@ -1213,22 +1266,39 @@ impl RockchipDevice {
                     }
                 }
 
-                self.write_lba(current_lba, &buffer[..padded_len])?;
+                self.write_lba(current_lba, &chunk)?;
                 current_lba += sectors as u32;
                 sectors_written += sectors;
-                remaining_file_bytes -= to_read as u64;
+                total_bytes_transferred += bytes_read as u64;
+
+                // Recycle buffer
+                if chunk.capacity() < PIPELINE_BUFFER_SIZE {
+                    chunk = vec![0u8; PIPELINE_BUFFER_SIZE];
+                } else {
+                    chunk.resize(PIPELINE_BUFFER_SIZE, 0);
+                }
+                let _ = recycle_tx.send(chunk);
+
+                if let Some(ref cb) = progress {
+                    let elapsed = start_time.elapsed().as_secs_f64();
+                    let speed_bps = if elapsed > 0.0 {
+                        (total_bytes_transferred as f64 / elapsed) as u64
+                    } else {
+                        0
+                    };
+
+                    cb(FlashProgress {
+                        operation: format!("Flashing {}", entry.name),
+                        partition: Some(entry.name.clone()),
+                        percent: ((i + 1) * 100 / total_entries.max(1)) as u8,
+                        bytes_transferred: total_bytes_transferred,
+                        total_bytes: entry.file_size,
+                        speed_bps,
+                    });
+                }
             }
 
-            if let Some(ref cb) = progress {
-                cb(FlashProgress {
-                    operation: format!("Flashing {}", entry.name),
-                    partition: Some(entry.name.clone()),
-                    percent: ((i + 1) * 100 / total_entries.max(1)) as u8,
-                    bytes_transferred: entry.file_size,
-                    total_bytes: entry.file_size,
-                    speed_bps: 15 * 1024 * 1024,
-                });
-            }
+            reader_handle.join().map_err(|_| AppError::Unknown("Reader thread panicked".into()))?;
         }
 
         Ok(())
