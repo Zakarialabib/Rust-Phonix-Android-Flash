@@ -8,7 +8,7 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::time::Duration;
 use tracing::{debug, info, warn};
@@ -816,15 +816,25 @@ impl RkImageHeader {
                     .map_err(|e| AppError::IoError(format!("mkdir: {}", e)))?;
             }
 
-            let mut f_out = std::fs::File::create(&out_path)
+            let f_out = std::fs::File::create(&out_path)
                 .map_err(|e| AppError::IoError(format!("create {}: {}", out_path.display(), e)))?;
+
+            // Buffer output to reduce syscalls (1MB buffer)
+            let mut writer = BufWriter::with_capacity(1024 * 1024, f_out);
 
             file.seek(SeekFrom::Start(off))
                 .map_err(|e| AppError::IoError(format!("Seek to entry {}: {}", entry.name, e)))?;
 
-            let mut take = std::io::Read::by_ref(&mut file).take(sz);
-            std::io::copy(&mut take, &mut f_out)
+            // Buffer input to reduce read syscalls (1MB buffer)
+            let reader = BufReader::with_capacity(1024 * 1024, &mut file);
+            let mut take = reader.take(sz);
+
+            std::io::copy(&mut take, &mut writer)
                 .map_err(|e| AppError::IoError(format!("Extract {}: {}", entry.path, e)))?;
+
+            writer
+                .flush()
+                .map_err(|e| AppError::IoError(format!("Flush {}: {}", entry.path, e)))?;
 
             info!(
                 "  {:08x}-{:08x} {} ({} bytes)",
