@@ -56,7 +56,8 @@ impl TemplateEngine {
         // Register built-in templates
         handlebars.register_template_string("dts", include_str!("../templates/device.dts.hbs"))?;
         handlebars.register_template_string("kconfig", include_str!("../templates/kconfig.hbs"))?;
-        handlebars.register_template_string("extlinux", include_str!("../templates/extlinux.conf.hbs"))?;
+        handlebars
+            .register_template_string("extlinux", include_str!("../templates/extlinux.conf.hbs"))?;
 
         Ok(Self { handlebars })
     }
@@ -99,12 +100,12 @@ impl TemplateEngine {
         output: &Path,
     ) -> Result<()> {
         let content = self.render(template_name, context)?;
-        
+
         // Ensure parent directory exists
         if let Some(parent) = output.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        
+
         std::fs::write(output, content)?;
         Ok(())
     }

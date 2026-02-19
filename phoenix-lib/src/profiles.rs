@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use std::path::Path;
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 use std::fs;
+use std::path::Path;
 
 /// Device Profile Database
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,7 +33,9 @@ impl ProfileDatabase {
 
     /// Find profile by Vendor ID and Product ID
     pub fn find(&self, vid: u16, pid: u16) -> Option<&DeviceProfile> {
-        self.profiles.iter().find(|p| p.vendor_id == vid && p.product_id == pid)
+        self.profiles
+            .iter()
+            .find(|p| p.vendor_id == vid && p.product_id == pid)
     }
 }
 
@@ -159,7 +161,9 @@ mod tests {
     fn test_find_multiple_matches() {
         let db = default_profiles();
         // Multiple profiles have 0x1b8e:0xc003. The first one is S905W.
-        let profile = db.find(0x1b8e, 0xc003).expect("Should find Amlogic profile");
+        let profile = db
+            .find(0x1b8e, 0xc003)
+            .expect("Should find Amlogic profile");
         assert_eq!(profile.name, "Amlogic S905W (Generic)");
         assert_eq!(profile.soc, "s905w");
     }

@@ -98,7 +98,6 @@ pub struct AmlogicChipInfo {
     pub ddr_type: String,
 }
 
-
 /// Burn State Machine
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -121,13 +120,17 @@ pub struct AmlogicDevice {
     /// Chip info after identification
     chip_info: Option<AmlogicChipInfo>,
     /// Transfer timeout
+    #[allow(dead_code)]
     timeout: Duration,
     /// Current state
     state: BurnState,
 }
 
+#[allow(dead_code)]
 const EP_OUT: u8 = 0x01;
+#[allow(dead_code)]
 const EP_IN: u8 = 0x81;
+#[allow(dead_code)]
 const PACKET_SIZE: usize = 64;
 
 impl AmlogicDevice {
@@ -376,7 +379,7 @@ impl AmlogicDevice {
         let _header = AmlogicImageHeader::parse(image_path)?;
 
         // 2. Mock Partition List
-        let partitions = vec![
+        let partitions = [
             ("bootloader", 0x10000),
             ("dtb", 0x8000),
             ("boot", 0x1000000),
@@ -499,6 +502,7 @@ impl AmlogicImageHeader {
         let mut file = File::open(image_path)
             .map_err(|e| AppError::IoError(format!("Failed to open source image: {}", e)))?;
 
+        let mut buffer = vec![0u8; 1024 * 1024];
         for part in &self.partitions {
             info!("Extracting partition: {} ({} bytes)", part.name, part.size);
             use std::io::{Read, Seek, SeekFrom, Write};
@@ -511,7 +515,6 @@ impl AmlogicImageHeader {
                 .map_err(|e| AppError::IoError(format!("Create failed: {}", e)))?;
 
             let mut remaining = part.size;
-            let mut buffer = vec![0u8; 1024 * 1024];
             while remaining > 0 {
                 let to_read = std::cmp::min(remaining, buffer.len() as u64) as usize;
                 let slice = &mut buffer[..to_read];
@@ -560,14 +563,14 @@ impl KeysProvider {
                 current_section = line[1..line.len() - 1].to_string();
                 self.config
                     .entry(current_section.clone())
-                    .or_insert_with(HashMap::new);
+                    .or_default();
             } else if let Some(idx) = line.find('=') {
                 let key = line[0..idx].trim().to_string();
                 let value = line[idx + 1..].trim().to_string();
 
                 self.config
                     .entry(current_section.clone())
-                    .or_insert_with(HashMap::new)
+                    .or_default()
                     .insert(key, value);
             }
         }

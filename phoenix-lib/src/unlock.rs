@@ -30,11 +30,8 @@ impl Unlocker {
     pub async fn detect_mode() -> Result<String, AppError> {
         // Check for devices in various modes
         // 1. Check ADB
-        let adb_output = Command::new("adb")
-            .arg("devices")
-            .output()
-            .await;
-            
+        let adb_output = Command::new("adb").arg("devices").output().await;
+
         if let Ok(output) = adb_output {
             let stdout = String::from_utf8_lossy(&output.stdout);
             if stdout.contains("\tdevice") || stdout.contains("\trecovery") {
@@ -43,11 +40,8 @@ impl Unlocker {
         }
 
         // 2. Check Fastboot
-        let fastboot_output = Command::new("fastboot")
-            .arg("devices")
-            .output()
-            .await;
-            
+        let fastboot_output = Command::new("fastboot").arg("devices").output().await;
+
         if let Ok(output) = fastboot_output {
             let stdout = String::from_utf8_lossy(&output.stdout);
             if stdout.contains("\tfastboot") {
@@ -57,7 +51,7 @@ impl Unlocker {
 
         // 3. Check Amlogic Update Mode (lsusb check usually, simpler placeholder here)
         // 4. Check FEL/Maskrom (lsusb)
-        
+
         Ok("unknown".to_string())
     }
 
@@ -70,12 +64,18 @@ impl Unlocker {
                     .status()
                     .await
                     .map_err(|e| AppError::IoError(e.to_string()))?;
-                
+
                 if !status.success() {
-                    return Err(AppError::CommandFailed("Fastboot unlock failed".to_string()));
+                    return Err(AppError::CommandFailed(
+                        "Fastboot unlock failed".to_string(),
+                    ));
                 }
-            },
-            _ => return Err(AppError::CommandFailed("Method not implemented yet".to_string())),
+            }
+            _ => {
+                return Err(AppError::CommandFailed(
+                    "Method not implemented yet".to_string(),
+                ))
+            }
         }
         Ok(())
     }

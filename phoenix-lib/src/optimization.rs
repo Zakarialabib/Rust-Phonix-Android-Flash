@@ -6,7 +6,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-
 /// Target RAM configuration for optimization
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -70,24 +69,24 @@ pub struct OptimizationProfile {
     pub name: String,
     pub description: String,
     pub ram_target: RamTarget,
-    
+
     // Memory optimization
     pub zram_enabled: bool,
     pub zram_size_mb: u32,
     pub swap_enabled: bool,
     pub low_ram_mode: bool,
     pub low_memory_killer_adj: Option<String>,
-    
+
     // CPU optimization
     pub cpu_governor: CpuGovernor,
     pub thermal_throttle_temp_c: u32,
-    
+
     // Package debloating
     pub debloat_packages: Vec<String>,
-    
+
     // Custom init scripts
     pub init_scripts: Vec<InitScript>,
-    
+
     // Build.prop modifications
     pub build_prop_mods: HashMap<String, String>,
 }
@@ -97,7 +96,7 @@ pub struct OptimizationProfile {
 #[serde(rename_all = "camelCase")]
 pub struct InitScript {
     pub name: String,
-    pub priority: u8,  // 00-99, lower runs first
+    pub priority: u8, // 00-99, lower runs first
     pub content: String,
 }
 
@@ -105,7 +104,7 @@ impl OptimizationProfile {
     /// Create a profile optimized for 1GB RAM devices
     pub fn low_ram_profile() -> Self {
         let mut build_prop_mods = HashMap::new();
-        
+
         // Essential low-RAM properties
         build_prop_mods.insert("ro.config.low_ram".to_string(), "true".to_string());
         build_prop_mods.insert("ro.lmk.critical_upgrade".to_string(), "true".to_string());
@@ -113,14 +112,15 @@ impl OptimizationProfile {
         build_prop_mods.insert("ro.lmk.downgrade_pressure".to_string(), "60".to_string());
         build_prop_mods.insert("ro.sys.fw.bg_apps_limit".to_string(), "16".to_string());
         build_prop_mods.insert("ro.sys.fw.bservice_limit".to_string(), "5".to_string());
-        
+
         // Disable heavy features
         build_prop_mods.insert("persist.sys.purgeable_assets".to_string(), "1".to_string());
         build_prop_mods.insert("debug.composition.type".to_string(), "gpu".to_string());
-        
+
         Self {
             name: "Low RAM (1GB)".to_string(),
-            description: "Optimized for devices with 1GB RAM - aggressive memory management".to_string(),
+            description: "Optimized for devices with 1GB RAM - aggressive memory management"
+                .to_string(),
             ram_target: RamTarget::Ram1Gb,
             zram_enabled: true,
             zram_size_mb: 512,
@@ -139,7 +139,7 @@ impl OptimizationProfile {
     pub fn balanced_profile() -> Self {
         let mut build_prop_mods = HashMap::new();
         build_prop_mods.insert("ro.sys.fw.bg_apps_limit".to_string(), "24".to_string());
-        
+
         Self {
             name: "Balanced (2GB)".to_string(),
             description: "Balanced performance for 2GB RAM devices".to_string(),
@@ -181,11 +181,11 @@ impl OptimizationProfile {
         let mut output = String::new();
         output.push_str("# Phoenix Optimization Patch\n");
         output.push_str(&format!("# Profile: {}\n\n", self.name));
-        
+
         for (key, value) in &self.build_prop_mods {
             output.push_str(&format!("{}={}\n", key, value));
         }
-        
+
         output
     }
 
@@ -211,12 +211,18 @@ impl OptimizationProfile {
         output.push_str("#!/system/bin/sh\n");
         output.push_str("# Phoenix Debloat Script\n");
         output.push_str(&format!("# Profile: {}\n\n", self.name));
-        
+
         for package in &self.debloat_packages {
-            output.push_str(&format!("pm uninstall -k --user 0 {} 2>/dev/null\n", package));
-            output.push_str(&format!("pm disable-user --user 0 {} 2>/dev/null\n", package));
+            output.push_str(&format!(
+                "pm uninstall -k --user 0 {} 2>/dev/null\n",
+                package
+            ));
+            output.push_str(&format!(
+                "pm disable-user --user 0 {} 2>/dev/null\n",
+                package
+            ));
         }
-        
+
         output
     }
 
@@ -307,7 +313,9 @@ impl OptimizationDatabase {
     /// Find a profile by name
     pub fn find_by_name(&self, name: &str) -> Option<&OptimizationProfile> {
         let lower = name.to_lowercase();
-        self.profiles.iter().find(|p| p.name.to_lowercase().contains(&lower))
+        self.profiles
+            .iter()
+            .find(|p| p.name.to_lowercase().contains(&lower))
     }
 }
 

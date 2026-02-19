@@ -365,14 +365,8 @@ impl CompatibilityMatrix {
                     kernel: "unknown".to_string(),
                 },
                 status: CompatibilityStatus::WorksWithPatches,
-                issues: vec![
-                    KnownIssue::Wifi5GhzIntermittent,
-                    KnownIssue::GpuBlobMissing,
-                ],
-                required_patches: vec![
-                    PatchId::BrcmfmacFix5Ghz,
-                    PatchId::MaliBlobExtract,
-                ],
+                issues: vec![KnownIssue::Wifi5GhzIntermittent, KnownIssue::GpuBlobMissing],
+                required_patches: vec![PatchId::BrcmfmacFix5Ghz, PatchId::MaliBlobExtract],
                 confidence: 85,
             },
             CompatibilityEntry {
@@ -390,10 +384,7 @@ impl CompatibilityMatrix {
                     kernel: "unknown".to_string(),
                 },
                 status: CompatibilityStatus::Broken,
-                issues: vec![
-                    KnownIssue::DdrTrainingFail,
-                    KnownIssue::GpuKernelPanic,
-                ],
+                issues: vec![KnownIssue::DdrTrainingFail, KnownIssue::GpuKernelPanic],
                 required_patches: vec![],
                 confidence: 95,
             },
@@ -621,7 +612,7 @@ pub struct FirmwareRecommendation {
 
 pub fn get_recommendations(profile: &HardwareProfile) -> Vec<FirmwareRecommendation> {
     let mut recs = Vec::new();
-    
+
     match profile.soc {
         SoC::S905W => {
             recs.push(FirmwareRecommendation {
@@ -637,10 +628,11 @@ pub fn get_recommendations(profile: &HardwareProfile) -> Vec<FirmwareRecommendat
             recs.push(FirmwareRecommendation {
                 name: "Aidan's ROM".to_string(),
                 version: "v7 (Android 9)".to_string(),
-                url: "https://forum.xda-developers.com/t/rom-aidans-rom-android-tv-9-0/".to_string(),
+                url: "https://forum.xda-developers.com/t/rom-aidans-rom-android-tv-9-0/"
+                    .to_string(),
                 notes: "Excellent for Widevine L3 and stable streaming.".to_string(),
             });
-        },
+        }
         SoC::S905X => {
             recs.push(FirmwareRecommendation {
                 name: "SlimBoxTV".to_string(),
@@ -648,7 +640,7 @@ pub fn get_recommendations(profile: &HardwareProfile) -> Vec<FirmwareRecommendat
                 url: "https://slimboxtv.ru/amlogic-s905x/".to_string(),
                 notes: "Top choice for S905X. Supports Android 11 beta.".to_string(),
             });
-        },
+        }
         SoC::RK3229 => {
             recs.push(FirmwareRecommendation {
                 name: "SlimBoxTV".to_string(),
@@ -656,10 +648,10 @@ pub fn get_recommendations(profile: &HardwareProfile) -> Vec<FirmwareRecommendat
                 url: "https://slimboxtv.ru/rockchip-rk3229/".to_string(),
                 notes: "Brings modern Android TV UI to legacy RK3229.".to_string(),
             });
-        },
+        }
         _ => {}
     }
-    
+
     recs
 }
 
@@ -689,7 +681,9 @@ mod tests {
         assert_eq!(SoC::from_str("allwinner_h3").unwrap(), SoC::H3);
 
         // Test Unknown
-        assert!(matches!(SoC::from_str("unknown_soc"), Ok(SoC::Unknown(ref s)) if s == "unknown_soc"));
+        assert!(
+            matches!(SoC::from_str("unknown_soc"), Ok(SoC::Unknown(ref s)) if s == "unknown_soc")
+        );
 
         // Test parsing via string parse method
         assert_eq!("s905w".parse::<SoC>(), Ok(SoC::S905W));
@@ -709,13 +703,21 @@ mod tests {
         assert_eq!(OsType::from_str("coreelec").unwrap(), OsType::CoreElec);
         assert_eq!(OsType::from_str("armbian").unwrap(), OsType::Armbian);
 
-        assert!(matches!(OsType::from_str("windows"), Ok(OsType::Unknown(ref s)) if s == "windows"));
+        assert!(
+            matches!(OsType::from_str("windows"), Ok(OsType::Unknown(ref s)) if s == "windows")
+        );
     }
 
     #[test]
     fn test_extract_version() {
-        assert_eq!(extract_version("android-11-image.img"), Some("11".to_string()));
-        assert_eq!(extract_version("linux-v5.10-test.bin"), Some("5.10".to_string()));
+        assert_eq!(
+            extract_version("android-11-image.img"),
+            Some("11".to_string())
+        );
+        assert_eq!(
+            extract_version("linux-v5.10-test.bin"),
+            Some("5.10".to_string())
+        );
         assert_eq!(extract_version("no-version"), None);
     }
 

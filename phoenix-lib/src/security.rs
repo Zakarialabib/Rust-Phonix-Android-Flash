@@ -70,10 +70,7 @@ pub const KNOWN_MALWARE: &[MalwareSignature] = &[
     },
     MalwareSignature {
         name: "BadBox Malware",
-        paths: &[
-            "/system/app/Ambient",
-            "/system/priv-app/Provision",
-        ],
+        paths: &["/system/app/Ambient", "/system/priv-app/Provision"],
         severity: ThreatLevel::High,
         description: "Pre-installed malware that creates hidden proxy nodes and \
                       enables residential proxy fraud.",
@@ -159,14 +156,14 @@ impl SecurityScanner {
         for signature in KNOWN_MALWARE {
             for malware_path in signature.paths {
                 let full_path = image_path.join(malware_path.trim_start_matches('/'));
-                
+
                 if full_path.exists() {
                     warn!(
                         "Malware detected: {} at {}",
                         signature.name,
                         full_path.display()
                     );
-                    
+
                     threats.push(ThreatDetection {
                         name: signature.name.to_string(),
                         severity: signature.severity.clone(),
@@ -174,7 +171,7 @@ impl SecurityScanner {
                         description: signature.description.to_string(),
                         remediation: signature.remediation.to_string(),
                     });
-                    
+
                     // Only report each signature once
                     break;
                 }
@@ -191,18 +188,15 @@ impl SecurityScanner {
 
         // Generate recommendations based on findings
         if !threats.is_empty() {
-            recommendations.push(
-                "Flash a clean custom ROM such as SlimBoxTV or Aidan's ROM".to_string()
-            );
-            recommendations.push(
-                "Backup any personal data before re-flashing".to_string()
-            );
-            
+            recommendations
+                .push("Flash a clean custom ROM such as SlimBoxTV or Aidan's ROM".to_string());
+            recommendations.push("Backup any personal data before re-flashing".to_string());
+
             let has_critical = threats.iter().any(|t| t.severity == ThreatLevel::Critical);
             if has_critical {
                 recommendations.push(
                     "⚠️ CRITICAL: Do not connect this device to networks with sensitive data"
-                        .to_string()
+                        .to_string(),
                 );
             }
         }
@@ -221,9 +215,11 @@ impl SecurityScanner {
     /// Scan a live device via ADB (stub - requires ADB connection)
     pub fn scan_live_device(device_serial: &str) -> Result<SecurityReport, AppError> {
         debug!("Scanning live device: {}", device_serial);
-        
+
         if which::which("adb").is_err() {
-            return Err(AppError::CommandFailed("ADB tool not found in PATH".to_string()));
+            return Err(AppError::CommandFailed(
+                "ADB tool not found in PATH".to_string(),
+            ));
         }
 
         // Verify device is online
@@ -233,7 +229,10 @@ impl SecurityScanner {
             .map_err(|e| AppError::CommandFailed(format!("Failed to check device state: {}", e)))?;
 
         if !state.status.success() {
-             return Err(AppError::DeviceNotFound(format!("Device {} not found or offline", device_serial)));
+            return Err(AppError::DeviceNotFound(format!(
+                "Device {} not found or offline",
+                device_serial
+            )));
         }
 
         let mut threats = Vec::new();
@@ -246,14 +245,17 @@ impl SecurityScanner {
                 .args(args)
                 .output()
                 .map_err(|e| AppError::CommandFailed(format!("Failed to run adb: {}", e)))?;
-            
-            Ok((String::from_utf8_lossy(&output.stdout).to_string(), output.status.success()))
+
+            Ok((
+                String::from_utf8_lossy(&output.stdout).to_string(),
+                output.status.success(),
+            ))
         };
 
         // 1. Check for known malware paths using `test -e`
         let known_malware_paths = [
             "/data/system/Corejava",
-            "/system/xbin/fp_check", 
+            "/system/xbin/fp_check",
             "/system/bin/rtk_fp_check",
             "/data/system/shared_prefs/openpreserve.xml",
         ];
@@ -266,7 +268,8 @@ impl SecurityScanner {
                     name: "Known Malware Artifact".to_string(),
                     severity: ThreatLevel::Critical,
                     path: path.to_string(),
-                    description: "Found file associated with known Android TV box malware".to_string(),
+                    description: "Found file associated with known Android TV box malware"
+                        .to_string(),
                     remediation: "Flash clean firmware immediately".to_string(),
                 });
             }
@@ -274,12 +277,16 @@ impl SecurityScanner {
 
         // 2. Check build.prop
         if let Ok((build_prop, true)) = run_adb(&["cat", "/system/build.prop"]) {
-             Self::check_build_prop(&build_prop, &mut threats, &mut recommendations);
+            Self::check_build_prop(&build_prop, &mut threats, &mut recommendations);
         }
 
         // 3. Check for suspicious packages
         if let Ok((packages, true)) = run_adb(&["pm", "list", "packages"]) {
-            let suspicious_pkgs = ["com.android.system.corejava", "com.fota.update", "com.adups.fota"];
+            let suspicious_pkgs = [
+                "com.android.system.corejava",
+                "com.fota.update",
+                "com.adups.fota",
+            ];
             for pkg in suspicious_pkgs {
                 if packages.contains(pkg) {
                     threats.push(ThreatDetection {
@@ -361,13 +368,17 @@ impl SecurityReport {
     /// Get a summary of the security scan
     pub fn summary(&self) -> String {
         if self.is_infected {
-            let critical_count = self.threats.iter()
+            let critical_count = self
+                .threats
+                .iter()
                 .filter(|t| t.severity == ThreatLevel::Critical)
                 .count();
-            let high_count = self.threats.iter()
+            let high_count = self
+                .threats
+                .iter()
                 .filter(|t| t.severity == ThreatLevel::High)
                 .count();
-            
+
             format!(
                 "⚠️ INFECTED: {} threats detected ({} critical, {} high)",
                 self.threats.len(),
@@ -381,7 +392,9 @@ impl SecurityReport {
 
     /// Check if any critical threats were found
     pub fn has_critical_threats(&self) -> bool {
-        self.threats.iter().any(|t| t.severity == ThreatLevel::Critical)
+        self.threats
+            .iter()
+            .any(|t| t.severity == ThreatLevel::Critical)
     }
 }
 
@@ -404,7 +417,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let corejava_path = dir.path().join("data/system/Corejava");
         fs::create_dir_all(&corejava_path).unwrap();
-        
+
         let report = SecurityScanner::scan_image(dir.path()).unwrap();
         assert!(report.is_infected);
         assert!(report.threats.iter().any(|t| t.name == "Corejava Botnet"));
@@ -414,7 +427,7 @@ mod tests {
     fn test_quick_check_corejava() {
         let dir = tempdir().unwrap();
         assert!(!SecurityScanner::quick_check_corejava(dir.path()));
-        
+
         let corejava_path = dir.path().join("data/system/Corejava");
         fs::create_dir_all(&corejava_path).unwrap();
         assert!(SecurityScanner::quick_check_corejava(dir.path()));
@@ -426,7 +439,11 @@ mod tests {
         if which::which("adb").is_ok() {
             let result = SecurityScanner::scan_live_device("non_existent_device_12345");
             // Expect DeviceNotFound because the device is surely not there
-            assert!(matches!(result, Err(AppError::DeviceNotFound(_))), "Expected DeviceNotFound, got {:?}", result);
+            assert!(
+                matches!(result, Err(AppError::DeviceNotFound(_))),
+                "Expected DeviceNotFound, got {:?}",
+                result
+            );
         }
     }
 }

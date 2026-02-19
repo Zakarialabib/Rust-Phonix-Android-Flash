@@ -1,14 +1,16 @@
+use crate::error::AppError;
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::Command;
 use tokio::fs::OpenOptions;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use crate::error::AppError;
 
 fn validate_target_device(device: &str) -> Result<(), AppError> {
     if device.trim().is_empty() {
-        return Err(AppError::ValidationError("Target device cannot be empty".to_string()));
+        return Err(AppError::ValidationError(
+            "Target device cannot be empty".to_string(),
+        ));
     }
 
     #[cfg(windows)]
@@ -38,7 +40,8 @@ fn validate_target_device(device: &str) -> Result<(), AppError> {
         {
             if is_system_device(&path_str) {
                 return Err(AppError::ValidationError(
-                    "Operation on primary system drive and its partitions is restricted.".to_string(),
+                    "Operation on primary system drive and its partitions is restricted."
+                        .to_string(),
                 ));
             }
         }
@@ -50,12 +53,18 @@ fn validate_target_device(device: &str) -> Result<(), AppError> {
 fn is_system_device(path: &str) -> bool {
     // /dev/sda and partitions (sda1, sda2...)
     // Avoid blocking sdaa, sdab...
-    if path == "/dev/sda" || (path.starts_with("/dev/sda") && path.chars().nth(8).map_or(false, |c| c.is_ascii_digit())) {
+    if path == "/dev/sda"
+        || (path.starts_with("/dev/sda")
+            && path.chars().nth(8).map_or(false, |c| c.is_ascii_digit()))
+    {
         return true;
     }
 
     // /dev/nvme0n1 and partitions (nvme0n1p1, nvme0n1p2...)
-    if path == "/dev/nvme0n1" || (path.starts_with("/dev/nvme0n1p") && path.chars().nth(13).map_or(false, |c| c.is_ascii_digit())) {
+    if path == "/dev/nvme0n1"
+        || (path.starts_with("/dev/nvme0n1p")
+            && path.chars().nth(13).map_or(false, |c| c.is_ascii_digit()))
+    {
         return true;
     }
 
@@ -87,7 +96,10 @@ pub fn preflight(image_path: &Path, target_device: &str) -> Result<(), AppError>
     validate_target_device(target_device)?;
 
     if !image_path.exists() {
-        return Err(AppError::ValidationError(format!("Image file not found: {:?}", image_path)));
+        return Err(AppError::ValidationError(format!(
+            "Image file not found: {:?}",
+            image_path
+        )));
     }
 
     let metadata = std::fs::metadata(image_path).map_err(|e| AppError::IoError(e.to_string()))?;
@@ -95,7 +107,8 @@ pub fn preflight(image_path: &Path, target_device: &str) -> Result<(), AppError>
         return Err(AppError::ValidationError("Image file is empty".to_string()));
     }
 
-    which::which("dd").map_err(|_| AppError::CommandFailed("Required tool 'dd' not found".to_string()))?;
+    which::which("dd")
+        .map_err(|_| AppError::CommandFailed("Required tool 'dd' not found".to_string()))?;
 
     Ok(())
 }
@@ -124,13 +137,18 @@ mod tests {
 
             // This path is in /tmp (usually), so it should fail validation because it's not in /dev/
             let result = preflight(image_path, device_path);
-            assert!(matches!(result, Err(AppError::ValidationError(ref msg)) if msg.contains("block device path")),
-                "Expected ValidationError for non-/dev path on Linux, got {:?}", result);
+            assert!(
+                matches!(result, Err(AppError::ValidationError(ref msg)) if msg.contains("block device path")),
+                "Expected ValidationError for non-/dev path on Linux, got {:?}",
+                result
+            );
 
             // Test non-existent device
             let result = preflight(image_path, "/tmp/non_existent_device_12345");
-            assert!(matches!(result, Err(AppError::DeviceNotFound(_))),
-                "Expected DeviceNotFound for non-existent device");
+            assert!(
+                matches!(result, Err(AppError::DeviceNotFound(_))),
+                "Expected DeviceNotFound for non-existent device"
+            );
         }
     }
 
@@ -166,7 +184,7 @@ pub async fn flash_image_async(
 ) -> Result<(), AppError> {
     let image_path_buf = image_path.to_path_buf();
     let target_device_owned = target_device.to_string();
-    
+
     tokio::task::spawn_blocking(move || preflight(&image_path_buf, &target_device_owned))
         .await
         .map_err(|e| AppError::Unknown(format!("Preflight join error: {}", e)))??;
@@ -175,7 +193,9 @@ pub async fn flash_image_async(
         .await
         .map_err(|e| AppError::IoError(format!("Failed to open image: {}", e)))?;
 
-    let metadata = f_in.metadata().await
+    let metadata = f_in
+        .metadata()
+        .await
         .map_err(|e| AppError::IoError(format!("Failed to get image metadata: {}", e)))?;
     let total_bytes = metadata.len();
 
@@ -215,7 +235,9 @@ pub async fn flash_image_async(
                     }
                 }
                 Err(e) => {
-                    let _ = tx.send(Err(AppError::IoError(format!("Read error: {}", e)))).await;
+                    let _ = tx
+                        .send(Err(AppError::IoError(format!("Read error: {}", e))))
+                        .await;
                     break;
                 }
             }
@@ -228,7 +250,9 @@ pub async fn flash_image_async(
     while let Some(result) = rx.recv().await {
         let mut chunk = result?;
 
-        f_out.write_all(&chunk).await
+        f_out
+            .write_all(&chunk)
+            .await
             .map_err(|e| AppError::IoError(format!("Write error: {}", e)))?;
 
         bytes_transferred += chunk.len() as u64;
@@ -244,7 +268,11 @@ pub async fn flash_image_async(
             cb(FlashProgress {
                 operation: "Writing".to_string(),
                 partition: None,
-                percent: if total_bytes > 0 { ((bytes_transferred * 100) / total_bytes) as u8 } else { 0 },
+                percent: if total_bytes > 0 {
+                    ((bytes_transferred * 100) / total_bytes) as u8
+                } else {
+                    0
+                },
                 bytes_transferred,
                 total_bytes,
                 speed_bps,
@@ -257,7 +285,9 @@ pub async fn flash_image_async(
         let _ = recycle_tx.send(chunk).await;
     }
 
-    f_out.sync_all().await
+    f_out
+        .sync_all()
+        .await
         .map_err(|e| AppError::IoError(format!("Sync error: {}", e)))?;
 
     Ok(())
@@ -280,7 +310,10 @@ pub fn flash_image(image_path: &Path, target_device: &str) -> Result<(), AppErro
         .map_err(|e| AppError::CommandFailed(format!("Failed to execute dd: {}", e)))?;
 
     if !status.success() {
-        return Err(AppError::CommandFailed(format!("dd command failed with exit code: {:?}", status.code())));
+        return Err(AppError::CommandFailed(format!(
+            "dd command failed with exit code: {:?}",
+            status.code()
+        )));
     }
 
     Ok(())

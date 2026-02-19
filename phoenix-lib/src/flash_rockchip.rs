@@ -1183,7 +1183,8 @@ impl RockchipDevice {
             const PIPELINE_DEPTH: usize = 2;
 
             // Setup channels for pipelined reading/writing
-            let (tx, rx) = std::sync::mpsc::sync_channel::<Result<(Vec<u8>, usize), AppError>>(PIPELINE_DEPTH);
+            let (tx, rx) =
+                std::sync::mpsc::sync_channel::<Result<(Vec<u8>, usize), AppError>>(PIPELINE_DEPTH);
             let (recycle_tx, recycle_rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(PIPELINE_DEPTH);
 
             // Pre-fill recycle channel with buffers
@@ -1192,7 +1193,8 @@ impl RockchipDevice {
             }
 
             // Clone file handle for reader thread
-            let mut f_in = file.try_clone()
+            let mut f_in = file
+                .try_clone()
                 .map_err(|e| AppError::IoError(format!("Clone file handle: {}", e)))?;
             let entry_name = entry.name.clone();
             let entry_file_size = entry.file_size;
@@ -1215,7 +1217,10 @@ impl RockchipDevice {
                     }
 
                     if let Err(e) = f_in.read_exact(&mut buffer[..to_read]) {
-                        let _ = tx.send(Err(AppError::IoError(format!("Read image data for entry {}: {}", entry_name, e))));
+                        let _ = tx.send(Err(AppError::IoError(format!(
+                            "Read image data for entry {}: {}",
+                            entry_name, e
+                        ))));
                         break;
                     }
 
@@ -1298,7 +1303,9 @@ impl RockchipDevice {
                 }
             }
 
-            reader_handle.join().map_err(|_| AppError::Unknown("Reader thread panicked".into()))?;
+            reader_handle
+                .join()
+                .map_err(|_| AppError::Unknown("Reader thread panicked".into()))?;
         }
 
         Ok(())
@@ -1455,16 +1462,13 @@ impl RkBoot {
                     if e.kind() == std::io::ErrorKind::UnexpectedEof {
                         break;
                     }
-                    return Err(AppError::IoError(format!(
-                        "Read RKBoot entry {}: {}",
-                        i, e
-                    )));
+                    return Err(AppError::IoError(format!("Read RKBoot entry {}: {}", i, e)));
                 }
 
                 // Name is WCHAR (2 bytes per char), 20 chars max = 40 bytes
                 // We'll just read bytes and convert strictly to ASCII for now
-                let name_bytes = &entry_buf[RK_BOOT_ENTRY_NAME_OFF
-                    ..RK_BOOT_ENTRY_NAME_OFF + RK_BOOT_ENTRY_NAME_LEN];
+                let name_bytes = &entry_buf
+                    [RK_BOOT_ENTRY_NAME_OFF..RK_BOOT_ENTRY_NAME_OFF + RK_BOOT_ENTRY_NAME_LEN];
                 let name = String::from_utf8_lossy(name_bytes)
                     .chars()
                     .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '_' || *c == '-')
@@ -1798,5 +1802,4 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         assert_eq!(e.size, 0x1000);
         assert_eq!(e.file_size, 0x1000);
     }
-
 }

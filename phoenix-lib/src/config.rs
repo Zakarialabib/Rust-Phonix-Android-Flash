@@ -1,9 +1,9 @@
 //! Device configuration loading and validation
 
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::path::Path;
-use anyhow::{Context, Result};
 
 use crate::error::AppError;
 use crate::profiles::DeviceProfile;
@@ -152,20 +152,30 @@ impl DeviceConfig {
     pub fn validate(&self) -> Result<(), AppError> {
         // Check required fields
         if self.device.name.is_empty() {
-            return Err(AppError::ValidationError("Device name is required".to_string()));
+            return Err(AppError::ValidationError(
+                "Device name is required".to_string(),
+            ));
         }
         if self.device.soc.is_empty() {
-            return Err(AppError::ValidationError("SoC type is required".to_string()));
+            return Err(AppError::ValidationError(
+                "SoC type is required".to_string(),
+            ));
         }
         if self.boot.reference_dtb.is_empty() {
-            return Err(AppError::ValidationError("Reference DTB is required".to_string()));
+            return Err(AppError::ValidationError(
+                "Reference DTB is required".to_string(),
+            ));
         }
         // Additional checks
         if self.hardware.memory.size_mb == 0 {
-             return Err(AppError::ValidationError("Memory size cannot be 0".to_string()));
+            return Err(AppError::ValidationError(
+                "Memory size cannot be 0".to_string(),
+            ));
         }
         if self.hardware.storage.size_gb == 0 {
-             return Err(AppError::ValidationError("Storage size cannot be 0".to_string()));
+            return Err(AppError::ValidationError(
+                "Storage size cannot be 0".to_string(),
+            ));
         }
 
         // Schema-style checks
@@ -187,13 +197,17 @@ impl DeviceConfig {
 
         if let Some(wifi) = &self.hardware.wifi {
             if wifi.chip.is_empty() {
-                return Err(AppError::ValidationError("WiFi chip cannot be empty".to_string()));
+                return Err(AppError::ValidationError(
+                    "WiFi chip cannot be empty".to_string(),
+                ));
             }
         }
 
         if let Some(cap) = &self.hardware.capabilities {
             if cap.has_emmc && self.hardware.storage.storage_type.to_lowercase() != "emmc" {
-                return Err(AppError::ValidationError("Capability has_emmc conflicts with storage_type".to_string()));
+                return Err(AppError::ValidationError(
+                    "Capability has_emmc conflicts with storage_type".to_string(),
+                ));
             }
         }
         Ok(())
@@ -373,17 +387,25 @@ pub fn create_default_config(soc: &str, name: &str) -> DeviceConfig {
             }),
         },
         profiles: [
-            ("minimal".to_string(), BuildProfile {
-                rootfs: "buildroot".to_string(),
-                kernel: "mainline-6.6".to_string(),
-                packages: vec![],
-            }),
-            ("signage".to_string(), BuildProfile {
-                rootfs: "buildroot".to_string(),
-                kernel: "mainline-6.6".to_string(),
-                packages: vec!["cage".to_string(), "weston".to_string()],
-            }),
-        ].into_iter().collect(),
+            (
+                "minimal".to_string(),
+                BuildProfile {
+                    rootfs: "buildroot".to_string(),
+                    kernel: "mainline-6.6".to_string(),
+                    packages: vec![],
+                },
+            ),
+            (
+                "signage".to_string(),
+                BuildProfile {
+                    rootfs: "buildroot".to_string(),
+                    kernel: "mainline-6.6".to_string(),
+                    packages: vec!["cage".to_string(), "weston".to_string()],
+                },
+            ),
+        ]
+        .into_iter()
+        .collect(),
         build: BuildConfig {
             buildroot_defconfig: format!("phoenix_{}_defconfig", soc),
             kernel_fragments: vec!["amlogic-base.config".to_string()],
@@ -460,7 +482,10 @@ boot:
 "#;
         let result = DeviceConfig::validate_schema_yaml(yaml);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("\"device\" is a required property"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("\"device\" is a required property"));
     }
 
     #[test]
@@ -480,7 +505,10 @@ boot:
 "#;
         let result = DeviceConfig::validate_schema_yaml(yaml);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("\"soc\" is a required property"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("\"soc\" is a required property"));
     }
 
     #[test]
@@ -501,7 +529,10 @@ boot:
 "#;
         let result = DeviceConfig::validate_schema_yaml(yaml);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("0 is less than the minimum of 1"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("0 is less than the minimum of 1"));
     }
 
     #[test]
@@ -545,6 +576,9 @@ boot:
 "#;
         let result = DeviceConfig::validate_schema_yaml(yaml);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("is not of type \"number\""));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("is not of type \"number\""));
     }
 }
