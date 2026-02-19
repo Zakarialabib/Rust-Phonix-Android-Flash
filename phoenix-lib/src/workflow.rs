@@ -32,6 +32,10 @@ pub struct WorkflowPhaseEvent {
 
 impl WorkflowPhaseEvent {
     pub fn new(phase: Phase, status: PhaseStatus, detail: Option<String>) -> Self {
-        Self { phase, status, detail }
+        Self {
+            phase,
+            status,
+            detail,
+        }
     }
 }

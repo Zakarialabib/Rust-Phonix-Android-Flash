@@ -1,7 +1,7 @@
+use phoenix_lib::error::AppError;
+use phoenix_lib::flash_rockchip::{RkImageEntry, RkImageHeader};
 use std::io::Write;
 use std::path::Path;
-use phoenix_lib::flash_rockchip::{RkImageHeader, RkImageEntry};
-use phoenix_lib::error::AppError;
 
 fn create_fake_rkaf(path: &Path, entry_size: usize) -> std::io::Result<()> {
     let mut file = std::fs::File::create(path)?;

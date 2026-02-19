@@ -5,7 +5,10 @@ use walkdir::WalkDir;
 pub struct Extractor;
 
 impl Extractor {
-    pub async fn extract_wifi_firmware(mount_point: &Path, output_dir: &Path) -> Result<u32, AppError> {
+    pub async fn extract_wifi_firmware(
+        mount_point: &Path,
+        output_dir: &Path,
+    ) -> Result<u32, AppError> {
         let firmware_paths = ["system/etc/wifi", "vendor/etc/wifi", "lib/firmware"];
         let mut copied = 0u32;
 
@@ -20,14 +23,23 @@ impl Extractor {
         Ok(copied)
     }
 
-    pub async fn extract_dtb_from_mount(mount_point: &Path, output_dir: &Path) -> Result<u32, AppError> {
+    pub async fn extract_dtb_from_mount(
+        mount_point: &Path,
+        output_dir: &Path,
+    ) -> Result<u32, AppError> {
         copy_matching_files(mount_point, output_dir, |path| {
-            path.extension().and_then(|e| e.to_str()).map(|e| e.eq_ignore_ascii_case("dtb")).unwrap_or(false)
+            path.extension()
+                .and_then(|e| e.to_str())
+                .map(|e| e.eq_ignore_ascii_case("dtb"))
+                .unwrap_or(false)
         })
         .await
     }
 
-    pub async fn extract_ddr_timings(mount_point: &Path, output_dir: &Path) -> Result<u32, AppError> {
+    pub async fn extract_ddr_timings(
+        mount_point: &Path,
+        output_dir: &Path,
+    ) -> Result<u32, AppError> {
         copy_matching_files(mount_point, output_dir, |path| {
             path.file_name()
                 .and_then(|n| n.to_str())
@@ -37,7 +49,10 @@ impl Extractor {
         .await
     }
 
-    pub async fn extract_kernel_config(mount_point: &Path, output_dir: &Path) -> Result<u32, AppError> {
+    pub async fn extract_kernel_config(
+        mount_point: &Path,
+        output_dir: &Path,
+    ) -> Result<u32, AppError> {
         copy_matching_files(mount_point, output_dir, |path| {
             path.file_name()
                 .and_then(|n| n.to_str())
@@ -75,11 +90,9 @@ where
                 .map_err(|e| AppError::IoError(e.to_string()))?;
             let destination = output_dir.join(relative);
             if let Some(parent) = destination.parent() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| AppError::IoError(e.to_string()))?;
+                std::fs::create_dir_all(parent).map_err(|e| AppError::IoError(e.to_string()))?;
             }
-            std::fs::copy(path, &destination)
-                .map_err(|e| AppError::IoError(e.to_string()))?;
+            std::fs::copy(path, &destination).map_err(|e| AppError::IoError(e.to_string()))?;
             copied += 1;
         }
         Ok(copied)
@@ -124,8 +137,8 @@ mod tests {
     use super::*;
     use std::fs::File;
     use std::io::Write;
-    use tempfile::tempdir;
     use std::time::Instant;
+    use tempfile::tempdir;
 
     #[tokio::test]
     async fn test_copy_matching_files_perf() {

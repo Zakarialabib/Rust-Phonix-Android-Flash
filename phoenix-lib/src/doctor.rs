@@ -32,7 +32,11 @@ pub async fn check_system() -> DoctorReport {
             Ok(p) => (true, Some(p.to_string_lossy().to_string())),
             Err(_) => (false, None),
         };
-        report.required_tools.push(ToolStatus { name: tool.to_string(), path, found });
+        report.required_tools.push(ToolStatus {
+            name: tool.to_string(),
+            path,
+            found,
+        });
     }
 
     for tool in optional {
@@ -40,7 +44,11 @@ pub async fn check_system() -> DoctorReport {
             Ok(p) => (true, Some(p.to_string_lossy().to_string())),
             Err(_) => (false, None),
         };
-        report.optional_tools.push(ToolStatus { name: tool.to_string(), path, found });
+        report.optional_tools.push(ToolStatus {
+            name: tool.to_string(),
+            path,
+            found,
+        });
     }
 
     // Check permissions

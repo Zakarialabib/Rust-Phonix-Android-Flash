@@ -1,11 +1,11 @@
 //! Hardware detection for Amlogic and Rockchip devices
 
+use crate::config::{Capabilities, DeviceConfig};
+use crate::error::AppError;
+use crate::profiles::ProfileDatabase;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-use crate::error::AppError;
-use crate::config::{Capabilities, DeviceConfig};
-use crate::profiles::ProfileDatabase;
 
 #[cfg(feature = "usb")]
 use tracing::info;
@@ -30,7 +30,7 @@ pub mod product_ids {
     pub const AML_S905W: u16 = 0xC003;
     pub const AML_S905X: u16 = 0xC003;
     pub const AML_S912: u16 = 0xC004;
-    
+
     // Rockchip
     pub const RK3036: u16 = 0x301A;
     pub const RK3229: u16 = 0x320B;
@@ -157,8 +157,10 @@ pub fn detect_devices() -> Result<Vec<DetectedDevice>> {
                             device.bus_number(),
                             device.address(),
                         ) {
-                            info!("Detected: {} ({:04x}:{:04x})", 
-                                detected.vendor_name, detected.vendor_id, detected.product_id);
+                            info!(
+                                "Detected: {} ({:04x}:{:04x})",
+                                detected.vendor_name, detected.vendor_id, detected.product_id
+                            );
                             devices.push(detected);
                         }
                     }
@@ -191,12 +193,7 @@ pub fn detect_devices() -> Result<Vec<DetectedDevice>> {
 
 /// Identify a device by its USB VID/PID
 #[cfg(feature = "usb")]
-fn identify_device(
-    vendor_id: u16,
-    product_id: u16,
-    bus: u8,
-    addr: u8,
-) -> Option<DetectedDevice> {
+fn identify_device(vendor_id: u16, product_id: u16, bus: u8, addr: u8) -> Option<DetectedDevice> {
     let (vendor_name, soc_family, soc_model, mode) = match vendor_id {
         vendor_ids::AMLOGIC => {
             let (family, model) = match product_id {
@@ -310,10 +307,22 @@ mod tests {
 
     #[test]
     fn test_ddr_vendor_from_pattern() {
-        assert_eq!(DdrTiming::vendor_from_pattern("04040404"), ddr_vendors::SAMSUNG);
-        assert_eq!(DdrTiming::vendor_from_pattern("Training result: 05050505"), ddr_vendors::HYNIX);
-        assert_eq!(DdrTiming::vendor_from_pattern("06060606"), ddr_vendors::MICRON);
-        assert_eq!(DdrTiming::vendor_from_pattern("00000000"), ddr_vendors::UNKNOWN);
+        assert_eq!(
+            DdrTiming::vendor_from_pattern("04040404"),
+            ddr_vendors::SAMSUNG
+        );
+        assert_eq!(
+            DdrTiming::vendor_from_pattern("Training result: 05050505"),
+            ddr_vendors::HYNIX
+        );
+        assert_eq!(
+            DdrTiming::vendor_from_pattern("06060606"),
+            ddr_vendors::MICRON
+        );
+        assert_eq!(
+            DdrTiming::vendor_from_pattern("00000000"),
+            ddr_vendors::UNKNOWN
+        );
     }
 }
 
@@ -355,15 +364,16 @@ impl BootloaderInfo {
                     info.bootloader_type = "U-Boot".to_string();
                 }
             }
-            
+
             // Detect secure boot markers
             if line.contains("Secure boot enabled") || line.contains("BL2 verified") {
                 info.secure_boot = true;
                 info.bl2_signed = true;
                 info.unlock_possible = false;
-                info.notes.push("⚠️ Secure boot enabled - flashing may be restricted".to_string());
+                info.notes
+                    .push("⚠️ Secure boot enabled - flashing may be restricted".to_string());
             }
-            
+
             // Detect Amlogic-specific bootloader
             if line.contains("gxl_") || line.contains("gxm_") {
                 info.bootloader_type = "Amlogic U-Boot".to_string();
@@ -493,7 +503,7 @@ pub struct ForensicsReport {
     pub usb_devices: Vec<DetectedDevice>,
     pub uart_ports: Vec<String>,
     pub uart_probe: Option<UartDetection>,
-    
+
     // Enhanced detection fields (IDEA2/IDEA3)
     /// DDR timing information - critical for DTB selection
     pub ddr_timing: Option<DdrTiming>,
@@ -512,41 +522,49 @@ pub struct ForensicsReport {
 impl ForensicsReport {
     /// Generate a variant ID string for compatibility matrix lookup
     pub fn compute_variant_id(&self) -> String {
-        let soc = self.usb_devices.first()
+        let soc = self
+            .usb_devices
+            .first()
             .and_then(|d| d.soc_model.as_ref())
             .map(|s| s.to_lowercase())
             .unwrap_or_else(|| "unknown".to_string());
-        
-        let ddr_vendor = self.ddr_timing.as_ref()
+
+        let ddr_vendor = self
+            .ddr_timing
+            .as_ref()
             .map(|d| d.vendor.to_lowercase())
             .unwrap_or_else(|| "unknown".to_string());
-        
-        let wifi = self.wifi_chip.as_ref()
+
+        let wifi = self
+            .wifi_chip
+            .as_ref()
             .map(|w| w.chip.to_lowercase().replace(' ', "-"))
             .unwrap_or_else(|| "unknown".to_string());
-        
-        let emmc = self.emmc_info.as_ref()
+
+        let emmc = self
+            .emmc_info
+            .as_ref()
             .map(|e| e.vendor.to_lowercase())
             .unwrap_or_else(|| "unknown".to_string());
-        
-        let pcb = self.pcb_variant.as_ref()
+
+        let pcb = self
+            .pcb_variant
+            .as_ref()
             .map(|p| p.name().to_string())
             .unwrap_or_else(|| "unknown".to_string());
-        
+
         format!("{}-{}-{}-{}-{}", soc, ddr_vendor, wifi, emmc, pcb)
     }
 }
-
 
 /// Probe a serial port for bootloader presence
 pub fn probe_uart(port: &str, baud: u32) -> Result<UartDetection> {
     #[cfg(feature = "serial")]
     {
-        use std::time::Duration;
         use std::io::{Read, Write};
+        use std::time::Duration;
 
-        let port_settings = serialport::new(port, baud)
-            .timeout(Duration::from_millis(100));
+        let port_settings = serialport::new(port, baud).timeout(Duration::from_millis(100));
 
         match port_settings.open() {
             Ok(mut serial) => {
@@ -561,22 +579,27 @@ pub fn probe_uart(port: &str, baud: u32) -> Result<UartDetection> {
                 // Attempt to read for up to 500ms to catch boot logs or prompt
                 let start = std::time::Instant::now();
                 while start.elapsed() < Duration::from_millis(500) {
-                     if let Ok(n) = serial.read(&mut read_buf) {
-                         if n > 0 {
-                             is_responding = true;
-                             buffer.extend_from_slice(&read_buf[..n]);
-                         }
-                     }
-                     std::thread::sleep(Duration::from_millis(10));
+                    if let Ok(n) = serial.read(&mut read_buf) {
+                        if n > 0 {
+                            is_responding = true;
+                            buffer.extend_from_slice(&read_buf[..n]);
+                        }
+                    }
+                    std::thread::sleep(Duration::from_millis(10));
                 }
 
                 if is_responding {
                     let output = String::from_utf8_lossy(&buffer);
                     // Simple heuristic detection
-                    if output.contains("U-Boot") || output.contains("=>") || output.contains("msh>") {
-                         bootloader = Some(BootloaderInfo {
+                    if output.contains("U-Boot") || output.contains("=>") || output.contains("msh>")
+                    {
+                        bootloader = Some(BootloaderInfo {
                             version: "Detected via UART".to_string(),
-                            bootloader_type: if output.contains("U-Boot") { "U-Boot".to_string() } else { "Unknown".to_string() },
+                            bootloader_type: if output.contains("U-Boot") {
+                                "U-Boot".to_string()
+                            } else {
+                                "Unknown".to_string()
+                            },
                             secure_boot: output.contains("Secure boot enabled"),
                             bl2_signed: output.contains("BL2 verified"),
                             unlock_possible: !output.contains("Secure boot enabled"),
@@ -614,9 +637,7 @@ pub fn probe_uart(port: &str, baud: u32) -> Result<UartDetection> {
     }
 }
 
-pub fn generate_forensics_report(
-    target_device: Option<&str>,
-) -> Result<ForensicsReport, AppError> {
+pub fn generate_forensics_report(target_device: Option<&str>) -> Result<ForensicsReport, AppError> {
     let usb_devices = detect_devices().map_err(|e| AppError::HardwareError(e.to_string()))?;
     let uart_ports = list_serial_ports().map_err(|e| AppError::HardwareError(e.to_string()))?;
 
@@ -644,7 +665,7 @@ pub fn generate_forensics_report(
         pcb_variant: None,
         variant_id: None,
     };
-    
+
     // Compute variant ID if we have USB device info
     if !report.usb_devices.is_empty() {
         report.variant_id = Some(report.compute_variant_id());
@@ -654,18 +675,16 @@ pub fn generate_forensics_report(
 }
 
 /// Perform a deep forensics scan to populate all fields
-pub fn perform_deep_scan(
-    target_device: Option<&str>
-) -> Result<ForensicsReport, AppError> {
+pub fn perform_deep_scan(target_device: Option<&str>) -> Result<ForensicsReport, AppError> {
     let mut report = generate_forensics_report(target_device)?;
-    
+
     // Simulate deep scan analysis
     // In a real implementation, this would:
     // 1. Read RAM timing registers via UART or USB
     // 2. Detect PCB strapping (GPIOs) for p281/p282
     // 3. Probe SDIO for WiFi chip
     // 4. Read eMMC CID register
-    
+
     // For demonstration purposes, we'll populate it with "detected" values
     report.ddr_timing = Some(DdrTiming {
         vendor: ddr_vendors::SAMSUNG.to_string(),
@@ -674,14 +693,14 @@ pub fn perform_deep_scan(
         size_mb: 2048,
         compatible_dtbs: vec!["meson-gxl-s905w-p281.dtb".to_string()],
     });
-    
+
     report.pcb_variant = Some(PcbVariant::P281);
-    
+
     report.wifi_chip = Some(WifiChipInfo::from_sdio_ids(
         sdio_vendor_ids::BROADCOM,
         sdio_device_ids::BCM43438,
     ));
-    
+
     report.emmc_info = Some(EmmcInfo {
         vendor: "Samsung".to_string(),
         version: "5.1".to_string(),
@@ -689,15 +708,14 @@ pub fn perform_deep_scan(
         manufacturer_id: Some(emmc_vendor_ids::SAMSUNG),
         model: Some("KLMAG2GEAC-B031".to_string()),
     });
-    
+
     // Recompute variant ID after deep scan
     if !report.usb_devices.is_empty() {
         report.variant_id = Some(report.compute_variant_id());
     }
-    
+
     Ok(report)
 }
-
 
 pub fn populate_config_from_detection(
     config: &mut DeviceConfig,
@@ -723,7 +741,9 @@ fn capabilities_from_detected_device(
 ) -> Capabilities {
     let (gpu, vpu) = match detected.soc_family.as_str() {
         "meson-gxl" | "meson-gxm" => (Some("panfrost".to_string()), Some("v4l2-m2m".to_string())),
-        "rk322x" | "rk3328" | "rk3399" => (Some("panfrost".to_string()), Some("v4l2-m2m".to_string())),
+        "rk322x" | "rk3328" | "rk3399" => {
+            (Some("panfrost".to_string()), Some("v4l2-m2m".to_string()))
+        }
         _ => (None, None),
     };
 

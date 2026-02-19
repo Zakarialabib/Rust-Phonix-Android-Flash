@@ -3,9 +3,9 @@
 //! Provides IR remote configuration database and generation utilities
 //! for remote.conf (Amlogic) and .kl keylayout (Android) files.
 
+use crate::error::AppError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::error::AppError;
 
 #[allow(unused_imports)]
 use std::path::Path;
@@ -209,7 +209,7 @@ impl RemoteConfig {
     /// Generate Amlogic remote.conf content
     pub fn generate_remote_conf(&self) -> String {
         let mut output = String::new();
-        
+
         output.push_str(&format!("# Remote configuration for {}\n", self.name));
         output.push_str(&format!("# Source: {:?}\n", self.source));
         output.push_str("\n[factory_code]\n");
@@ -223,36 +223,28 @@ impl RemoteConfig {
         output.push_str("\n[release_delay]\n");
         output.push_str(&format!("release_delay = {}\n", self.release_delay));
         output.push_str("\n[key_begin]\n");
-        
+
         for (scancode, keycode) in &self.keymaps {
-            output.push_str(&format!(
-                "0x{:02X} {}\n",
-                scancode,
-                keycode.name()
-            ));
+            output.push_str(&format!("0x{:02X} {}\n", scancode, keycode.name()));
         }
-        
+
         output.push_str("[key_end]\n");
-        
+
         output
     }
 
     /// Generate Android Generic.kl keylayout content
     pub fn generate_keylayout(&self) -> String {
         let mut output = String::new();
-        
+
         output.push_str(&format!("# Android key layout for {}\n", self.name));
         output.push_str("# This file should be placed in /system/usr/keylayout/\n\n");
-        
+
         for keycode in self.keymaps.values() {
             let android_key = linux_to_android_key(keycode);
-            output.push_str(&format!(
-                "key {} {}\n",
-                keycode.as_u16(),
-                android_key
-            ));
+            output.push_str(&format!("key {} {}\n", keycode.as_u16(), android_key));
         }
-        
+
         output
     }
 }
@@ -321,10 +313,7 @@ impl RemoteConfigDatabase {
                 release_delay: 80,
                 keymaps: Self::h96_max_keymap(),
                 source: RemoteSource::Community,
-                compatible_devices: vec![
-                    "H96 Max".to_string(),
-                    "H96 Pro".to_string(),
-                ],
+                compatible_devices: vec!["H96 Max".to_string(), "H96 Pro".to_string()],
             },
             RemoteConfig {
                 name: "T95 Series Remote".to_string(),
@@ -353,7 +342,9 @@ impl RemoteConfigDatabase {
     /// Find a remote by name (case-insensitive partial match)
     pub fn find_by_name(&self, name: &str) -> Option<&RemoteConfig> {
         let lower = name.to_lowercase();
-        self.remotes.iter().find(|r| r.name.to_lowercase().contains(&lower))
+        self.remotes
+            .iter()
+            .find(|r| r.name.to_lowercase().contains(&lower))
     }
 
     /// Get all remote names
@@ -363,10 +354,9 @@ impl RemoteConfigDatabase {
 
     /// Load database from YAML file
     pub fn load_from_file(path: &Path) -> Result<Self, AppError> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| AppError::IoError(e.to_string()))?;
-        serde_yaml::from_str(&content)
-            .map_err(|e| AppError::ParseError(e.to_string()))
+        let content =
+            std::fs::read_to_string(path).map_err(|e| AppError::IoError(e.to_string()))?;
+        serde_yaml::from_str(&content).map_err(|e| AppError::ParseError(e.to_string()))
     }
 
     // Helper functions to create keymaps
@@ -440,7 +430,7 @@ mod tests {
         let db = RemoteConfigDatabase::default_database();
         let remote = db.find_by_name("X96").unwrap();
         let conf = remote.generate_remote_conf();
-        
+
         assert!(conf.contains("factory_code = 0x4040"));
         assert!(conf.contains("KEY_POWER"));
         assert!(conf.contains("[key_begin]"));
@@ -460,7 +450,7 @@ mod tests {
         let db = RemoteConfigDatabase::default_database();
         let remote = db.find_by_name("X96").unwrap();
         let kl = remote.generate_keylayout();
-        
+
         assert!(kl.contains("DPAD_CENTER") || kl.contains("POWER"));
     }
 }

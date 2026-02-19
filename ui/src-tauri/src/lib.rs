@@ -261,9 +261,11 @@ async fn cmd_allwinner_detect() -> Result<AllwinnerVersion, AppError> {
 #[tauri::command]
 #[instrument]
 async fn cmd_allwinner_parse_image(image_path: String) -> Result<AllwinnerImageHeader, AppError> {
-    tauri::async_runtime::spawn_blocking(move || AllwinnerImageHeader::parse(Path::new(&image_path)))
-        .await
-        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
+    tauri::async_runtime::spawn_blocking(move || {
+        AllwinnerImageHeader::parse(Path::new(&image_path))
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
@@ -402,24 +404,25 @@ async fn cmd_check_compatibility(
 
     let yaml = fs::read_to_string(&profile).await.map_err(AppError::from)?;
 
-    let report = tauri::async_runtime::spawn_blocking(move || -> Result<CompatibilityReport, AppError> {
-        DeviceConfig::validate_schema_yaml(&yaml)?;
-        let config = DeviceConfig::from_str(&yaml).map_err(AppError::from)?;
-        config.validate()?;
+    let report =
+        tauri::async_runtime::spawn_blocking(move || -> Result<CompatibilityReport, AppError> {
+            DeviceConfig::validate_schema_yaml(&yaml)?;
+            let config = DeviceConfig::from_str(&yaml).map_err(AppError::from)?;
+            config.validate()?;
 
-        let hardware = resolve_hardware_profile(&config);
-        let firmware_target = resolve_firmware_target(
-            Path::new(&firmware),
-            os.as_deref(),
-            version.as_deref(),
-            kernel.as_deref(),
-        )?;
+            let hardware = resolve_hardware_profile(&config);
+            let firmware_target = resolve_firmware_target(
+                Path::new(&firmware),
+                os.as_deref(),
+                version.as_deref(),
+                kernel.as_deref(),
+            )?;
 
-        let matrix = CompatibilityMatrix::default_matrix();
-        Ok(matrix.evaluate(hardware, firmware_target))
-    })
-    .await
-    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))??;
+            let matrix = CompatibilityMatrix::default_matrix();
+            Ok(matrix.evaluate(hardware, firmware_target))
+        })
+        .await
+        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))??;
 
     app.emit(
         "workflow:phase",
@@ -434,9 +437,11 @@ async fn cmd_check_compatibility(
 #[instrument]
 async fn cmd_security_scan(image_path: String) -> Result<SecurityReport, AppError> {
     info!("Starting security scan: {}", image_path);
-    tauri::async_runtime::spawn_blocking(move || SecurityScanner::scan_image(Path::new(&image_path)))
-        .await
-        .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
+    tauri::async_runtime::spawn_blocking(move || {
+        SecurityScanner::scan_image(Path::new(&image_path))
+    })
+    .await
+    .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))?
 }
 
 #[tauri::command]
@@ -460,23 +465,24 @@ async fn cmd_plan_patches(
 
     let (report, plan) = tauri::async_runtime::spawn_blocking(
         move || -> Result<(CompatibilityReport, PatchPlan), AppError> {
-        DeviceConfig::validate_schema_yaml(&yaml)?;
-        let config = DeviceConfig::from_str(&yaml).map_err(AppError::from)?;
-        config.validate()?;
+            DeviceConfig::validate_schema_yaml(&yaml)?;
+            let config = DeviceConfig::from_str(&yaml).map_err(AppError::from)?;
+            config.validate()?;
 
-        let hardware = resolve_hardware_profile(&config);
-        let firmware_target = resolve_firmware_target(
-            Path::new(&firmware),
-            os.as_deref(),
-            version.as_deref(),
-            kernel.as_deref(),
-        )?;
+            let hardware = resolve_hardware_profile(&config);
+            let firmware_target = resolve_firmware_target(
+                Path::new(&firmware),
+                os.as_deref(),
+                version.as_deref(),
+                kernel.as_deref(),
+            )?;
 
-        let matrix = CompatibilityMatrix::default_matrix();
-        let report = matrix.evaluate(hardware, firmware_target);
-        let plan = build_patch_plan(&report);
-        Ok((report, plan))
-    })
+            let matrix = CompatibilityMatrix::default_matrix();
+            let report = matrix.evaluate(hardware, firmware_target);
+            let plan = build_patch_plan(&report);
+            Ok((report, plan))
+        },
+    )
     .await
     .map_err(|e| AppError::Unknown(format!("Thread join error: {}", e)))??;
 
@@ -852,7 +858,8 @@ mod performance_test {
             let tar_gz = File::create(&archive_path).unwrap();
             let enc = flate2::write::GzEncoder::new(tar_gz, flate2::Compression::default());
             let mut tar = tar::Builder::new(enc);
-            tar.append_path_with_name(&large_file_path, "large_file.bin").unwrap();
+            tar.append_path_with_name(&large_file_path, "large_file.bin")
+                .unwrap();
             // finish() writes EOF blocks and returns inner writer (encoder) in recent versions if into_inner is used?
             // Actually tar::Builder::finish() does not return inner.
             // Correct way:
@@ -888,7 +895,9 @@ mod performance_test {
 
         info!("Starting extraction test...");
         // Call the command
-        cmd_extract_archive(archive_str, output_str).await.expect("Extraction failed");
+        cmd_extract_archive(archive_str, output_str)
+            .await
+            .expect("Extraction failed");
         info!("Extraction complete.");
 
         // Wait for one more tick to capture the latency
@@ -907,9 +916,13 @@ mod performance_test {
             }
         }
 
-        println!("Test stats: {} ticks monitored. Max latency: {:?}", count, max_latency);
+        println!(
+            "Test stats: {} ticks monitored. Max latency: {:?}",
+            count, max_latency
+        );
 
-        assert!(max_latency < Duration::from_millis(100),
+        assert!(
+            max_latency < Duration::from_millis(100),
             "Event loop blocked for too long! Max latency: {:?}. Expected < 100ms",
             max_latency
         );
@@ -918,7 +931,9 @@ mod performance_test {
     #[tokio::test]
     async fn test_cmd_get_system_info_performance() {
         let start = Instant::now();
-        let info = cmd_get_system_info().await.expect("cmd_get_system_info failed");
+        let info = cmd_get_system_info()
+            .await
+            .expect("cmd_get_system_info failed");
         let duration = start.elapsed();
         println!("cmd_get_system_info took {:?}", duration);
         assert!(!info.os.is_empty());
