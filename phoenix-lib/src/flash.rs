@@ -1,5 +1,6 @@
 use crate::error::AppError;
 use anyhow::Result;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::Command;
@@ -51,24 +52,15 @@ fn validate_target_device(device: &str) -> Result<(), AppError> {
 }
 
 fn is_system_device(path: &str) -> bool {
-    // /dev/sda and partitions (sda1, sda2...)
-    // Avoid blocking sdaa, sdab...
-    if path == "/dev/sda"
-        || (path.starts_with("/dev/sda")
-            && path.chars().nth(8).map_or(false, |c| c.is_ascii_digit()))
-    {
-        return true;
-    }
-
-    // /dev/nvme0n1 and partitions (nvme0n1p1, nvme0n1p2...)
-    if path == "/dev/nvme0n1"
-        || (path.starts_with("/dev/nvme0n1p")
-            && path.chars().nth(13).map_or(false, |c| c.is_ascii_digit()))
-    {
-        return true;
-    }
-
-    false
+    // We use a regex to identify common primary system drives and their partitions
+    // to prevent accidental overwriting of the host OS on Linux.
+    // - sda: Primary SATA/USB drive (blocks sda, sda1... but NOT sdb or sdaa)
+    // - vda: Primary VirtIO disk (common in VMs)
+    // - nvmeXnY: All NVMe namespaces and partitions (e.g., nvme0n1, nvme0n1p1)
+    // - mmcblkX: All EMMC/SD devices and partitions (e.g., mmcblk0, mmcblk0p1)
+    let re = Regex::new(r"^/dev/(sda[0-9]*|vda[0-9]*|nvme[0-9]+n[0-9]+(p[0-9]+)?|mmcblk[0-9]+(p[0-9]+)?)$")
+        .expect("Invalid system device regex");
+    re.is_match(path)
 }
 
 /// Flash progress information
@@ -159,20 +151,28 @@ mod tests {
         assert!(is_system_device("/dev/sda1"));
         assert!(is_system_device("/dev/sda15"));
 
+        assert!(is_system_device("/dev/vda"));
+        assert!(is_system_device("/dev/vda2"));
+
         assert!(is_system_device("/dev/nvme0n1"));
         // NVMe partitions usually follow p<digits> pattern
         assert!(is_system_device("/dev/nvme0n1p1"));
         assert!(is_system_device("/dev/nvme0n1p12"));
+        assert!(is_system_device("/dev/nvme1n1")); // Multiple NVMe slots
+
+        assert!(is_system_device("/dev/mmcblk0"));
+        assert!(is_system_device("/dev/mmcblk0p2"));
+        assert!(is_system_device("/dev/mmcblk1"));
 
         // Other devices should be safe
         assert!(!is_system_device("/dev/sdb"));
         assert!(!is_system_device("/dev/sdb1"));
+        assert!(!is_system_device("/dev/sdc"));
 
         // Similar prefixes but different devices
         assert!(!is_system_device("/dev/sdaa")); // 27th disk
         assert!(!is_system_device("/dev/sdaa1"));
-
-        assert!(!is_system_device("/dev/nvme1n1"));
+        assert!(!is_system_device("/dev/vdab"));
     }
 }
 
