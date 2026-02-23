@@ -68,7 +68,8 @@ fn extract_zip(file: BufReader<File>, destination: &Path) -> Result<(), AppError
                 }
             }
             let outfile = File::create(&outpath).map_err(|e| AppError::IoError(e.to_string()))?;
-            let mut outfile = BufWriter::new(outfile);
+            // Increase buffer to 1MB to reduce syscall overhead
+            let mut outfile = BufWriter::with_capacity(1024 * 1024, outfile);
             std::io::copy(&mut file, &mut outfile).map_err(|e| AppError::IoError(e.to_string()))?;
         }
     }
@@ -96,4 +97,37 @@ fn extract_targz(file: BufReader<File>, destination: &Path) -> Result<(), AppErr
 
     info!("Extracted tar.gz successfully to {:?}", destination);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::tempdir;
+    use zip::write::FileOptions;
+
+    #[test]
+    fn test_extract_zip() {
+        let dir = tempdir().unwrap();
+        let zip_path = dir.path().join("test.zip");
+        let extract_dir = dir.path().join("extracted");
+
+        // Create a zip file
+        {
+            let file = std::fs::File::create(&zip_path).unwrap();
+            let mut zip = zip::ZipWriter::new(file);
+            // use FileOptions::<()>::default() as per memory guidelines
+            let options = FileOptions::<()>::default().compression_method(zip::CompressionMethod::Stored);
+            zip.start_file("hello.txt", options).unwrap();
+            zip.write_all(b"Hello World").unwrap();
+            zip.finish().unwrap();
+        }
+
+        // Extract
+        extract_archive(&zip_path, &extract_dir).unwrap();
+
+        // Verify
+        let content = std::fs::read_to_string(extract_dir.join("hello.txt")).unwrap();
+        assert_eq!(content, "Hello World");
+    }
 }

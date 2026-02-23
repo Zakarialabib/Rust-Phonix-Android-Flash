@@ -79,7 +79,8 @@ pub async fn download_file(
     let file = File::create(destination)
         .await
         .context("Failed to create file")?;
-    let mut writer = BufWriter::new(file);
+    // Increase buffer to 1MB to reduce syscall overhead
+    let mut writer = BufWriter::with_capacity(1024 * 1024, file);
     let mut stream = response.bytes_stream();
     let mut hasher = Sha256::new();
 
