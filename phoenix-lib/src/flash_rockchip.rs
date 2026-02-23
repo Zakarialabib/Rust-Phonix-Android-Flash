@@ -791,6 +791,9 @@ impl RkImageHeader {
             .map(|m| m.len())
             .map_err(|e| AppError::IoError(format!("stat image: {}", e)))?;
 
+        // Buffer input to reduce read syscalls (1MB buffer) and hoist allocation outside loop
+        let mut reader = BufReader::with_capacity(1024 * 1024, &mut file);
+
         for entry in &self.entries {
             if entry.path == "SELF" {
                 continue;
@@ -822,12 +825,11 @@ impl RkImageHeader {
             // Buffer output to reduce syscalls (1MB buffer)
             let mut writer = BufWriter::with_capacity(1024 * 1024, f_out);
 
-            file.seek(SeekFrom::Start(off))
+            reader
+                .seek(SeekFrom::Start(off))
                 .map_err(|e| AppError::IoError(format!("Seek to entry {}: {}", entry.name, e)))?;
 
-            // Buffer input to reduce read syscalls (1MB buffer)
-            let reader = BufReader::with_capacity(1024 * 1024, &mut file);
-            let mut take = reader.take(sz);
+            let mut take = reader.by_ref().take(sz);
 
             std::io::copy(&mut take, &mut writer)
                 .map_err(|e| AppError::IoError(format!("Extract {}: {}", entry.path, e)))?;
