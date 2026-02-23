@@ -47,6 +47,7 @@ export const TopNav: Component = () => {
                         {(c) => (
                             <button
                                 onClick={() => setThemeColor(c.value)}
+                                aria-label={c.label}
                                 class={cn(
                                     "w-3 h-3 transition-ui hover:scale-125",
                                     c.bg,
@@ -61,6 +62,7 @@ export const TopNav: Component = () => {
                 {/* Theme Toggle */}
                 <button
                     onClick={() => setThemeMode(state.themeMode === 'dark' ? 'light' : 'dark')}
+                    aria-label={t('common.theme_toggle')}
                     class="p-2 border border-border-subtle bg-sidebar/20 hover:bg-accent/10 transition-ui text-text-muted hover:text-accent group rounded-none"
                     title={t('common.theme') || ''}
                 >

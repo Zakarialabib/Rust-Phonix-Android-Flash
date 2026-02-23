@@ -24,7 +24,8 @@ export const en = {
         warning: "Warning",
         success: "Success",
         loading: "Loading...",
-        explore: "Explore"
+        explore: "Explore",
+        theme_toggle: "Toggle Theme"
     },
     splash: {
         initializing: "INITIALIZING HYPERVISOR",
@@ -55,7 +56,9 @@ export const en = {
     sidebar: {
         workflow_protocol: "Workflow Protocol",
         low_level_hooks: "Low-Level Hooks",
-        system: "System"
+        system: "System",
+        expand: "Expand Sidebar",
+        collapse: "Collapse Sidebar"
     },
     error_page: {
         kernel_panic: "Kernel Panic",
