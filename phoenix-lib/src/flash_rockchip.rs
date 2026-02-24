@@ -18,10 +18,11 @@ use rusb::{DeviceHandle, GlobalContext};
 
 use crate::error::AppError;
 use crate::flash::{FlashProgress, ProgressCallback};
+pub use crate::hardware::vendor_ids::ROCKCHIP as ROCKCHIP_VID;
+use crate::hardware::{product_ids, vendor_ids};
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-pub const ROCKCHIP_VID: u16 = 0x2207;
 const RKFT_BLOCKSIZE: usize = 0x4000; // 16KB
 const RKFT_OFF_INCR: u32 = (RKFT_BLOCKSIZE >> 9) as u32; // 32 sectors
 const MAX_PARAM_LENGTH: usize = 128 * 512 - 12;
@@ -225,79 +226,79 @@ pub struct RockchipPid {
 
 pub const PID_TABLE: &[RockchipPid] = &[
     RockchipPid {
-        pid: 0x281a,
+        pid: product_ids::RK2818,
         name: "RK2818",
     },
     RockchipPid {
-        pid: 0x290a,
+        pid: product_ids::RK2918,
         name: "RK2918",
     },
     RockchipPid {
-        pid: 0x292a,
+        pid: product_ids::RK2928,
         name: "RK2928",
     },
     RockchipPid {
-        pid: 0x292c,
+        pid: product_ids::RK3026,
         name: "RK3026",
     },
     RockchipPid {
-        pid: 0x300a,
+        pid: product_ids::RK3066,
         name: "RK3066",
     },
     RockchipPid {
-        pid: 0x300b,
+        pid: product_ids::RK3168,
         name: "RK3168",
     },
     RockchipPid {
-        pid: 0x301a,
+        pid: product_ids::RK3036,
         name: "RK3036",
     },
     RockchipPid {
-        pid: 0x310b,
+        pid: product_ids::RK3188,
         name: "RK3188",
     },
     RockchipPid {
-        pid: 0x310c,
+        pid: product_ids::RK312X,
         name: "RK312X",
     },
     RockchipPid {
-        pid: 0x310d,
+        pid: product_ids::RK3126,
         name: "RK3126",
     },
     RockchipPid {
-        pid: 0x320a,
+        pid: product_ids::RK3288,
         name: "RK3288",
     },
     RockchipPid {
-        pid: 0x320b,
+        pid: product_ids::RK322X,
         name: "RK322X",
     },
     RockchipPid {
-        pid: 0x320c,
+        pid: product_ids::RK3328,
         name: "RK3328",
     },
     RockchipPid {
-        pid: 0x330a,
+        pid: product_ids::RK3368,
         name: "RK3368",
     },
     RockchipPid {
-        pid: 0x330c,
+        pid: product_ids::RK3399,
         name: "RK3399",
     },
     RockchipPid {
-        pid: 0x330e,
+        pid: product_ids::RK3308,
         name: "RK3308",
     },
     RockchipPid {
-        pid: 0x350a,
+        pid: product_ids::RK3568,
         name: "RK3568",
     },
     RockchipPid {
-        pid: 0x350b,
+        pid: product_ids::RK3588,
         name: "RK3588",
     },
     RockchipPid {
-        pid: 0x350c,
+        pid: product_ids::RK3528,
         name: "RK3528",
     },
 ];
