@@ -8,7 +8,7 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::time::Duration;
 use tracing::{debug, info, warn};
@@ -791,8 +791,9 @@ impl RkImageHeader {
             .map(|m| m.len())
             .map_err(|e| AppError::IoError(format!("stat image: {}", e)))?;
 
-        // Buffer input to reduce read syscalls (1MB buffer) and hoist allocation outside loop
-        let mut reader = BufReader::with_capacity(1024 * 1024, &mut file);
+        // Allocate a single 1MB buffer to reuse across all files, reducing memory allocations
+        // and syscalls. This avoids creating new BufReader/BufWriter for each entry.
+        let mut buffer = vec![0u8; 1024 * 1024];
 
         for entry in &self.entries {
             if entry.path == "SELF" {
@@ -819,24 +820,26 @@ impl RkImageHeader {
                     .map_err(|e| AppError::IoError(format!("mkdir: {}", e)))?;
             }
 
-            let f_out = std::fs::File::create(&out_path)
+            let mut f_out = std::fs::File::create(&out_path)
                 .map_err(|e| AppError::IoError(format!("create {}: {}", out_path.display(), e)))?;
 
-            // Buffer output to reduce syscalls (1MB buffer)
-            let mut writer = BufWriter::with_capacity(1024 * 1024, f_out);
-
-            reader
-                .seek(SeekFrom::Start(off))
+            file.seek(SeekFrom::Start(off))
                 .map_err(|e| AppError::IoError(format!("Seek to entry {}: {}", entry.name, e)))?;
 
-            let mut take = reader.by_ref().take(sz);
+            let mut remaining = sz;
+            while remaining > 0 {
+                let to_read = std::cmp::min(remaining, buffer.len() as u64) as usize;
+                let slice = &mut buffer[..to_read];
 
-            std::io::copy(&mut take, &mut writer)
-                .map_err(|e| AppError::IoError(format!("Extract {}: {}", entry.path, e)))?;
+                file.read_exact(slice)
+                    .map_err(|e| AppError::IoError(format!("Read {}: {}", entry.path, e)))?;
 
-            writer
-                .flush()
-                .map_err(|e| AppError::IoError(format!("Flush {}: {}", entry.path, e)))?;
+                f_out
+                    .write_all(slice)
+                    .map_err(|e| AppError::IoError(format!("Write {}: {}", entry.path, e)))?;
+
+                remaining -= to_read as u64;
+            }
 
             info!(
                 "  {:08x}-{:08x} {} ({} bytes)",
