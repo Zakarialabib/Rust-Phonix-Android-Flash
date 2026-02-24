@@ -32,11 +32,27 @@ pub mod product_ids {
     pub const AML_S912: u16 = 0xC004;
 
     // Rockchip
+    pub const RK2818: u16 = 0x281a;
+    pub const RK2918: u16 = 0x290a;
+    pub const RK2928: u16 = 0x292a;
+    pub const RK3026: u16 = 0x292c;
+    pub const RK3066: u16 = 0x300a;
+    pub const RK3168: u16 = 0x300b;
     pub const RK3036: u16 = 0x301A;
+    pub const RK3188: u16 = 0x310b;
+    pub const RK312X: u16 = 0x310c;
+    pub const RK3126: u16 = 0x310d;
+    pub const RK3288: u16 = 0x320a;
+    pub const RK322X: u16 = 0x320b;
     pub const RK3229: u16 = 0x320B;
     pub const RK3328: u16 = 0x320C;
     pub const RK3328_LOADER: u16 = 0x322A;
+    pub const RK3368: u16 = 0x330a;
     pub const RK3399: u16 = 0x330C;
+    pub const RK3308: u16 = 0x330e;
+    pub const RK3568: u16 = 0x350a;
+    pub const RK3588: u16 = 0x350b;
+    pub const RK3528: u16 = 0x350c;
 
     // Allwinner
     pub const H3: u16 = 0xEFE8;
