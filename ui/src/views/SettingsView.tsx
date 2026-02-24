@@ -63,6 +63,7 @@ export default function SettingsView() {
                   <For each={languages}>
                     {(l) => (
                       <button
+                        aria-pressed={state.language === l.value}
                         onClick={() => setLanguage(l.value)}
                         class={cn(
                           "px-6 py-2 text-left text-[10px] font-bold uppercase tracking-widest transition-all border",
@@ -83,6 +84,7 @@ export default function SettingsView() {
                 <label class="text-[9px] font-black text-text-muted uppercase tracking-widest">{t('settings.lbl_color')}</label>
                 <div class="flex gap-2">
                   <button
+                    aria-pressed={state.themeMode === 'dark'}
                     onClick={() => setThemeMode('dark')}
                     class={cn(
                       "flex-1 px-4 py-2 text-[10px] font-bold uppercase tracking-widest border transition-all",
@@ -92,6 +94,7 @@ export default function SettingsView() {
                     {t('settings.lbl_theme_dark')}
                   </button>
                   <button
+                    aria-pressed={state.themeMode === 'light'}
                     onClick={() => setThemeMode('light')}
                     class={cn(
                       "flex-1 px-4 py-2 text-[10px] font-bold uppercase tracking-widest border transition-all",
@@ -106,6 +109,8 @@ export default function SettingsView() {
                   <For each={colors}>
                     {(c) => (
                       <button
+                        aria-label={c.label}
+                        aria-pressed={state.themeColor === c.value}
                         onClick={() => setThemeColor(c.value)}
                         class={cn(
                           "aspect-square rounded-none border-2 transition-all flex items-center justify-center",
@@ -136,6 +141,7 @@ export default function SettingsView() {
                 <For each={['compact', 'normal', 'large'] as const}>
                   {(scale) => (
                     <button
+                      aria-pressed={state.uiScale === scale}
                       onClick={() => setUIScale(scale)}
                       class={cn(
                         "px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all border text-center flex items-center justify-center",
@@ -159,6 +165,7 @@ export default function SettingsView() {
                 <For each={['technical', 'modern', 'classic'] as const}>
                   {(style) => (
                     <button
+                      aria-pressed={state.typography === style}
                       onClick={() => setTypography(style)}
                       class={cn(
                         "px-4 py-2 text-left text-[10px] font-bold uppercase tracking-widest transition-all border flex justify-between items-center group",
