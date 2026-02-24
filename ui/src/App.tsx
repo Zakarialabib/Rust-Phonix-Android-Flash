@@ -118,6 +118,9 @@ function App() {
             <div class="flex h-16 items-center gap-3 border-b border-border-subtle px-6 shrink-0 bg-white/[0.01]">
               <button
                 onClick={() => setGlobalStore('sidebarCollapsed', !globalStore.sidebarCollapsed)}
+                aria-label={globalStore.sidebarCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
+                aria-expanded={!globalStore.sidebarCollapsed}
+                title={globalStore.sidebarCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
                 class="flex h-8 w-8 shrink-0 items-center justify-center bg-accent text-white font-black rounded-none hover:brightness-110 active:scale-95 transition-ui shadow-glow"
               >
                 P
