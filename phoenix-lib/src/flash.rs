@@ -174,6 +174,7 @@ mod tests {
         assert!(!is_system_device("/dev/sdaa1"));
         assert!(!is_system_device("/dev/vdab"));
     }
+
 }
 
 /// Flash an image to a target device asynchronously with progress reporting
@@ -207,7 +208,7 @@ pub async fn flash_image_async(
 
     // Create channels for pipelined reading/writing with buffer recycling
     // Capacity of 2 allows for double buffering (one being read, one being written)
-    let (tx, mut rx) = tokio::sync::mpsc::channel::<Result<Vec<u8>, AppError>>(2);
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<Result<(Vec<u8>, usize), AppError>>(2);
     let (recycle_tx, mut recycle_rx) = tokio::sync::mpsc::channel::<Vec<u8>>(2);
 
     // Pre-allocate 2 buffers and send them to the recycle channel
@@ -227,10 +228,8 @@ pub async fn flash_image_async(
             match f_in.read(&mut buffer).await {
                 Ok(0) => break, // EOF
                 Ok(n) => {
-                    // Truncate to actual data size
-                    buffer.truncate(n);
-                    // Send the data chunk
-                    if tx.send(Ok(buffer)).await.is_err() {
+                    // Send the buffer with valid length, avoid truncating
+                    if tx.send(Ok((buffer, n))).await.is_err() {
                         break; // Receiver dropped
                     }
                 }
@@ -248,14 +247,14 @@ pub async fn flash_image_async(
     let start_time = std::time::Instant::now();
 
     while let Some(result) = rx.recv().await {
-        let mut chunk = result?;
+        let (chunk, n) = result?;
 
         f_out
-            .write_all(&chunk)
+            .write_all(&chunk[..n])
             .await
             .map_err(|e| AppError::IoError(format!("Write error: {}", e)))?;
 
-        bytes_transferred += chunk.len() as u64;
+        bytes_transferred += n as u64;
 
         if let Some(ref cb) = progress {
             let elapsed = start_time.elapsed().as_secs_f64();
@@ -280,8 +279,7 @@ pub async fn flash_image_async(
         }
 
         // Recycle the buffer
-        // Resize back to 4MB capacity for the next read
-        chunk.resize(4 * 1024 * 1024, 0);
+        // It wasn't truncated, so it stays at full capacity/length without zeroing
         let _ = recycle_tx.send(chunk).await;
     }
 
