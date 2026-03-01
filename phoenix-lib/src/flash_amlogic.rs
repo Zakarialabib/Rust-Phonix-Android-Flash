@@ -346,7 +346,8 @@ impl AmlogicDevice {
 
         // 1. Create a temporary file for the key data
         let temp_dir = std::env::temp_dir();
-        let key_path = temp_dir.join(format!("phoenix_key_{}.bin", key_name));
+        let safe_key_name = sanitize_filename(key_name);
+        let key_path = temp_dir.join(format!("phoenix_key_{}.bin", safe_key_name));
         std::fs::write(&key_path, key_data)
             .map_err(|e| AppError::IoError(format!("Failed to write temp key file: {}", e)))?;
 
@@ -464,6 +465,24 @@ pub struct AmlogicPartitionEntry {
     pub verify: bool,
 }
 
+fn sanitize_filename(name: &str) -> String {
+    let mut result = String::with_capacity(name.len());
+    for c in name.chars() {
+        if c.is_alphanumeric() || c == '.' || c == '-' || c == '_' {
+            result.push(c);
+        } else {
+            result.push('_');
+        }
+    }
+
+    // Replace ".." with "__" to prevent traversal
+    let result = result.replace("..", "__");
+
+    result
+        .trim_matches(|c| c == '.' || c == '_' || c == ' ')
+        .to_string()
+}
+
 impl AmlogicImageHeader {
     /// Parse header from image file
     pub fn parse(image_path: &Path) -> Result<Self, AppError> {
@@ -510,7 +529,8 @@ impl AmlogicImageHeader {
             file.seek(SeekFrom::Start(part.offset))
                 .map_err(|e| AppError::IoError(format!("Seek failed: {}", e)))?;
 
-            let out_file_path = output_dir.join(format!("{}.img", part.name.replace("/", "_")));
+            let safe_name = sanitize_filename(&part.name);
+            let out_file_path = output_dir.join(format!("{}.img", safe_name));
             let mut out_file = File::create(&out_file_path)
                 .map_err(|e| AppError::IoError(format!("Create failed: {}", e)))?;
 
@@ -659,6 +679,22 @@ mod tests {
         assert_eq!(
             AmlogicPid::WorldCupDownload.name(),
             "World Cup Download Mode"
+        );
+    }
+
+    #[test]
+    fn test_sanitize_filename() {
+        assert_eq!(sanitize_filename("normal"), "normal");
+        assert_eq!(sanitize_filename("sub/dir"), "sub_dir");
+        assert_eq!(sanitize_filename("sub\\dir"), "sub_dir");
+        assert_eq!(sanitize_filename("../traversal"), "traversal");
+        assert_eq!(sanitize_filename("..\\traversal"), "traversal");
+        assert_eq!(sanitize_filename("..."), "");
+        assert_eq!(sanitize_filename(".hidden"), "hidden");
+        assert_eq!(sanitize_filename("file.ext."), "file.ext");
+        assert_eq!(
+            sanitize_filename("C:\\Windows\\System32"),
+            "C__Windows_System32"
         );
     }
 }
