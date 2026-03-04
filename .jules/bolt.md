@@ -17,3 +17,7 @@
 ## 2026-02-12 - [Buffered Writing in Asset Downloads]
 **Learning:** `download_file` in `phoenix-lib/src/assets.rs` was using unbuffered `tokio::fs::File::write_all` inside a loop receiving network chunks. This resulted in excessive syscalls for small chunks. Benchmark showed ~2x speedup by wrapping `File` in `tokio::io::BufWriter`.
 **Action:** Always wrap file writers in `BufWriter` when writing data in small or variable chunks, especially in async contexts where syscall overhead adds up.
+
+## 2026-03-04 - [Zip Archive Extraction Overhead]
+**Learning:** Extracting zip archives with many small files was slow due to `std::io::copy` combined with a `BufWriter` being allocated for every single file. Even without `BufWriter`, `std::io::copy` allocates an 8KB buffer internally. By hoisting a 1MB `Vec<u8>` buffer allocation outside the extraction loop and using manual `read`/`write_all`, I halved the extraction time by removing thousands of unnecessary allocations.
+**Action:** When extracting archives or processing many small files in a loop, always allocate your I/O buffer once outside the loop and manually read/write to reuse it, instead of using `std::io::copy` or per-file `BufWriter`s.
