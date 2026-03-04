@@ -1,7 +1,7 @@
 use crate::error::AppError;
 use flate2::read::GzDecoder;
 use std::fs::{self, File};
-use std::io::{BufReader, BufWriter};
+use std::io::BufReader;
 use std::path::Path;
 use tar::Archive;
 use tracing::info;
@@ -50,6 +50,10 @@ fn extract_zip(file: BufReader<File>, destination: &Path) -> Result<(), AppError
     let mut archive =
         ZipArchive::new(file).map_err(|e| AppError::IoError(format!("Invalid zip: {}", e)))?;
 
+    // Pre-allocate a single 1MB buffer outside the extraction loop to minimize memory
+    // allocations, avoiding the creation of a new BufWriter for every file in the archive.
+    let mut buffer = vec![0u8; 1024 * 1024];
+
     for i in 0..archive.len() {
         let mut file = archive
             .by_index(i)
@@ -67,10 +71,22 @@ fn extract_zip(file: BufReader<File>, destination: &Path) -> Result<(), AppError
                     fs::create_dir_all(p).map_err(|e| AppError::IoError(e.to_string()))?;
                 }
             }
-            let outfile = File::create(&outpath).map_err(|e| AppError::IoError(e.to_string()))?;
-            // Increase buffer to 1MB to reduce syscall overhead
-            let mut outfile = BufWriter::with_capacity(1024 * 1024, outfile);
-            std::io::copy(&mut file, &mut outfile).map_err(|e| AppError::IoError(e.to_string()))?;
+            let mut outfile = File::create(&outpath).map_err(|e| AppError::IoError(e.to_string()))?;
+
+            use std::io::ErrorKind;
+            use std::io::{Read, Write};
+            loop {
+                match file.read(&mut buffer) {
+                    Ok(0) => break,
+                    Ok(bytes_read) => {
+                        outfile
+                            .write_all(&buffer[..bytes_read])
+                            .map_err(|e| AppError::IoError(e.to_string()))?;
+                    }
+                    Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                    Err(e) => return Err(AppError::IoError(e.to_string())),
+                }
+            }
         }
     }
 
