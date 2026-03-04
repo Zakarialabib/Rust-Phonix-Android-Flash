@@ -1,4 +1,4 @@
-import { JSX, ParentComponent, splitProps } from 'solid-js';
+import { JSX, ParentComponent, splitProps, createUniqueId } from 'solid-js';
 import { cn } from '../../lib/utils';
 
 interface SelectProps extends JSX.SelectHTMLAttributes<HTMLSelectElement> {
@@ -7,18 +7,24 @@ interface SelectProps extends JSX.SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select: ParentComponent<SelectProps> = (props) => {
-  const [local, others] = splitProps(props, ['label', 'error', 'class', 'children']);
+  const [local, others] = splitProps(props, ['label', 'error', 'class', 'children', 'id']);
+  const defaultId = createUniqueId();
+  const id = () => local.id || defaultId;
+  const errorId = () => `${id()}-error`;
 
   return (
     <div class="w-full space-y-1.5">
       {local.label && (
-        <label class="block text-[10px] font-mono font-black text-text-muted uppercase tracking-[0.2em]">
+        <label for={id()} class="block text-[10px] font-mono font-black text-text-muted uppercase tracking-[0.2em]">
           {local.label}
         </label>
       )}
       <div class="relative group">
         <select
           {...others}
+          id={id()}
+          aria-invalid={!!local.error}
+          aria-describedby={local.error ? errorId() : undefined}
           class={cn(
             "w-full appearance-none rounded-none border bg-sidebar/50 px-4 py-3 text-xs font-mono text-text-primary transition-ui focus:outline-none focus:ring-1 font-bold",
             local.error
@@ -35,7 +41,15 @@ export const Select: ParentComponent<SelectProps> = (props) => {
           </svg>
         </div>
       </div>
-      {local.error && <span class="block text-[10px] font-mono font-black text-red-500 uppercase tracking-widest">{local.error}</span>}
+      {local.error && (
+        <span
+          id={errorId()}
+          role="alert"
+          class="block text-[10px] font-mono font-black text-red-500 uppercase tracking-widest"
+        >
+          {local.error}
+        </span>
+      )}
     </div>
   );
 };
