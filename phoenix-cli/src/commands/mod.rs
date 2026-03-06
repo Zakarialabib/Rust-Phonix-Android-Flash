@@ -51,14 +51,14 @@ pub async fn run(command: Commands) -> anyhow::Result<()> {
             kernel,
             format,
         } => {
-            check::run(
-                &profile,
-                &firmware,
-                os.as_deref(),
-                version.as_deref(),
-                kernel.as_deref(),
-                &format,
-            )
+            check::run(check::CheckOptions {
+                profile: &profile,
+                firmware: &firmware,
+                os_type: os.as_deref(),
+                version: version.as_deref(),
+                kernel: kernel.as_deref(),
+                format: &format,
+            })
             .await
         }
         Commands::Patch { action } => patch::run(action).await,
