@@ -733,7 +733,7 @@ async fn cmd_forensics_deep_scan(device: Option<String>) -> Result<ForensicsRepo
 #[instrument]
 async fn cmd_list_remote_configs() -> Result<Vec<RemoteConfig>, AppError> {
     let db = RemoteConfigDatabase::default_database();
-    Ok(db.remotes)
+    Ok(db.remotes.clone())
 }
 
 #[tauri::command]
