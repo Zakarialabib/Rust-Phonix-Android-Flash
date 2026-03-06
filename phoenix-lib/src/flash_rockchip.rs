@@ -487,12 +487,21 @@ impl RkParameter {
         let re = Regex::new(
             r"(?P<size>(?:0x[0-9a-fA-F]+|-))@(?P<offset>0x[0-9a-fA-F]+)\((?P<name>[^)]+)\)",
         )
-        .unwrap();
+        .map_err(|e| AppError::ParseError(format!("Invalid regex: {}", e)))?;
 
         for caps in re.captures_iter(entries) {
-            let size_str = caps.name("size").unwrap().as_str();
-            let offset_str = caps.name("offset").unwrap().as_str();
-            let name_and_flags = caps.name("name").unwrap().as_str();
+            let size_str = match caps.name("size") {
+                Some(m) => m.as_str(),
+                None => continue,
+            };
+            let offset_str = match caps.name("offset") {
+                Some(m) => m.as_str(),
+                None => continue,
+            };
+            let name_and_flags = match caps.name("name") {
+                Some(m) => m.as_str(),
+                None => continue,
+            };
 
             // Split name and flags
             let (name, _flags) = if let Some((n, _f)) = name_and_flags.split_once(':') {
@@ -1817,5 +1826,15 @@ CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),0x00002000@0x00004000(t
         assert_eq!(e.offset, 2);
         assert_eq!(e.size, 0x1000);
         assert_eq!(e.file_size, 0x1000);
+    }
+
+    #[test]
+    fn test_parameter_parse_malformed_mtdparts() {
+        let content = "CMDLINE:mtdparts=rk29xxnand:0x00002000@0x00002000(uboot),invalid_part,0x00002000@0x00004000(trust)\n";
+        let params = RkParameter::parse(content).unwrap();
+        // It should still parse the valid ones and ignore the invalid one
+        assert_eq!(params.partitions.len(), 2);
+        assert_eq!(params.partitions[0].name, "uboot");
+        assert_eq!(params.partitions[1].name, "trust");
     }
 }
