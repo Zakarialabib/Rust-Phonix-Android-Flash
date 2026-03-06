@@ -8,14 +8,24 @@ use phoenix_lib::compatibility::{
 use phoenix_lib::config::DeviceConfig;
 use phoenix_lib::workflow::{Phase, PhaseStatus};
 
-pub async fn run(
-    profile: &str,
-    firmware: &str,
-    os_type: Option<&str>,
-    version: Option<&str>,
-    kernel: Option<&str>,
-    format: &str,
-) -> Result<()> {
+pub struct CheckOptions<'a> {
+    pub profile: &'a str,
+    pub firmware: &'a str,
+    pub os_type: Option<&'a str>,
+    pub version: Option<&'a str>,
+    pub kernel: Option<&'a str>,
+    pub format: &'a str,
+}
+
+pub async fn run(options: CheckOptions<'_>) -> Result<()> {
+    let CheckOptions {
+        profile,
+        firmware,
+        os_type,
+        version,
+        kernel,
+        format,
+    } = options;
     phase::emit(Phase::Check, PhaseStatus::Started, None);
     let config = DeviceConfig::from_file(profile)?;
     config
