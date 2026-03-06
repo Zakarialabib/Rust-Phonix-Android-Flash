@@ -1,3 +1,0 @@
-## 2024-05-18 - Avoid repeated allocations with LazyLock in Rust
-**Learning:** `RemoteConfigDatabase::default_database()` recreated a large static `Vec` of `RemoteConfig` and `HashMap`s with string values every single time it was called, resulting in completely unnecessary heap allocations. This represents an anti-pattern in Rust where static data is built repeatedly.
-**Action:** Used `std::sync::LazyLock` (available since Rust 1.80) to initialize the database *once* on first use and return a `&'static RemoteConfigDatabase` reference instead. This converts a linear-cost allocation call into a negligible atomic read cost. Update dependent crates (like Tauri bindings) to `.clone()` the required parts at the boundary where needed instead of moving data.
