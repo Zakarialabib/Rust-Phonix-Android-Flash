@@ -71,7 +71,8 @@ fn extract_zip(file: BufReader<File>, destination: &Path) -> Result<(), AppError
                     fs::create_dir_all(p).map_err(|e| AppError::IoError(e.to_string()))?;
                 }
             }
-            let mut outfile = File::create(&outpath).map_err(|e| AppError::IoError(e.to_string()))?;
+            let mut outfile =
+                File::create(&outpath).map_err(|e| AppError::IoError(e.to_string()))?;
 
             use std::io::ErrorKind;
             use std::io::{Read, Write};
@@ -133,7 +134,8 @@ mod tests {
             let file = std::fs::File::create(&zip_path).unwrap();
             let mut zip = zip::ZipWriter::new(file);
             // use FileOptions::<()>::default() as per memory guidelines
-            let options = FileOptions::<()>::default().compression_method(zip::CompressionMethod::Stored);
+            let options =
+                FileOptions::<()>::default().compression_method(zip::CompressionMethod::Stored);
             zip.start_file("hello.txt", options).unwrap();
             zip.write_all(b"Hello World").unwrap();
             zip.finish().unwrap();
