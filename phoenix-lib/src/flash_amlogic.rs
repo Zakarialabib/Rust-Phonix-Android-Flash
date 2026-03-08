@@ -581,9 +581,7 @@ impl KeysProvider {
 
             if line.starts_with('[') && line.ends_with(']') {
                 current_section = line[1..line.len() - 1].to_string();
-                self.config
-                    .entry(current_section.clone())
-                    .or_default();
+                self.config.entry(current_section.clone()).or_default();
             } else if let Some(idx) = line.find('=') {
                 let key = line[0..idx].trim().to_string();
                 let value = line[idx + 1..].trim().to_string();

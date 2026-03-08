@@ -58,9 +58,13 @@ fn is_system_device(path: &str) -> bool {
     // - vda: Primary VirtIO disk (common in VMs)
     // - nvmeXnY: All NVMe namespaces and partitions (e.g., nvme0n1, nvme0n1p1)
     // - mmcblkX: All EMMC/SD devices and partitions (e.g., mmcblk0, mmcblk0p1)
-    let re = Regex::new(r"^/dev/(sda[0-9]*|vda[0-9]*|nvme[0-9]+n[0-9]+(p[0-9]+)?|mmcblk[0-9]+(p[0-9]+)?)$")
-        .expect("Invalid system device regex");
-    re.is_match(path)
+    static SYSTEM_DEVICE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+        Regex::new(
+            r"^/dev/(sda[0-9]*|vda[0-9]*|nvme[0-9]+n[0-9]+(p[0-9]+)?|mmcblk[0-9]+(p[0-9]+)?)$",
+        )
+        .expect("Invalid system device regex")
+    });
+    SYSTEM_DEVICE_REGEX.is_match(path)
 }
 
 /// Flash progress information
@@ -174,7 +178,6 @@ mod tests {
         assert!(!is_system_device("/dev/sdaa1"));
         assert!(!is_system_device("/dev/vdab"));
     }
-
 }
 
 /// Flash an image to a target device asynchronously with progress reporting

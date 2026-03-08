@@ -293,50 +293,51 @@ impl RemoteConfigDatabase {
         // ⚡ Bolt: Use LazyLock to initialize the default database only once.
         // This avoids recreating a large Vec/HashMap with Strings on every call,
         // reducing access time significantly by returning a static reference.
-        static DEFAULT_DB: std::sync::LazyLock<RemoteConfigDatabase> = std::sync::LazyLock::new(|| {
-            let remotes = vec![
-                RemoteConfig {
-                    name: "X96 Mini Remote".to_string(),
-                    factory_code: 0x4040,
-                    protocol: "NEC".to_string(),
-                    repeat_period: 125,
-                    release_delay: 80,
-                    keymaps: RemoteConfigDatabase::x96_mini_keymap(),
-                    source: RemoteSource::Community,
-                    compatible_devices: vec![
-                        "X96 Mini".to_string(),
-                        "X96".to_string(),
-                        "TX3 Mini".to_string(),
-                    ],
-                },
-                RemoteConfig {
-                    name: "H96 Max Remote".to_string(),
-                    factory_code: 0x4444,
-                    protocol: "NEC".to_string(),
-                    repeat_period: 125,
-                    release_delay: 80,
-                    keymaps: RemoteConfigDatabase::h96_max_keymap(),
-                    source: RemoteSource::Community,
-                    compatible_devices: vec!["H96 Max".to_string(), "H96 Pro".to_string()],
-                },
-                RemoteConfig {
-                    name: "T95 Series Remote".to_string(),
-                    factory_code: 0x00FF,
-                    protocol: "NEC".to_string(),
-                    repeat_period: 125,
-                    release_delay: 80,
-                    keymaps: RemoteConfigDatabase::t95_keymap(),
-                    source: RemoteSource::Community,
-                    compatible_devices: vec![
-                        "T95 Max".to_string(),
-                        "T95 Z Plus".to_string(),
-                        "T95K Pro".to_string(),
-                    ],
-                },
-            ];
+        static DEFAULT_DB: std::sync::LazyLock<RemoteConfigDatabase> =
+            std::sync::LazyLock::new(|| {
+                let remotes = vec![
+                    RemoteConfig {
+                        name: "X96 Mini Remote".to_string(),
+                        factory_code: 0x4040,
+                        protocol: "NEC".to_string(),
+                        repeat_period: 125,
+                        release_delay: 80,
+                        keymaps: RemoteConfigDatabase::x96_mini_keymap(),
+                        source: RemoteSource::Community,
+                        compatible_devices: vec![
+                            "X96 Mini".to_string(),
+                            "X96".to_string(),
+                            "TX3 Mini".to_string(),
+                        ],
+                    },
+                    RemoteConfig {
+                        name: "H96 Max Remote".to_string(),
+                        factory_code: 0x4444,
+                        protocol: "NEC".to_string(),
+                        repeat_period: 125,
+                        release_delay: 80,
+                        keymaps: RemoteConfigDatabase::h96_max_keymap(),
+                        source: RemoteSource::Community,
+                        compatible_devices: vec!["H96 Max".to_string(), "H96 Pro".to_string()],
+                    },
+                    RemoteConfig {
+                        name: "T95 Series Remote".to_string(),
+                        factory_code: 0x00FF,
+                        protocol: "NEC".to_string(),
+                        repeat_period: 125,
+                        release_delay: 80,
+                        keymaps: RemoteConfigDatabase::t95_keymap(),
+                        source: RemoteSource::Community,
+                        compatible_devices: vec![
+                            "T95 Max".to_string(),
+                            "T95 Z Plus".to_string(),
+                            "T95K Pro".to_string(),
+                        ],
+                    },
+                ];
 
-            RemoteConfigDatabase { remotes }
-        });
+                RemoteConfigDatabase { remotes }
+            });
 
         &DEFAULT_DB
     }
