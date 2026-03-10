@@ -1031,6 +1031,15 @@ impl RockchipDevice {
         Ok(())
     }
 
+    fn recv_buf_into(&self, buf: &mut [u8]) -> Result<(), AppError> {
+        #[cfg(feature = "usb")]
+        if let Some(h) = &self.handle {
+            h.read_bulk(1 | 0x80, buf, self.timeout)
+                .map_err(|e| AppError::HardwareError(format!("recv_buf_into: {}", e)))?;
+        }
+        Ok(())
+    }
+
     fn recv_buf(&self, size: usize) -> Result<Vec<u8>, AppError> {
         let mut buf = vec![0u8; size];
         #[cfg(feature = "usb")]
@@ -1119,17 +1128,21 @@ impl RockchipDevice {
 
     /// Read LBA sectors
     pub fn read_lba(&self, offset: u32, count: u32) -> Result<Vec<u8>, AppError> {
-        let mut result = Vec::new();
+        // ⚡ Bolt: Optimize read_lba by directly reading into a pre-allocated vector.
+        // This eliminates the repeated memory allocations and slicing operations in the original loop.
+        let mut result = vec![0u8; (count as usize) * 512];
         let mut off = offset;
         let mut remaining = count;
+        let mut pos = 0;
         while remaining > 0 {
             let n = std::cmp::min(remaining, RKFT_OFF_INCR);
+            let chunk_size = n as usize * 512;
             self.send_cmd(RockusbCmd::ReadLBA, off, n as u16)?;
-            let chunk = self.recv_buf(n as usize * 512)?;
+            self.recv_buf_into(&mut result[pos..pos + chunk_size])?;
             self.recv_res()?;
-            result.extend_from_slice(&chunk);
             off += n;
             remaining -= n;
+            pos += chunk_size;
         }
         Ok(result)
     }
