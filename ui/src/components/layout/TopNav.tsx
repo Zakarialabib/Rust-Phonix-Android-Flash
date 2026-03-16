@@ -75,13 +75,18 @@ export const TopNav: Component = () => {
 
                 {/* Language Selector */}
                 <div class="relative group">
-                    <button class="flex items-center gap-3 px-4 py-2 bg-sidebar/30 hover:bg-sidebar/50 border border-border-subtle rounded-none transition-ui hover:border-accent/40 group">
+                    <button
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        aria-label={t('common.language')}
+                        class="flex items-center gap-3 px-4 py-2 bg-sidebar/30 hover:bg-sidebar/50 border border-border-subtle rounded-none transition-ui hover:border-accent/40 group"
+                    >
                         <span class="text-[9px] font-black uppercase tracking-widest text-text-muted group-hover:text-accent transition-colors">
                             {state.language}
                         </span>
                     </button>
 
-                    <div class="absolute right-0 top-full mt-0 bg-sidebar border border-border-subtle shadow-2xl rounded-none overflow-hidden opacity-0 scale-95 invisible group-hover:opacity-100 group-hover:visible group-hover:scale-100 transition-ui z-20 min-w-[140px] border-t-0">
+                    <div class="absolute right-0 top-full mt-0 bg-sidebar border border-border-subtle shadow-2xl rounded-none overflow-hidden opacity-0 scale-95 invisible group-hover:opacity-100 group-hover:visible group-hover:scale-100 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:scale-100 transition-ui z-20 min-w-[140px] border-t-0">
                         <div class="p-1 flex flex-col">
                             <For each={languages}>
                                 {(l) => (
