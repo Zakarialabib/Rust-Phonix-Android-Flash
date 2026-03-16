@@ -69,21 +69,51 @@ impl BackupManager {
             .await
             .map_err(|e| AppError::IoError(e.to_string()))?;
 
-        let mut buffer = vec![0u8; 4 * 1024 * 1024]; // 4MB buffer
-        loop {
-            let n = input_file
-                .read(&mut buffer)
-                .await
-                .map_err(|e| AppError::IoError(format!("Read failed: {}", e)))?;
+        // ⚡ Bolt: Pipeline I/O reads and writes using double buffering.
+        // This producer-consumer pattern uses channels to prevent leaving
+        // the storage bus idle during sequential await calls.
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<Result<(Vec<u8>, usize), AppError>>(2);
+        let (recycle_tx, mut recycle_rx) = tokio::sync::mpsc::channel::<Vec<u8>>(2);
 
-            if n == 0 {
-                break;
+        // Pre-allocate 2 buffers and send them to the recycle channel
+        for _ in 0..2 {
+            recycle_tx.send(vec![0u8; 4 * 1024 * 1024]).await.ok();
+        }
+
+        tokio::spawn(async move {
+            loop {
+                let mut buffer = match recycle_rx.recv().await {
+                    Some(b) => b,
+                    None => break, // Writer closed or finished
+                };
+
+                match input_file.read(&mut buffer).await {
+                    Ok(0) => break, // EOF
+                    Ok(n) => {
+                        if tx.send(Ok((buffer, n))).await.is_err() {
+                            break; // Receiver dropped
+                        }
+                    }
+                    Err(e) => {
+                        let _ = tx
+                            .send(Err(AppError::IoError(format!("Read failed: {}", e))))
+                            .await;
+                        break;
+                    }
+                }
             }
+        });
+
+        while let Some(result) = rx.recv().await {
+            let (chunk, n) = result?;
 
             output_file
-                .write_all(&buffer[..n])
+                .write_all(&chunk[..n])
                 .await
                 .map_err(|e| AppError::IoError(format!("Write failed: {}", e)))?;
+
+            // Recycle the buffer
+            let _ = recycle_tx.send(chunk).await;
         }
 
         output_file
