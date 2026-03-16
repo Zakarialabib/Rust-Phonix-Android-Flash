@@ -481,9 +481,8 @@ boot:
   reference_dtb: "test.dtb"
 "#;
         let result = DeviceConfig::validate_schema_yaml(yaml);
-        assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .expect_err("Validation should fail for missing top-level property")
             .to_string()
             .contains("\"device\" is a required property"));
     }
@@ -504,9 +503,8 @@ boot:
   reference_dtb: "test.dtb"
 "#;
         let result = DeviceConfig::validate_schema_yaml(yaml);
-        assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .expect_err("Validation should fail for missing nested property")
             .to_string()
             .contains("\"soc\" is a required property"));
     }
@@ -528,9 +526,8 @@ boot:
   reference_dtb: "test.dtb"
 "#;
         let result = DeviceConfig::validate_schema_yaml(yaml);
-        assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .expect_err("Validation should fail for value below minimum")
             .to_string()
             .contains("0 is less than the minimum of 1"));
     }
@@ -552,8 +549,9 @@ boot:
   reference_dtb: "test.dtb"
 "#;
         let result = DeviceConfig::validate_schema_yaml(yaml);
-        assert!(result.is_err());
-        let err = result.unwrap_err().to_string();
+        let err = result
+            .expect_err("Validation should fail for empty name")
+            .to_string();
         println!("Error: {}", err);
         assert!(err.contains("shorter than 1") || err.contains("length"));
     }
@@ -575,9 +573,8 @@ boot:
   reference_dtb: "test.dtb"
 "#;
         let result = DeviceConfig::validate_schema_yaml(yaml);
-        assert!(result.is_err());
         assert!(result
-            .unwrap_err()
+            .expect_err("Validation should fail for type mismatch")
             .to_string()
             .contains("is not of type \"number\""));
     }

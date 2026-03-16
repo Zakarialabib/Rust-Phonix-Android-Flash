@@ -203,19 +203,28 @@ impl HardwareProfile {
         let pcb_variant = if config.device.variant.is_empty() {
             PcbVariant::Unknown("unknown".to_string())
         } else {
-            PcbVariant::from_str(&config.device.variant).unwrap()
+            // PcbVariant::from_str returns Infallible error, so unwrap is technically safe
+            // but we use expect for better code health.
+            PcbVariant::from_str(&config.device.variant)
+                .expect("PcbVariant::from_str should not fail")
         };
 
-        let ram_vendor = RamVendor::from_str(&config.hardware.memory.chip).unwrap();
+        // RamVendor::from_str returns Infallible error
+        let ram_vendor = RamVendor::from_str(&config.hardware.memory.chip)
+            .expect("RamVendor::from_str should not fail");
         let wifi_chip = config
             .hardware
             .wifi
             .as_ref()
-            .map(|wifi| WifiChip::from_str(&wifi.chip).unwrap())
+            .map(|wifi| {
+                // WifiChip::from_str returns Infallible error
+                WifiChip::from_str(&wifi.chip).expect("WifiChip::from_str should not fail")
+            })
             .unwrap_or_else(|| WifiChip::Unknown("unknown".to_string()));
 
         HardwareProfile {
-            soc: SoC::from_str(&config.device.soc).unwrap(),
+            // SoC::from_str returns Infallible error
+            soc: SoC::from_str(&config.device.soc).expect("SoC::from_str should not fail"),
             pcb_variant,
             ram_vendor,
             wifi_chip,
@@ -253,7 +262,8 @@ impl FirmwareTarget {
             .unwrap_or_default();
 
         let os_type = match os_override {
-            Some(value) => OsType::from_str(value).unwrap(),
+            // OsType::from_str returns Infallible error
+            Some(value) => OsType::from_str(value).expect("OsType::from_str should not fail"),
             None => infer_os_type(file_name),
         };
 
