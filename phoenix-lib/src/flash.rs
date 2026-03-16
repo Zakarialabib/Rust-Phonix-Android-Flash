@@ -39,7 +39,7 @@ fn validate_target_device(device: &str) -> Result<(), AppError> {
         // Linux-specific system drive protection
         #[cfg(target_os = "linux")]
         {
-            if is_system_device(&path_str) {
+            if is_system_device(&path_str)? {
                 return Err(AppError::ValidationError(
                     "Operation on primary system drive and its partitions is restricted."
                         .to_string(),
@@ -51,20 +51,23 @@ fn validate_target_device(device: &str) -> Result<(), AppError> {
     Ok(())
 }
 
-fn is_system_device(path: &str) -> bool {
+fn is_system_device(path: &str) -> Result<bool, AppError> {
     // We use a regex to identify common primary system drives and their partitions
     // to prevent accidental overwriting of the host OS on Linux.
     // - sda: Primary SATA/USB drive (blocks sda, sda1... but NOT sdb or sdaa)
     // - vda: Primary VirtIO disk (common in VMs)
     // - nvmeXnY: All NVMe namespaces and partitions (e.g., nvme0n1, nvme0n1p1)
     // - mmcblkX: All EMMC/SD devices and partitions (e.g., mmcblk0, mmcblk0p1)
-    static SYSTEM_DEVICE_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-        Regex::new(
-            r"^/dev/(sda[0-9]*|vda[0-9]*|nvme[0-9]+n[0-9]+(p[0-9]+)?|mmcblk[0-9]+(p[0-9]+)?)$",
-        )
-        .expect("Invalid system device regex")
-    });
-    SYSTEM_DEVICE_REGEX.is_match(path)
+    static SYSTEM_DEVICE_REGEX: std::sync::LazyLock<Result<Regex, regex::Error>> =
+        std::sync::LazyLock::new(|| {
+            Regex::new(
+                r"^/dev/(sda[0-9]*|vda[0-9]*|nvme[0-9]+n[0-9]+(p[0-9]+)?|mmcblk[0-9]+(p[0-9]+)?)$",
+            )
+        });
+    SYSTEM_DEVICE_REGEX
+        .as_ref()
+        .map(|re| re.is_match(path))
+        .map_err(|e| AppError::ParseError(format!("Invalid system device regex: {}", e)))
 }
 
 /// Flash progress information
@@ -151,32 +154,32 @@ mod tests {
     #[test]
     fn test_is_system_device() {
         // System drives and partitions should be detected
-        assert!(is_system_device("/dev/sda"));
-        assert!(is_system_device("/dev/sda1"));
-        assert!(is_system_device("/dev/sda15"));
+        assert!(is_system_device("/dev/sda").unwrap());
+        assert!(is_system_device("/dev/sda1").unwrap());
+        assert!(is_system_device("/dev/sda15").unwrap());
 
-        assert!(is_system_device("/dev/vda"));
-        assert!(is_system_device("/dev/vda2"));
+        assert!(is_system_device("/dev/vda").unwrap());
+        assert!(is_system_device("/dev/vda2").unwrap());
 
-        assert!(is_system_device("/dev/nvme0n1"));
+        assert!(is_system_device("/dev/nvme0n1").unwrap());
         // NVMe partitions usually follow p<digits> pattern
-        assert!(is_system_device("/dev/nvme0n1p1"));
-        assert!(is_system_device("/dev/nvme0n1p12"));
-        assert!(is_system_device("/dev/nvme1n1")); // Multiple NVMe slots
+        assert!(is_system_device("/dev/nvme0n1p1").unwrap());
+        assert!(is_system_device("/dev/nvme0n1p12").unwrap());
+        assert!(is_system_device("/dev/nvme1n1").unwrap()); // Multiple NVMe slots
 
-        assert!(is_system_device("/dev/mmcblk0"));
-        assert!(is_system_device("/dev/mmcblk0p2"));
-        assert!(is_system_device("/dev/mmcblk1"));
+        assert!(is_system_device("/dev/mmcblk0").unwrap());
+        assert!(is_system_device("/dev/mmcblk0p2").unwrap());
+        assert!(is_system_device("/dev/mmcblk1").unwrap());
 
         // Other devices should be safe
-        assert!(!is_system_device("/dev/sdb"));
-        assert!(!is_system_device("/dev/sdb1"));
-        assert!(!is_system_device("/dev/sdc"));
+        assert!(!is_system_device("/dev/sdb").unwrap());
+        assert!(!is_system_device("/dev/sdb1").unwrap());
+        assert!(!is_system_device("/dev/sdc").unwrap());
 
         // Similar prefixes but different devices
-        assert!(!is_system_device("/dev/sdaa")); // 27th disk
-        assert!(!is_system_device("/dev/sdaa1"));
-        assert!(!is_system_device("/dev/vdab"));
+        assert!(!is_system_device("/dev/sdaa").unwrap()); // 27th disk
+        assert!(!is_system_device("/dev/sdaa1").unwrap());
+        assert!(!is_system_device("/dev/vdab").unwrap());
     }
 }
 
