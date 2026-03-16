@@ -3,7 +3,7 @@
 use crate::cli::RemoteAction;
 use anyhow::Result;
 use phoenix_lib::remote_config::RemoteConfigDatabase;
-use std::fs;
+use tokio::fs;
 use tracing::info;
 
 pub async fn run(action: RemoteAction) -> Result<()> {
@@ -57,7 +57,7 @@ pub async fn generate_conf(name: &str, output: &str) -> Result<()> {
     if output == "-" {
         println!("{}", content);
     } else {
-        fs::write(output, &content)?;
+        fs::write(output, &content).await?;
         info!("Generated remote.conf: {}", output);
         println!("✅ Generated {} for '{}'", output, remote.name);
     }
@@ -78,7 +78,7 @@ pub async fn generate_keylayout(name: &str, output: &str) -> Result<()> {
     if output == "-" {
         println!("{}", content);
     } else {
-        fs::write(output, &content)?;
+        fs::write(output, &content).await?;
         info!("Generated keylayout: {}", output);
         println!("✅ Generated {} for '{}'", output, remote.name);
     }
