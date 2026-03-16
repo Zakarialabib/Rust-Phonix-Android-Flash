@@ -1,0 +1,3 @@
+## 2024-05-24 - [Asynchronous Pipeline Optimization]
+**Learning:** Asynchronous file I/O operations in `phoenix-lib` (e.g., in `backup.rs`) achieve maximum throughput by using a pipelined producer-consumer pattern via `tokio::sync::mpsc::channel` with buffer recycling (double buffering), which avoids leaving storage buses idle during sequential await calls.
+**Action:** When implementing or modifying asynchronous I/O loops that involve sequential read and write operations, convert them to use a `tokio::spawn` task for reading and channels with buffer recycling to ensure high performance and non-blocking I/O.
