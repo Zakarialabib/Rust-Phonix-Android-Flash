@@ -1,5 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    phoenix_gui::run();
+    if let Err(e) = phoenix_gui::run() {
+        eprintln!("Fatal error while running tauri application: {}", e);
+        std::process::exit(1);
+    }
 }

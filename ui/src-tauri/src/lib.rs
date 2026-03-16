@@ -769,7 +769,7 @@ async fn cmd_get_firmware_recommendations(
     Ok(get_recommendations(&profile))
 }
 
-pub fn run() {
+pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
 
@@ -822,8 +822,9 @@ pub fn run() {
             cmd_allwinner_parse_image,
             cmd_allwinner_flash_image,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .run(tauri::generate_context!())?;
+
+    Ok(())
 }
 
 #[cfg(test)]

@@ -484,14 +484,18 @@ impl RkParameter {
         // Size can be '-' for "grow to end"
         // Example: 0x00002000@0x00004000(loader2)
         // Example: -@0x0040000(rootfs:grow)
-        static PARTITION_REGEX: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-            Regex::new(
-                r"(?P<size>(?:0x[0-9a-fA-F]+|-))@(?P<offset>0x[0-9a-fA-F]+)\((?P<name>[^)]+)\)",
-            )
-            .expect("Invalid partition regex")
-        });
+        static PARTITION_REGEX: std::sync::LazyLock<Result<Regex, regex::Error>> =
+            std::sync::LazyLock::new(|| {
+                Regex::new(
+                    r"(?P<size>(?:0x[0-9a-fA-F]+|-))@(?P<offset>0x[0-9a-fA-F]+)\((?P<name>[^)]+)\)",
+                )
+            });
 
-        for caps in PARTITION_REGEX.captures_iter(entries) {
+        let regex = PARTITION_REGEX
+            .as_ref()
+            .map_err(|e| AppError::ParseError(format!("Invalid partition regex: {}", e)))?;
+
+        for caps in regex.captures_iter(entries) {
             let size_str = match caps.name("size") {
                 Some(m) => m.as_str(),
                 None => continue,
