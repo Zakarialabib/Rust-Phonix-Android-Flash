@@ -70,12 +70,6 @@ Run the bootstrap script to set up Rust, Node.js, and dependencies:
 .\scripts\bootstrap.ps1 -Gui
 ```
 
-### Linux / macOS
-```bash
-chmod +x scripts/bootstrap.sh
-./scripts/bootstrap.sh --gui
-```
-
 ### Running Manually
 ```bash
 cd ui
@@ -103,7 +97,6 @@ npm run tauri dev
 | **Q1 2026** | **Universal Support** | Text-based config profiles, full Rockchip/Allwinner support. |
 | **Q2 2026** | **Modding Tools** | Image unpack/repack, "Phoenix Forge" for custom ROMs. |
 | **Q3 2026** | **Security** | "Phoenix Doctor" malware scanner, RAM verification. |
-| **Q4 2026** | **Cloud** | Firmware repo integration, profile sharing. |
 
 ---
 
@@ -112,8 +105,6 @@ npm run tauri dev
 **Creator & Lead Developer**  
 **Zakaria Labib** ([@zakarialabib](https://github.com/zakarialabib))
 
-**Core Contributors**
-*   [Phoenix Team](https://github.com/phoenix-arm)
 
 We welcome contributions! Please see our [Contribution Guide](docs/guides/Community%20Contribution%20Guide.md).
 
