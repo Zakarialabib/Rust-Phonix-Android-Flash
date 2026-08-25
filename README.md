@@ -1,4 +1,4 @@
-# Phoenix Tools (Phoenix-ARM)
+# Rust Phoenix Android Tools 
 
 ![Version](https://img.shields.io/badge/version-0.1.0--alpha-blue.svg?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-green.svg?style=for-the-badge)
@@ -7,7 +7,7 @@
 
 > **"Hardware liberation should be as easy as installing Ubuntu on a laptop."**
 
-**Phoenix Tools** is an open-source circular computing platform that transforms e-waste (abandoned Android TV boxes) into secure, sovereign infrastructure. It is not just a flashing tool; it is a complete ecosystem where heterogenous ARM hardware becomes a unified compute fabric.
+**Rust Phoenix Android Tools** is an open-source circular computing platform that transforms e-waste (abandoned Android TV boxes) into secure, sovereign infrastructure. It is not just a flashing tool; it is a complete ecosystem where heterogenous ARM hardware becomes a unified compute fabric.
 
 ---
 
